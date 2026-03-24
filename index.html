@@ -83,9 +83,9 @@
 
   /* 등급 배지 */
   .rank { font-size:11px; padding:2px 8px; border-radius:10px; }
-  .rank-군단장     { background:#003322; color:var(--gold-l); border:1px solid var(--gold-d); }
-  .rank-엘리트장교 { background:#1a1e2a; color:#7aacec; border:1px solid #2a3a5a; }
-  .rank-군단병     { background:#1a1a1a; color:var(--muted); border:1px solid var(--border); }
+  .rank-군단장     { background:linear-gradient(135deg,#002a1a,#003a22); color:var(--gold-l); border:1px solid var(--gold-d); font-weight:700; }
+  .rank-엘리트장교 { background:linear-gradient(135deg,#141a2e,#1a2238); color:#7aacec; border:1px solid #2a3a6a; font-weight:600; }
+  .rank-군단병     { background:#181818; color:#8a8a9a; border:1px solid #2a2a3a; }
 
   /* 필터 */
   .filter-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
@@ -215,10 +215,10 @@
       <div class="stat-card"><div class="stat-label">모집 공고</div><div class="stat-value" id="stat-recruit">—</div><div class="stat-sub">진행 중</div></div>
       <div class="stat-card"><div class="stat-label">레기온 등급</div><div class="stat-value" style="color:var(--gold-l)">S</div><div class="stat-sub">시즌 기준</div></div>
     </div>
-    <div style="display:grid;grid-template-columns:2fr 3fr;gap:20px;margin-bottom:20px;align-items:start;">
-      <div>
+    <div style="display:grid;grid-template-columns:2fr 3fr;gap:20px;margin-bottom:20px;align-items:stretch;">
+      <div style="display:flex;flex-direction:column;">
         <div class="section-title">스펙 TOP 5</div>
-        <div class="table-wrap"><table><thead><tr><th>#</th><th>닉네임</th><th>직업</th><th>전투력</th></tr></thead><tbody id="top5-body"></tbody></table></div>
+        <div class="table-wrap" style="flex:1;"><table><thead><tr><th>#</th><th>닉네임</th><th>직업</th><th>전투력</th></tr></thead><tbody id="top5-body"></tbody></table></div>
       </div>
       <div style="display:flex;flex-direction:column;height:100%;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
@@ -448,7 +448,27 @@ let sortBy  = 'rank';
 let sortAsc = false;
 
 // ─── Firebase 구독 ──────────────────────
+// 구버전 계급 마이그레이션 (일반→군단병, 부마스터→엘리트장교, 마스터→군단장)
+const RANK_MIGRATE = {'일반':'군단병','부마스터':'엘리트장교','마스터':'군단장'};
+async function migrateRanks() {
+  const snap = await db.collection('members').get();
+  const batch = db.batch();
+  let count = 0;
+  snap.docs.forEach(doc => {
+    const rank = doc.data().rank;
+    if(RANK_MIGRATE[rank]) {
+      batch.update(doc.ref, { rank: RANK_MIGRATE[rank] });
+      count++;
+    }
+  });
+  if(count > 0) {
+    await batch.commit();
+    console.log(`계급 마이그레이션 완료: ${count}명`);
+  }
+}
+
 function initFirebase() {
+  migrateRanks(); // 구버전 계급 자동 변환
   db.collection('members').orderBy('combat_power','desc')
     .onSnapshot(snap => {
       members = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -936,7 +956,9 @@ function renderMembers() {
     (mFilter==='all'||(CLASS_MAP[m.class]||m.class)===mFilter) &&
     (m.nickname||'').toLowerCase().includes(search)
   ));
-  const rankCls = r => r==='군단장'?'rank-군단장':r==='엘리트장교'?'rank-엘리트장교':'rank-군단병';
+  const rankMigrate = r => RANK_MIGRATE[r] || r;
+  const rankCls = r => { const rr = rankMigrate(r); return rr==='군단장'?'rank-군단장':rr==='엘리트장교'?'rank-엘리트장교':'rank-군단병'; };
+  const rankLabel = r => rankMigrate(r) || '군단병';
   const fmtTime = iso => { if(!iso) return '—'; const d=new Date(iso); return `${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
   const gradeColors = {Common:'#aaaaaa',Rare:'#4a90e8',Hero:'#d44040',Epic:'#d44040',Unique:'#e8c030',Legendary:'#ff6a20',Special:'#40d4c0'};
   const equips = eq => (eq||[]).slice(0,3).map(e=>
@@ -957,7 +979,7 @@ function renderMembers() {
     return `<tr style="${isSub?'background:rgba(0,0,0,.12);':''}">
       <td style="font-weight:600;white-space:nowrap;">${prefix}${m.nickname}${subMark}</td>
       <td style="white-space:nowrap;"><span class="cls cls-${CLASS_MAP[m.class]||m.class||''}">${(CLS_ICON[CLASS_MAP[m.class]||m.class]||'')} ${CLASS_MAP[m.class]||m.class||'?'}</span></td>
-      <td style="white-space:nowrap;">${isSub ? '' : `<span class="rank ${rankCls(m.rank||'군단병')}">${m.rank||'군단병'}</span>`}</td>
+      <td style="white-space:nowrap;">${isSub ? '' : `<span class="rank ${rankCls(m.rank||'군단병')}">${rankLabel(m.rank||'군단병')}</span>`}</td>
       <td>${cpBar(m.combat_power)}</td>
       <td style="white-space:nowrap;">${m.item_level||'—'}</td>
       <td><div class="equip-list">${equips(m.equipment)}</div></td>
