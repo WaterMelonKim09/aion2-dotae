@@ -596,6 +596,11 @@ async function syncAllMembers() {
 }
 
 // ─── 상세 보기 ────────────────────────────
+function openDetailById(id) {
+  const m = members.find(x => x.id === id);
+  if(m) openDetail(m);
+}
+
 function openDetail(m) {
   const el = document.getElementById('modal-detail');
 
@@ -883,7 +888,7 @@ function renderMembers() {
     const lastSync = m.last_synced ? `<span style="font-size:10px;color:var(--muted);margin-left:6px;white-space:nowrap;">${fmtTime(m.last_synced)}</span>` : '';
     const subMark = isSub ? `<span style="font-size:10px;color:var(--muted);margin-left:4px;border:1px solid var(--border);border-radius:3px;padding:1px 4px;">부캐</span>` : '';
     const prefix = isSub ? '└ ' : '';
-    const mData = JSON.stringify(m).replace(/\/g,'\\').replace(/'/g,"&#39;");
+    const mId = m.id;
     return `<tr style="${isSub?'background:rgba(0,0,0,.12);':''}">
       <td style="font-weight:600;white-space:nowrap;">${prefix}${m.nickname}${subMark}</td>
       <td style="white-space:nowrap;"><span class="cls cls-${CLASS_MAP[m.class]||m.class||''}">${CLS_ICON[CLASS_MAP[m.class]||m.class]||''} ${CLASS_MAP[m.class]||m.class||'?'}</span></td>
