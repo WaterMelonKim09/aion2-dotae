@@ -261,7 +261,14 @@
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>닉네임</th><th>직업</th><th>등급</th><th>전투력</th><th style="white-space:nowrap;">아이템레벨</th><th>장비</th><th>갱신</th><th>관리</th></tr></thead>
+        <thead><tr>
+  <th><span onclick="setSortBy('nickname')" style="cursor:pointer;user-select:none;">닉네임 <span id="sort-nickname"></span></span></th>
+  <th><span onclick="setSortBy('class')" style="cursor:pointer;user-select:none;">직업 <span id="sort-class"></span></span></th>
+  <th><span onclick="setSortBy('rank')" style="cursor:pointer;user-select:none;">계급 <span id="sort-rank"></span></span></th>
+  <th><span onclick="setSortBy('combat_power')" style="cursor:pointer;user-select:none;">전투력 <span id="sort-combat_power"></span></span></th>
+  <th style="white-space:nowrap;"><span onclick="setSortBy('item_level')" style="cursor:pointer;user-select:none;">아이템레벨 <span id="sort-item_level"></span></span></th>
+  <th>장비</th><th>갱신</th><th>관리</th>
+</tr></thead>
         <tbody id="member-body"></tbody>
       </table>
     </div>
@@ -294,7 +301,7 @@
   <input type="hidden" id="reg-server" value="2001">
         </div>
         <div class="form-row">
-          <div class="form-group">
+          <div class="form-group" id="rank-group">
             <label class="form-label">계급</label>
             <select class="form-select" id="reg-rank">
               <option>군단병</option><option>엘리트장교</option><option>군단장</option>
@@ -437,6 +444,8 @@ let rFilter  = 'all';
 let pieChart = null;
 let distView = 'pie';
 let syncingIds = new Set();
+let sortBy  = 'rank';
+let sortAsc = false;
 
 // ─── Firebase 구독 ──────────────────────
 function initFirebase() {
@@ -451,6 +460,45 @@ function initFirebase() {
       renderRecruit();
       document.getElementById('stat-recruit').textContent = recruits.length;
     });
+}
+
+// 계급 순서
+const RANK_ORDER = {'군단장':0,'엘리트장교':1,'군단병':2,'':3};
+
+function setSortBy(col) {
+  if(sortBy === col) sortAsc = !sortAsc;
+  else { sortBy = col; sortAsc = col === 'nickname'; }
+  // 아이콘 업데이트
+  ['nickname','class','rank','combat_power','item_level'].forEach(c => {
+    const el = document.getElementById('sort-'+c);
+    if(!el) return;
+    if(c === sortBy) el.textContent = sortAsc ? '▲' : '▼';
+    else el.textContent = '';
+  });
+  renderMembers();
+}
+
+function sortMembers(arr) {
+  return [...arr].sort((a, b) => {
+    let av, bv;
+    if(sortBy === 'rank') {
+      av = RANK_ORDER[a.rank||''] ?? 3;
+      bv = RANK_ORDER[b.rank||''] ?? 3;
+    } else if(sortBy === 'nickname') {
+      av = (a.nickname||'').localeCompare(b.nickname||'', 'ko');
+      return sortAsc ? av : -av;
+    } else if(sortBy === 'class') {
+      av = (CLASS_MAP[a.class]||a.class||'').localeCompare(CLASS_MAP[b.class]||b.class||'', 'ko');
+      return sortAsc ? av : -av;
+    } else {
+      av = a[sortBy]||0; bv = b[sortBy]||0;
+    }
+    if(av !== bv) return sortAsc ? av-bv : bv-av;
+    // 같으면 전투력 → 아이템레벨 → 닉네임 순
+    if(a.combat_power !== b.combat_power) return (b.combat_power||0)-(a.combat_power||0);
+    if(a.item_level !== b.item_level) return (b.item_level||0)-(a.item_level||0);
+    return (a.nickname||'').localeCompare(b.nickname||'', 'ko');
+  });
 }
 
 function renderAll() {
@@ -505,8 +553,9 @@ async function fetchAndRegister() {
     if(!isMain && playerIdEl && !playerIdEl.value.trim()) {
       toast('본캐 닉네임을 입력해주세요'); btn.disabled=false; btn.textContent='닉네임으로 스펙 불러와서 등록'; return;
     }
+    const finalRank = isMain ? rank : '';
     await db.collection('members').doc(nickname+'_'+serverId).set({
-      nickname, server: serverId, rank, intro,
+      nickname, server: serverId, rank: finalRank, intro,
       is_main: isMain, player_id: playerId,
       class:        cls,
       level:        data.level        || 0,
@@ -883,10 +932,10 @@ function renderRecentRecruit() {
 
 function renderMembers() {
   const search = (document.getElementById('member-search')||{value:''}).value.toLowerCase();
-  const filtered = members.filter(m =>
+  const filtered = sortMembers(members.filter(m =>
     (mFilter==='all'||(CLASS_MAP[m.class]||m.class)===mFilter) &&
     (m.nickname||'').toLowerCase().includes(search)
-  );
+  ));
   const rankCls = r => r==='군단장'?'rank-군단장':r==='엘리트장교'?'rank-엘리트장교':'rank-군단병';
   const fmtTime = iso => { if(!iso) return '—'; const d=new Date(iso); return `${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
   const gradeColors = {Common:'#aaaaaa',Rare:'#4a90e8',Hero:'#d44040',Epic:'#d44040',Unique:'#e8c030',Legendary:'#ff6a20',Special:'#40d4c0'};
@@ -908,7 +957,7 @@ function renderMembers() {
     return `<tr style="${isSub?'background:rgba(0,0,0,.12);':''}">
       <td style="font-weight:600;white-space:nowrap;">${prefix}${m.nickname}${subMark}</td>
       <td style="white-space:nowrap;"><span class="cls cls-${CLASS_MAP[m.class]||m.class||''}">${(CLS_ICON[CLASS_MAP[m.class]||m.class]||'')} ${CLASS_MAP[m.class]||m.class||'?'}</span></td>
-      <td style="white-space:nowrap;"><span class="rank ${rankCls(m.rank||'군단병')}">${m.rank||'군단병'}</span></td>
+      <td style="white-space:nowrap;">${isSub ? '' : `<span class="rank ${rankCls(m.rank||'군단병')}">${m.rank||'군단병'}</span>`}</td>
       <td>${cpBar(m.combat_power)}</td>
       <td style="white-space:nowrap;">${m.item_level||'—'}</td>
       <td><div class="equip-list">${equips(m.equipment)}</div></td>
@@ -1079,10 +1128,14 @@ function toast(msg) {
 const regIsMainEl = document.getElementById('reg-is-main');
 if(regIsMainEl) {
   regIsMainEl.addEventListener('change', function() {
+    const isSub = this.value === 'false';
     const pg = document.getElementById('player-id-group');
-    if(pg) pg.style.display = this.value === 'false' ? '' : 'none';
+    if(pg) pg.style.display = isSub ? '' : 'none';
     const rp = document.getElementById('reg-player-id');
-    if(rp && this.value === 'true') rp.value = '';
+    if(rp && !isSub) rp.value = '';
+    // 부캐면 계급 숨기기
+    const rankGroup = document.getElementById('rank-group');
+    if(rankGroup) rankGroup.style.display = isSub ? 'none' : '';
   });
 }
 
@@ -1095,6 +1148,11 @@ document.getElementById('modal-detail').addEventListener('click', function(e) {
 });
 
 // 마지막 탭 복원
+// 초기 정렬 아이콘
+setTimeout(() => {
+  const el = document.getElementById('sort-rank');
+  if(el) el.textContent = '▼';
+}, 100);
 const savedTab = localStorage.getItem('activeTab');
 if(savedTab) showTab(savedTab);
 
