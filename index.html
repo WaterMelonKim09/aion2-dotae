@@ -77,11 +77,11 @@
   .bar-bg  { flex:1; height:4px; background:var(--border); border-radius:2px; min-width:60px; }
   .bar-fill { height:100%; border-radius:2px; background:var(--gold); }
 
-  /* 등급 배지 */
+  /* 계급 배지 */
   .rank { font-size:11px; padding:2px 8px; border-radius:10px; }
-  .rank-마스터   { background:#2a1e00; color:var(--gold-l); border:1px solid var(--gold-d); }
-  .rank-부마스터 { background:#1a1e2a; color:#7aacec; border:1px solid #2a3a5a; }
-  .rank-일반     { background:#1a1a1a; color:var(--muted); border:1px solid var(--border); }
+  .rank-군단장   { background:#2a1e00; color:var(--gold-l); border:1px solid var(--gold-d); }
+  .rank-엘리트장교 { background:#1a1e2a; color:#7aacec; border:1px solid #2a3a5a; }
+  .rank-군단병     { background:#1a1a1a; color:var(--muted); border:1px solid var(--border); }
 
   /* 필터 */
   .filter-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
@@ -360,7 +360,7 @@
   <div class="modal">
     <div class="modal-title">멤버 관리</div>
     <input type="hidden" id="edit-id">
-    <div class="form-group"><label class="form-label">등급 변경</label><select class="form-select" id="edit-rank"><option>일반</option><option>부마스터</option><option>마스터</option></select></div>
+    <div class="form-group"><label class="form-label">계급 변경</label><select class="form-select" id="edit-rank"><option>군단병</option><option>엘리트장교</option><option>군단장</option></select></div>
     <div class="modal-foot">
       <button class="btn btn-danger" onclick="deleteMember()">멤버 삭제</button>
       <button class="btn" onclick="closeModal('modal-edit')">취소</button>
