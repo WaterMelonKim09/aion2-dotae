@@ -202,6 +202,7 @@
   <button class="nav-btn active" onclick="showTab('dashboard')">대시보드</button>
   <button class="nav-btn" onclick="showTab('members')">멤버 스펙</button>
   <button class="nav-btn" onclick="showTab('recruit')">파티 모집</button>
+  <button class="nav-btn" onclick="showTab('timer')">보스 타이머</button>
   <button class="nav-btn" onclick="showTab('register')">멤버 등록</button>
 </div>
 
@@ -286,6 +287,24 @@
       <button class="btn btn-primary" onclick="openModal('recruit')">+ 모집 등록</button>
     </div>
     <div class="recruit-grid" id="recruit-grid"></div>
+  </div>
+
+  <!-- 보스 타이머 -->
+  <div id="tab-timer" class="tab-content">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div class="section-title" style="margin:0">🔔 보스 타이머</div>
+      <div style="font-size:12px;color:var(--muted);">킬 시간을 기록하면 자동으로 리젠 카운트다운이 시작돼요</div>
+    </div>
+
+    <!-- 종족 필터 -->
+    <div class="filter-row" style="margin-bottom:16px;">
+      <button class="chip active" onclick="setBossFilter('all',this)">전체</button>
+      <button class="chip" onclick="setBossFilter('천족',this)">천족</button>
+      <button class="chip" onclick="setBossFilter('마족',this)">마족</button>
+      <button class="chip" onclick="setBossFilter('어비스',this)">어비스</button>
+    </div>
+
+    <div id="boss-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;"></div>
   </div>
 
   <!-- 멤버 등록 -->
@@ -502,6 +521,7 @@ async function migrateRanks() {
 
 function initFirebase() {
   migrateRanks(); // 구버전 계급 자동 변환
+  initBossTimers(); // 보스 타이머 구독
   db.collection('members').orderBy('combat_power','desc')
     .onSnapshot(snap => {
       members = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -1286,7 +1306,7 @@ function showTab(id) {
   document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('tab-'+id).classList.add('active');
-  ['dashboard','members','recruit','register'].forEach((t,i)=>{ if(t===id) document.querySelectorAll('.nav-btn')[i].classList.add('active'); });
+  ['dashboard','members','recruit','timer','register'].forEach((t,i)=>{ if(t===id) document.querySelectorAll('.nav-btn')[i].classList.add('active'); });
   localStorage.setItem('activeTab', id);
 }
 function openModal(id) { 
@@ -1330,6 +1350,155 @@ document.getElementById('detail-close-btn').addEventListener('click', function()
 document.getElementById('modal-detail').addEventListener('click', function(e) {
   if(e.target === this) this.classList.remove('open');
 });
+
+// ─── 보스 타이머 ────────────────────────────
+const BOSSES = [
+  // 천족
+  {id:'kermon',   name:'서쪽의 케르논',   zone:'칸타스 계곡',      race:'천족', respawn:60},
+  {id:'neikel',   name:'동쪽의 네이켈',   zone:'칸타스 계곡',      race:'천족', respawn:60},
+  {id:'kutar',    name:'썩은 쿠타르',     zone:'엘룬강 늪지',      race:'천족', respawn:60},
+  {id:'korin',    name:'만개한 코린',     zone:'엘룬강 중류',      race:'천족', respawn:120},
+  {id:'tigan',    name:'호위병 티간트',   zone:'요새 폐허',        race:'천족', respawn:60},
+  {id:'mosav',    name:'수확관리자 모샤브',zone:'아르타미아 고원',   race:'천족', respawn:360},
+  {id:'kusan',    name:'광투사 쿠산',     zone:'아르타미아 고원',   race:'천족', respawn:360},
+  {id:'garsim',   name:'제사장 가르심',   zone:'아르타미아 고원',   race:'천족', respawn:360},
+  {id:'birota',   name:'방랑 비로타',     zone:'톨바스 숲 동부',   race:'천족', respawn:720},
+  // 마족
+  {id:'ragta',    name:'군단장 라그타',   zone:'드레드기온 추락지', race:'마족', respawn:720},
+  {id:'varak',    name:'흉폭한 바라크',   zone:'드레드기온 추락지', race:'마족', respawn:60},
+  {id:'grom',     name:'전사 그롬',       zone:'이름없는 묘지',    race:'마족', respawn:60},
+  {id:'shakar',   name:'마수 샤카르',     zone:'드레드기온 고원',   race:'마족', respawn:360},
+  {id:'veda',     name:'사제장 베다',     zone:'드레드기온 고원',   race:'마족', respawn:360},
+  // 어비스
+  {id:'nahma',    name:'수호신장 나흐마', zone:'어비스',           race:'어비스', respawn:10080, special:'매주 일요일'},
+  {id:'tarha',    name:'심연의 타르하',   zone:'어비스 중심부',    race:'어비스', respawn:1440},
+];
+
+let bossFilter = 'all';
+let bossTimers = {}; // { id: { killTime, intervalId } }
+let bossData = {}; // Firebase에서 로드
+
+function setBossFilter(f, el) {
+  bossFilter = f;
+  document.querySelectorAll('#tab-timer .chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderBossGrid();
+}
+
+function fmtCountdown(ms) {
+  if(ms <= 0) return '<span style="color:var(--green);font-weight:700;">리젠!</span>';
+  const s = Math.floor(ms/1000);
+  const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+}
+
+function renderBossGrid() {
+  const list = bossFilter === 'all' ? BOSSES : BOSSES.filter(b => b.race === bossFilter);
+  const el = document.getElementById('boss-grid');
+  if(!el) return;
+
+  el.innerHTML = list.map(b => {
+    const data = bossData[b.id] || {};
+    const killTime = data.killTime || null;
+    const respawnMs = b.respawn * 60 * 1000;
+    const now = Date.now();
+    const remaining = killTime ? (killTime + respawnMs) - now : null;
+    const isDone = remaining !== null && remaining <= 0;
+    const pct = killTime ? Math.max(0, Math.min(100, ((now - killTime) / respawnMs) * 100)) : 0;
+
+    const raceColor = b.race === '천족' ? '#7ab8cc' : b.race === '마족' ? '#c87a7a' : '#c8a040';
+    const statusColor = !killTime ? 'var(--muted)' : isDone ? 'var(--green)' : 'var(--gold-l)';
+
+    return `<div class="card" style="padding:14px;" id="boss-card-${b.id}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+        <div>
+          <div style="font-size:14px;font-weight:700;">${b.name}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">${b.zone}</div>
+        </div>
+        <span style="font-size:10px;padding:2px 7px;border-radius:10px;background:${raceColor}22;color:${raceColor};border:1px solid ${raceColor}55;">${b.race}</span>
+      </div>
+
+      <!-- 진행 바 -->
+      <div style="background:var(--border);border-radius:3px;height:4px;margin-bottom:10px;overflow:hidden;">
+        <div style="height:100%;width:${pct}%;background:${isDone?'var(--green)':'var(--gold)'};border-radius:3px;transition:width .5s;"></div>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div>
+          <div style="font-size:11px;color:var(--muted);">리젠까지</div>
+          <div style="font-size:18px;font-weight:700;color:${statusColor};font-family:monospace;" id="timer-${b.id}">
+            ${killTime ? fmtCountdown(remaining) : '--:--:--'}
+          </div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:11px;color:var(--muted);">주기</div>
+          <div style="font-size:13px;font-weight:600;">${b.respawn >= 1440 ? Math.floor(b.respawn/1440)+'일' : b.respawn >= 60 ? Math.floor(b.respawn/60)+'시간' : b.respawn+'분'}</div>
+        </div>
+      </div>
+
+      ${killTime ? `<div style="font-size:11px;color:var(--muted);margin-bottom:8px;">킬 시간: ${new Date(killTime).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}</div>` : ''}
+
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-primary btn-sm" style="flex:1;" onclick="recordKill('${b.id}')">지금 잡았어요</button>
+        ${killTime ? `<button class="btn btn-sm btn-danger" onclick="clearKill('${b.id}')">초기화</button>` : ''}
+      </div>
+      ${b.special ? `<div style="font-size:11px;color:var(--gold);margin-top:6px;">⚠ ${b.special}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+async function recordKill(bossId) {
+  const killTime = Date.now();
+  await db.collection('boss_timers').doc(bossId).set({ killTime, updatedAt: new Date().toISOString() });
+  toast('킬 시간 기록 완료! ✓');
+}
+
+async function clearKill(bossId) {
+  await db.collection('boss_timers').doc(bossId).delete();
+  toast('초기화 완료');
+}
+
+// Firebase 보스 타이머 구독
+function initBossTimers() {
+  db.collection('boss_timers').onSnapshot(snap => {
+    bossData = {};
+    snap.docs.forEach(d => { bossData[d.id] = d.data(); });
+    renderBossGrid();
+  });
+
+  // 1초마다 카운트다운 업데이트
+  setInterval(() => {
+    BOSSES.forEach(b => {
+      const el = document.getElementById('timer-' + b.id);
+      if(!el) return;
+      const data = bossData[b.id] || {};
+      const killTime = data.killTime || null;
+      if(!killTime) { el.innerHTML = '--:--:--'; return; }
+      const remaining = (killTime + b.respawn * 60 * 1000) - Date.now();
+      el.innerHTML = fmtCountdown(remaining);
+      el.style.color = remaining <= 0 ? 'var(--green)' : remaining < 300000 ? 'var(--red)' : 'var(--gold-l)';
+
+      // 진행 바 업데이트
+      const card = document.getElementById('boss-card-' + b.id);
+      if(card) {
+        const bar = card.querySelector('[style*="transition:width"]');
+        const pct = Math.max(0, Math.min(100, ((Date.now() - killTime) / (b.respawn * 60000)) * 100));
+        if(bar) bar.style.width = pct + '%';
+      }
+
+      // 리젠 알림
+      if(remaining > 0 && remaining < 1100 && Notification.permission === 'granted') {
+        const boss = BOSSES.find(x => x.id === b.id);
+        new Notification(`🔔 ${boss?.name} 리젠 임박!`, { body: '곧 스폰됩니다!' });
+      }
+    });
+  }, 1000);
+
+  // 알림 권한 요청
+  if(Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+}
 
 // 마지막 탭 복원
 // 초기 정렬 아이콘
