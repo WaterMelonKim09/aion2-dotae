@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>아이온2 도태 — 레기온 관리</title>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<style>
+  :root {
+    --bg:#0d0f14; --surface:#151820; --card:#1a1e28; --border:#2a2f3d;
+    --gold:#c9932a; --gold-l:#e8b84b; --gold-d:#7a5a1a;
+    --text:#e8e2d4; --muted:#7a7a8a; --green:#4a9a6a; --red:#c14a4a;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+  /* 헤더 */
+  .header { background:var(--surface); border-bottom:1px solid var(--gold-d); padding:0 24px; display:flex; align-items:center; justify-content:space-between; height:56px; position:sticky; top:0; z-index:50; }
+  .logo { display:flex; align-items:center; gap:10px; }
+  .logo-text { font-size:17px; font-weight:700; color:var(--gold-l); letter-spacing:.05em; }
+  .logo-sub  { font-size:11px; color:var(--muted); letter-spacing:.08em; }
+  .online-badge { background:#1a2e1a; border:1px solid #2a5a2a; color:#6acd8a; font-size:12px; padding:4px 10px; border-radius:20px; }
+
+  /* 네비 */
+  .nav { background:var(--surface); border-bottom:1px solid var(--border); padding:0 24px; display:flex; gap:4px; }
+  .nav-btn { background:none; border:none; color:var(--muted); padding:14px 16px; font-size:13px; cursor:pointer; border-bottom:2px solid transparent; transition:color .2s; }
+  .nav-btn:hover { color:var(--text); }
+  .nav-btn.active { color:var(--gold-l); border-bottom-color:var(--gold); }
+
+  /* 본문 */
+  .content { padding:24px; max-width:1100px; margin:0 auto; }
+  .tab-content { display:none; }
+  .tab-content.active { display:block; }
+
+  /* 카드/섹션 */
+  .card { background:var(--card); border:1px solid var(--border); border-radius:10px; }
+  .section-title { font-size:13px; font-weight:600; color:var(--gold); text-transform:uppercase; letter-spacing:.08em; display:flex; align-items:center; gap:8px; margin-bottom:14px; }
+  .section-title::before { content:''; width:3px; height:14px; background:var(--gold); border-radius:2px; display:inline-block; }
+
+  /* 버튼 */
+  .btn { background:none; border:1px solid var(--gold-d); color:var(--gold-l); padding:7px 14px; border-radius:6px; font-size:13px; cursor:pointer; transition:all .15s; }
+  .btn:hover { background:var(--gold-d); }
+  .btn:disabled { opacity:.4; cursor:not-allowed; }
+  .btn-primary { background:var(--gold-d); border-color:var(--gold); }
+  .btn-primary:hover:not(:disabled) { background:var(--gold); color:#1a1400; }
+  .btn-sm { padding:4px 10px; font-size:12px; }
+  .btn-danger { border-color:#5a2a2a; color:var(--red); }
+  .btn-danger:hover { background:#3a1a1a; }
+
+  /* 통계 */
+  .stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:24px; }
+  .stat-card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:16px; }
+  .stat-label { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; margin-bottom:6px; }
+  .stat-value { font-size:24px; font-weight:700; color:var(--gold-l); }
+  .stat-sub   { font-size:12px; color:var(--muted); margin-top:2px; }
+
+  /* 테이블 */
+  .table-wrap { background:var(--card); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  table { width:100%; border-collapse:collapse; }
+  th { text-align:left; font-size:11px; color:var(--muted); padding:10px 14px; border-bottom:1px solid var(--border); text-transform:uppercase; letter-spacing:.06em; font-weight:400; }
+  td { padding:11px 14px; border-bottom:1px solid var(--border); font-size:13px; vertical-align:middle; }
+  tr:last-child td { border-bottom:none; }
+  tr:hover td { background:rgba(201,147,42,.04); }
+
+  /* 직업 배지 */
+  .cls { font-size:12px; padding:3px 8px; border-radius:4px; white-space:nowrap; }
+  .cls-전사   { background:#2a1a1a; color:#e86060; border:1px solid #5a2a2a; }
+  .cls-마법사 { background:#1a1a3a; color:#6080e8; border:1px solid #2a2a6a; }
+  .cls-레인저 { background:#1a2a1a; color:#60c070; border:1px solid #2a4a2a; }
+  .cls-사제   { background:#2a2a1a; color:#d4c060; border:1px solid #4a4a1a; }
+  .cls-어쌔신 { background:#1a1a2a; color:#9060d0; border:1px solid #3a2a5a; }
+
+  /* 전투력 바 */
+  .cp-bar { display:flex; align-items:center; gap:8px; }
+  .cp-num { font-size:13px; font-weight:600; min-width:48px; }
+  .bar-bg  { flex:1; height:4px; background:var(--border); border-radius:2px; min-width:60px; }
+  .bar-fill { height:100%; border-radius:2px; background:var(--gold); }
+
+  /* 등급 배지 */
+  .rank { font-size:11px; padding:2px 8px; border-radius:10px; }
+  .rank-마스터   { background:#2a1e00; color:var(--gold-l); border:1px solid var(--gold-d); }
+  .rank-부마스터 { background:#1a1e2a; color:#7aacec; border:1px solid #2a3a5a; }
+  .rank-일반     { background:#1a1a1a; color:var(--muted); border:1px solid var(--border); }
+
+  /* 필터 */
+  .filter-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+  .chip { background:var(--card); border:1px solid var(--border); color:var(--muted); padding:5px 12px; border-radius:20px; font-size:12px; cursor:pointer; transition:all .15s; }
+  .chip:hover { border-color:var(--gold-d); color:var(--text); }
+  .chip.active { background:#2a1e00; border-color:var(--gold); color:var(--gold-l); }
+  .search-box { background:var(--card); border:1px solid var(--border); color:var(--text); padding:6px 12px; border-radius:6px; font-size:13px; outline:none; min-width:180px; }
+  .search-box::placeholder { color:var(--muted); }
+  .search-box:focus { border-color:var(--gold-d); }
+
+  /* 모집 카드 */
+  .recruit-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:14px; }
+  .rc { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:16px; transition:border-color .15s; }
+  .rc:hover { border-color:var(--gold-d); }
+  .rc-head { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; }
+  .rc-title { font-size:14px; font-weight:600; }
+  .rc-tag   { font-size:11px; padding:3px 8px; border-radius:4px; }
+  .tag-레이드 { background:#2a1a00; color:#e8a040; border:1px solid #4a3000; }
+  .tag-던전   { background:#1a1a2a; color:#7a9ae0; border:1px solid #2a2a4a; }
+  .tag-PvP    { background:#2a1a1a; color:#e07070; border:1px solid #4a2a2a; }
+  .rc-meta { font-size:12px; color:var(--muted); margin-bottom:10px; }
+  .rc-reqs { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+  .req-item { font-size:11px; background:var(--surface); border:1px solid var(--border); padding:3px 8px; border-radius:4px; }
+  .rc-foot { display:flex; justify-content:space-between; align-items:center; }
+  .rc-author { font-size:12px; color:var(--muted); }
+  .slots-open { color:var(--green); font-size:12px; font-weight:600; }
+  .slots-full { color:var(--red);   font-size:12px; }
+
+  /* 모달 */
+  .overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.75); z-index:200; align-items:center; justify-content:center; }
+  .overlay.open { display:flex; }
+  .modal { background:var(--surface); border:1px solid var(--gold-d); border-radius:14px; padding:28px; width:90%; max-width:520px; max-height:90vh; overflow-y:auto; }
+  .modal-title { font-size:16px; font-weight:700; color:var(--gold-l); margin-bottom:20px; }
+  .modal-foot { display:flex; gap:8px; justify-content:flex-end; margin-top:20px; }
+
+  /* 폼 */
+  .form-group { margin-bottom:16px; }
+  .form-label { font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; display:block; margin-bottom:6px; }
+  .form-input,.form-select { width:100%; background:var(--card); border:1px solid var(--border); color:var(--text); padding:9px 12px; border-radius:6px; font-size:14px; outline:none; }
+  .form-select { appearance:none; }
+  .form-input:focus,.form-select:focus { border-color:var(--gold-d); }
+  .form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .check-group { display:flex; gap:12px; flex-wrap:wrap; margin-top:4px; }
+  .check-group label { font-size:13px; color:var(--text); cursor:pointer; display:flex; align-items:center; gap:5px; }
+
+  /* 파이 차트 */
+  .pie-wrap { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:20px; display:flex; align-items:center; gap:32px; flex-wrap:wrap; }
+  .pie-rel  { position:relative; width:180px; height:180px; flex-shrink:0; }
+  .pie-center { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center; }
+  .pie-total { font-size:22px; font-weight:700; color:var(--gold-l); }
+  .pie-sub   { font-size:11px; color:var(--muted); }
+  .legend { display:flex; flex-direction:column; gap:8px; flex:1; min-width:160px; }
+  .leg-item { display:flex; align-items:center; gap:10px; padding:6px 10px; border-radius:6px; }
+  .leg-dot  { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+  .leg-name { font-size:13px; flex:1; }
+  .leg-cnt  { font-size:13px; font-weight:600; color:var(--gold-l); }
+  .leg-pct  { font-size:11px; color:var(--muted); min-width:30px; text-align:right; }
+
+  /* 뷰 토글 */
+  .view-toggle { display:flex; gap:3px; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:3px; }
+  .vt { background:none; border:none; color:var(--muted); padding:4px 10px; border-radius:4px; font-size:12px; cursor:pointer; transition:all .15s; }
+  .vt.active { background:var(--gold-d); color:var(--gold-l); }
+
+  /* 빈 상태 */
+  .empty { text-align:center; padding:48px; color:var(--muted); }
+  .empty-icon { font-size:36px; margin-bottom:12px; }
+
+  /* 갱신 상태 */
+  .sync-status { font-size:11px; padding:2px 8px; border-radius:10px; }
+  .sync-ok   { background:#1a2a1a; color:#6acd8a; border:1px solid #2a5a2a; }
+  .sync-fail { background:#2a1a1a; color:#e07070; border:1px solid #5a2a2a; }
+  .sync-ing  { background:#2a1e00; color:var(--gold-l); border:1px solid var(--gold-d); }
+
+  /* 장비 목록 */
+  .equip-list { display:flex; flex-wrap:wrap; gap:6px; }
+  .equip-item { display:flex; align-items:center; gap:6px; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:4px 8px; font-size:11px; }
+  .equip-item img { width:20px; height:20px; border-radius:3px; }
+  .grade-Unique   { border-color:#5a3a8a; }
+  .grade-Legendary{ border-color:#7a5a1a; }
+  .grade-Epic     { border-color:#1a4a6a; }
+
+  /* 스피너 */
+  .spinner { display:inline-block; width:14px; height:14px; border:2px solid var(--border); border-top-color:var(--gold); border-radius:50%; animation:spin .7s linear infinite; vertical-align:middle; margin-right:4px; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  /* 토스트 */
+  #toast { position:fixed; bottom:24px; right:24px; z-index:999; background:var(--card); border:1px solid var(--gold-d); border-radius:8px; padding:12px 20px; font-size:13px; opacity:0; transform:translateY(10px); transition:all .3s; pointer-events:none; }
+  #toast.show { opacity:1; transform:translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+      <polygon points="16,2 28,9 28,23 16,30 4,23 4,9" fill="#2a1e00" stroke="#c9932a" stroke-width="1.5"/>
+      <polygon points="16,7 23,11 23,21 16,25 9,21 9,11" fill="#1a1400" stroke="#7a5a1a" stroke-width="1"/>
+      <path d="M16 10 L19 16 L16 22 L13 16 Z" fill="#c9932a"/>
+      <circle cx="16" cy="16" r="2" fill="#e8b84b"/>
+    </svg>
+    <div>
+      <div class="logo-text">아이온2 도태</div>
+      <div class="logo-sub">레기온 관리 시스템</div>
+    </div>
+  </div>
+  <span class="online-badge" id="online-badge">● 로딩 중...</span>
+</div>
+
+<div class="nav">
+  <button class="nav-btn active" onclick="showTab('dashboard')">대시보드</button>
+  <button class="nav-btn" onclick="showTab('members')">멤버 스펙</button>
+  <button class="nav-btn" onclick="showTab('recruit')">파티 모집</button>
+  <button class="nav-btn" onclick="showTab('register')">멤버 등록</button>
+</div>
+
+<div class="content">
+
+  <!-- 대시보드 -->
+  <div id="tab-dashboard" class="tab-content active">
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-label">총 길드원</div><div class="stat-value" id="stat-total">—</div><div class="stat-sub">등록된 멤버</div></div>
+      <div class="stat-card"><div class="stat-label">평균 전투력</div><div class="stat-value" id="stat-avgcp">—</div><div class="stat-sub">전체 평균</div></div>
+      <div class="stat-card"><div class="stat-label">모집 공고</div><div class="stat-value" id="stat-recruit">—</div><div class="stat-sub">진행 중</div></div>
+      <div class="stat-card"><div class="stat-label">레기온 등급</div><div class="stat-value" style="color:var(--gold-l)">S</div><div class="stat-sub">시즌 기준</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+      <div>
+        <div class="section-title">스펙 TOP 5</div>
+        <div class="table-wrap"><table><thead><tr><th>#</th><th>닉네임</th><th>직업</th><th>전투력</th></tr></thead><tbody id="top5-body"></tbody></table></div>
+      </div>
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div class="section-title" style="margin:0">최근 모집</div>
+          <button class="btn btn-sm" onclick="showTab('recruit')">전체 보기</button>
+        </div>
+        <div id="recent-recruit" style="display:flex;flex-direction:column;gap:10px;"></div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <div class="section-title" style="margin:0">직업 분포</div>
+      <div class="view-toggle">
+        <button class="vt active" id="vt-pie" onclick="setDistView('pie')">원형</button>
+        <button class="vt" id="vt-list" onclick="setDistView('list')">목록</button>
+      </div>
+    </div>
+    <div id="dist-pie"><div class="pie-wrap"><div class="pie-rel"><canvas id="pie-chart" width="180" height="180"></canvas><div class="pie-center"><div class="pie-total" id="pie-total">—</div><div class="pie-sub">총 길드원</div></div></div><div class="legend" id="pie-legend"></div></div></div>
+    <div id="dist-list" style="display:none;gap:10px;flex-wrap:wrap;"></div>
+  </div>
+
+  <!-- 멤버 스펙 -->
+  <div id="tab-members" class="tab-content">
+    <div class="filter-row">
+      <input class="search-box" id="member-search" placeholder="닉네임 검색..." oninput="renderMembers()">
+      <button class="chip active" onclick="setFilter('all',this)">전체</button>
+      <button class="chip" onclick="setFilter('전사',this)">전사</button>
+      <button class="chip" onclick="setFilter('마법사',this)">마법사</button>
+      <button class="chip" onclick="setFilter('레인저',this)">레인저</button>
+      <button class="chip" onclick="setFilter('사제',this)">사제</button>
+      <button class="chip" onclick="setFilter('어쌔신',this)">어쌔신</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>닉네임</th><th>직업</th><th>등급</th><th>전투력</th><th>아이템레벨</th><th>장비</th><th>갱신</th><th>관리</th></tr></thead>
+        <tbody id="member-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 파티 모집 -->
+  <div id="tab-recruit" class="tab-content">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div class="filter-row" style="margin:0">
+        <button class="chip active" onclick="setRFilter('all',this)">전체</button>
+        <button class="chip" onclick="setRFilter('레이드',this)">레이드</button>
+        <button class="chip" onclick="setRFilter('던전',this)">던전</button>
+        <button class="chip" onclick="setRFilter('PvP',this)">PvP</button>
+      </div>
+      <button class="btn btn-primary" onclick="openModal('recruit')">+ 모집 등록</button>
+    </div>
+    <div class="recruit-grid" id="recruit-grid"></div>
+  </div>
+
+  <!-- 멤버 등록 -->
+  <div id="tab-register" class="tab-content">
+    <div style="max-width:560px;">
+      <div class="section-title">멤버 등록</div>
+      <div class="card" style="padding:24px;">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">닉네임 *</label>
+            <input class="form-input" id="reg-name" placeholder="인게임 닉네임">
+          </div>
+          <div class="form-group">
+            <label class="form-label">서버 *</label>
+            <select class="form-select" id="reg-server">
+              <option value="2001">1서버 (이스라펠)</option>
+              <option value="2002">2서버</option>
+              <option value="2003">3서버</option>
+              <option value="2004">4서버</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">등급</label>
+          <select class="form-select" id="reg-rank">
+            <option>일반</option><option>부마스터</option><option>마스터</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">한 줄 소개</label>
+          <input class="form-input" id="reg-intro" placeholder="예: 레이드 경험 다수, 주말 저녁 가능">
+        </div>
+
+        <!-- NC 공홈에서 자동 가져오기 -->
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px;">
+          <div style="font-size:12px;color:var(--gold);font-weight:600;margin-bottom:10px;">✦ NC 공홈에서 스펙 자동 불러오기</div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary" style="flex:1;" id="fetch-btn" onclick="fetchAndRegister()">닉네임으로 스펙 불러와서 등록</button>
+          </div>
+          <div id="fetch-result" style="margin-top:10px;font-size:12px;color:var(--muted);"></div>
+        </div>
+
+        <button class="btn" style="width:100%;padding:10px;" onclick="saveManual()">수동으로 등록 (스펙 없이)</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- 파티 모집 모달 -->
+<div class="overlay" id="modal-recruit" onclick="closeOverlay(event,'modal-recruit')">
+  <div class="modal">
+    <div class="modal-title">파티 모집 등록</div>
+    <div class="form-group"><label class="form-label">모집 제목 *</label><input class="form-input" id="m-title" placeholder="예: 카이론 레이드 공대원 모집"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">유형</label><select class="form-select" id="m-type"><option>레이드</option><option>던전</option><option>PvP</option></select></div>
+      <div class="form-group"><label class="form-label">모집 인원</label><input class="form-input" id="m-slots" type="number" placeholder="4" min="1" max="40"></div>
+    </div>
+    <div class="form-group"><label class="form-label">일정</label><input class="form-input" id="m-schedule" placeholder="예: 매주 토 21:00"></div>
+    <div class="form-group"><label class="form-label">최소 전투력</label><input class="form-input" id="m-cp" placeholder="예: 130,000"></div>
+    <div class="form-group">
+      <label class="form-label">요구 직업</label>
+      <div class="check-group">
+        <label><input type="checkbox" value="전사"> 전사</label>
+        <label><input type="checkbox" value="마법사"> 마법사</label>
+        <label><input type="checkbox" value="레인저"> 레인저</label>
+        <label><input type="checkbox" value="사제"> 사제</label>
+        <label><input type="checkbox" value="어쌔신"> 어쌔신</label>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">작성자 닉네임 *</label><input class="form-input" id="m-author" placeholder="내 닉네임"></div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('modal-recruit')">취소</button>
+      <button class="btn btn-primary" onclick="saveRecruit()">등록</button>
+    </div>
+  </div>
+</div>
+
+<!-- 멤버 관리 모달 -->
+<div class="overlay" id="modal-edit" onclick="closeOverlay(event,'modal-edit')">
+  <div class="modal">
+    <div class="modal-title">멤버 관리</div>
+    <input type="hidden" id="edit-id">
+    <div class="form-group"><label class="form-label">등급 변경</label><select class="form-select" id="edit-rank"><option>일반</option><option>부마스터</option><option>마스터</option></select></div>
+    <div class="modal-foot">
+      <button class="btn btn-danger" onclick="deleteMember()">멤버 삭제</button>
+      <button class="btn" onclick="closeModal('modal-edit')">취소</button>
+      <button class="btn btn-primary" onclick="updateMember()">저장</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+// ════════════════════════════════════════
+// ✅ Firebase 설정 — 아래 값을 교체하세요!
+// ════════════════════════════════════════
+const firebaseConfig = {
+  apiKey:            "AIzaSyAIp50vmWSNy2406o81eG0SSezYYLpldhk",
+  authDomain:        "aion2-dotae.firebaseapp.com",
+  projectId:         "aion2-dotae",
+  storageBucket:     "aion2-dotae.firebasestorage.app",
+  messagingSenderId: "922096514693",
+  appId:             "1:922096514693:web:a883686ff2008b0959dbec"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+// ════════════════════════════════════════
+
+const CLS_ICON  = {전사:'⚔',마법사:'✦',레인저:'◈',사제:'✚',어쌔신:'◆'};
+const CLS_COLOR = {전사:'#e86060',마법사:'#6080e8',레인저:'#60c070',사제:'#d4c060',어쌔신:'#9060d0'};
+const CLS_BG    = {전사:'rgba(232,96,96,.6)',마법사:'rgba(96,128,232,.6)',레인저:'rgba(96,192,112,.6)',사제:'rgba(212,192,96,.6)',어쌔신:'rgba(144,96,208,.6)'};
+
+// NC 직업명 → 한국어 매핑
+const CLASS_MAP = {
+  'Gladiator':'전사', 'Templar':'전사',
+  'Sorcerer':'마법사', 'Spiritmaster':'마법사',
+  'Ranger':'레인저', 'Gunslinger':'레인저',
+  'Cleric':'사제', 'Chanter':'사제',
+  'Assassin':'어쌔신', 'Aethertech':'어쌔신',
+};
+
+let members  = [];
+let recruits = [];
+let mFilter  = 'all';
+let rFilter  = 'all';
+let pieChart = null;
+let distView = 'pie';
+let syncingIds = new Set();
+
+// ─── Firebase 구독 ──────────────────────
+function initFirebase() {
+  db.collection('members').orderBy('combat_power','desc')
+    .onSnapshot(snap => {
+      members = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderAll();
+    });
+  db.collection('recruits').orderBy('created_at','desc')
+    .onSnapshot(snap => {
+      recruits = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderRecruit();
+      document.getElementById('stat-recruit').textContent = recruits.length;
+    });
+}
+
+function renderAll() {
+  const total = members.length;
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('online-badge').textContent = `● 멤버 ${total}명`;
+  const avgCp = total ? Math.round(members.reduce((s,m)=>s+(m.combat_power||0),0)/total) : 0;
+  document.getElementById('stat-avgcp').textContent = avgCp ? Math.round(avgCp/1000)+'K' : '—';
+  renderTop5(); renderRecentRecruit(); renderMembers();
+  if(distView==='pie') drawPie(); else renderDistList();
+}
+
+// ─── NC 공홈 API 호출 ──────────────────
+async function fetchCharacterData(nickname, serverId) {
+  // 1단계: 닉네임으로 characterId 검색
+  const searchRes = await fetch(`/api/search?keyword=${encodeURIComponent(nickname)}&serverId=${serverId}`);
+  const searchData = await searchRes.json();
+  const found = (searchData.list||[]).find(c => c.name === nickname);
+  if (!found) throw new Error(`"${nickname}" 캐릭터를 찾을 수 없어요`);
+
+  // 2단계: characterId로 상세 정보 조회
+  const charRes = await fetch(`/api/character?characterId=${encodeURIComponent(found.characterId)}&serverId=${serverId}`);
+  const charData = await charRes.json();
+  if (charData.error) throw new Error(charData.error);
+
+  return { ...charData, characterId: found.characterId };
+}
+
+// ─── 자동 불러오기 + 등록 ──────────────
+async function fetchAndRegister() {
+  const nickname = document.getElementById('reg-name').value.trim();
+  const serverId = document.getElementById('reg-server').value;
+  const rank     = document.getElementById('reg-rank').value;
+  const intro    = document.getElementById('reg-intro').value.trim();
+
+  if (!nickname) { toast('닉네임을 입력해주세요'); return; }
+
+  const btn = document.getElementById('fetch-btn');
+  const resultEl = document.getElementById('fetch-result');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> 불러오는 중...';
+  resultEl.textContent = '';
+
+  try {
+    const data = await fetchCharacterData(nickname, serverId);
+    const cls  = CLASS_MAP[data.class] || data.class || '';
+
+    await db.collection('members').doc(nickname+'_'+serverId).set({
+      nickname, server: serverId, rank, intro,
+      class:        cls,
+      level:        data.level        || 0,
+      combat_power: data.combat_power || 0,
+      item_level:   data.item_level   || 0,
+      equipment:    data.equipment    || [],
+      character_id: data.characterId  || '',
+      last_synced:  new Date().toISOString(),
+      updated_at:   firebase.firestore.FieldValue.serverTimestamp(),
+    });
+
+    resultEl.innerHTML = `<span style="color:#6acd8a">✓ ${nickname} 등록 완료! 전투력: ${(data.combat_power||0).toLocaleString()}</span>`;
+    toast(`${nickname} 등록 완료! ✓`);
+  } catch (err) {
+    resultEl.innerHTML = `<span style="color:var(--red)">✗ ${err.message}</span>`;
+    toast('불러오기 실패: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '닉네임으로 스펙 불러와서 등록';
+  }
+}
+
+// ─── 갱신 버튼 (멤버 테이블) ───────────
+async function syncMember(id, nickname, serverId) {
+  if (syncingIds.has(id)) return;
+  syncingIds.add(id);
+  renderMembers();
+
+  try {
+    const data = await fetchCharacterData(nickname, serverId);
+    const cls  = CLASS_MAP[data.class] || data.class || '';
+    await db.collection('members').doc(id).update({
+      class:        cls,
+      level:        data.level        || 0,
+      combat_power: data.combat_power || 0,
+      item_level:   data.item_level   || 0,
+      equipment:    data.equipment    || [],
+      last_synced:  new Date().toISOString(),
+    });
+    toast(`${nickname} 갱신 완료! ✓`);
+  } catch(err) {
+    toast('갱신 실패: ' + err.message);
+  } finally {
+    syncingIds.delete(id);
+    renderMembers();
+  }
+}
+
+// ─── 수동 등록 ─────────────────────────
+async function saveManual() {
+  const nickname = document.getElementById('reg-name').value.trim();
+  const serverId = document.getElementById('reg-server').value;
+  const rank     = document.getElementById('reg-rank').value;
+  const intro    = document.getElementById('reg-intro').value.trim();
+  if (!nickname) { toast('닉네임을 입력해주세요'); return; }
+  await db.collection('members').doc(nickname+'_'+serverId).set({
+    nickname, server: serverId, rank, intro,
+    combat_power: 0, item_level: 0, equipment: [],
+    updated_at: firebase.firestore.FieldValue.serverTimestamp(),
+  });
+  toast(`${nickname} 등록 완료! ✓`);
+}
+
+// ─── 렌더 함수들 ───────────────────────
+function cpBar(cp) {
+  if (!cp) return '<span style="color:var(--muted)">—</span>';
+  const pct = Math.min(100, Math.round((cp/250000)*100));
+  return `<div class="cp-bar"><span class="cp-num">${Math.round(cp/1000)}K</span><div class="bar-bg"><div class="bar-fill" style="width:${pct}%"></div></div></div>`;
+}
+
+function renderTop5() {
+  const top = [...members].sort((a,b)=>(b.combat_power||0)-(a.combat_power||0)).slice(0,5);
+  document.getElementById('top5-body').innerHTML = top.length
+    ? top.map((m,i)=>`<tr>
+        <td style="color:var(--muted);font-weight:600">${i+1}</td>
+        <td style="font-weight:600">${m.nickname}</td>
+        <td><span class="cls cls-${m.class||''}">${CLS_ICON[m.class]||''} ${m.class||'?'}</span></td>
+        <td>${cpBar(m.combat_power)}</td></tr>`).join('')
+    : `<tr><td colspan="4"><div class="empty" style="padding:20px"><p>멤버를 등록해주세요</p></div></td></tr>`;
+}
+
+function renderRecentRecruit() {
+  const el = document.getElementById('recent-recruit');
+  el.innerHTML = recruits.slice(0,3).length
+    ? recruits.slice(0,3).map(r=>`
+        <div class="rc" style="padding:12px;cursor:pointer" onclick="showTab('recruit')">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:13px;font-weight:600">${r.title}</span>
+            <span class="rc-tag tag-${r.type}">${r.type}</span>
+          </div>
+          <div style="font-size:12px;color:var(--muted);margin-top:6px">${r.schedule||''} · ${r.author}</div>
+        </div>`).join('')
+    : `<div style="color:var(--muted);font-size:13px;padding:12px">모집 공고가 없어요</div>`;
+}
+
+function renderMembers() {
+  const search = (document.getElementById('member-search')||{value:''}).value.toLowerCase();
+  const filtered = members.filter(m =>
+    (mFilter==='all'||m.class===mFilter) &&
+    (m.nickname||'').toLowerCase().includes(search)
+  );
+  const rankCls = r => r==='마스터'?'rank-마스터':r==='부마스터'?'rank-부마스터':'rank-일반';
+  const fmtTime = iso => iso ? new Date(iso).toLocaleDateString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+  const equips  = eq => (eq||[]).slice(0,3).map(e=>
+    `<div class="equip-item grade-${e.grade||''}">
+      ${e.icon ? `<img src="${e.icon}" onerror="this.style.display='none'">` : ''}
+      <span>${e.name||''} ${e.enchant?'+'+e.enchant:''}</span>
+    </div>`).join('');
+
+  document.getElementById('member-body').innerHTML = filtered.length
+    ? filtered.map(m => {
+        const isSyncing = syncingIds.has(m.id);
+        const syncBtn = isSyncing
+          ? `<button class="btn btn-sm" disabled><span class="spinner"></span>갱신 중</button>`
+          : `<button class="btn btn-sm" onclick="syncMember('${m.id}','${m.nickname}','${m.server||'2001'}')">갱신</button>`;
+        const lastSync = m.last_synced ? `<div style="font-size:10px;color:var(--muted);margin-top:3px">${fmtTime(m.last_synced)}</div>` : '';
+        return `<tr>
+          <td style="font-weight:600">${m.nickname}</td>
+          <td><span class="cls cls-${m.class||''}">${CLS_ICON[m.class]||''} ${m.class||'?'}</span></td>
+          <td><span class="rank ${rankCls(m.rank||'일반')}">${m.rank||'일반'}</span></td>
+          <td>${cpBar(m.combat_power)}</td>
+          <td>${m.item_level||'—'}</td>
+          <td><div class="equip-list">${equips(m.equipment)}</div></td>
+          <td>${syncBtn}${lastSync}</td>
+          <td><button class="btn btn-sm" onclick="openEdit('${m.id}','${m.rank||'일반'}')">관리</button></td>
+        </tr>`;
+      }).join('')
+    : `<tr><td colspan="8"><div class="empty"><div class="empty-icon">⚔</div><p>검색 결과가 없어요</p></div></td></tr>`;
+}
+
+function renderRecruit() {
+  const filtered = recruits.filter(r => rFilter==='all'||r.type===rFilter);
+  document.getElementById('recruit-grid').innerHTML = filtered.length
+    ? filtered.map(r=>`
+        <div class="rc">
+          <div class="rc-head"><span class="rc-title">${r.title}</span><span class="rc-tag tag-${r.type}">${r.type}</span></div>
+          <div class="rc-meta">${r.schedule||'일정 미정'} · 최소 ${r.min_cp||'제한 없음'}</div>
+          <div class="rc-reqs">${(r.reqs||[]).map(x=>`<span class="req-item">${x}</span>`).join('')||'<span class="req-item">제한 없음</span>'}</div>
+          <div class="rc-foot">
+            <span class="rc-author">by ${r.author}</span>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span class="${r.slots>0?'slots-open':'slots-full'}">${r.slots>0?'모집중 '+r.slots+'자리':'마감'}</span>
+              <button class="btn btn-sm btn-danger" onclick="deleteRecruit('${r.id}')">삭제</button>
+            </div>
+          </div>
+        </div>`).join('')
+    : `<div class="empty" style="grid-column:1/-1"><div class="empty-icon">⚔</div><p>모집 공고가 없어요</p></div>`;
+}
+
+function drawPie() {
+  const counts = {};
+  members.forEach(m => m.class && (counts[m.class]=(counts[m.class]||0)+1));
+  const labels = Object.keys(counts), data = Object.values(counts);
+  const total  = data.reduce((a,b)=>a+b,0);
+  document.getElementById('pie-total').textContent = total||'—';
+  const ctx = document.getElementById('pie-chart').getContext('2d');
+  if(pieChart) pieChart.destroy();
+  pieChart = new Chart(ctx,{
+    type:'doughnut',
+    data:{ labels, datasets:[{ data, backgroundColor:labels.map(l=>CLS_BG[l]), borderColor:labels.map(l=>CLS_COLOR[l]), borderWidth:2, hoverOffset:8 }] },
+    options:{ cutout:'62%', responsive:false, animation:{duration:500},
+      plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'#1a1e28', borderColor:'#2a2f3d', borderWidth:1, titleColor:'#e8b84b', bodyColor:'#e8e2d4',
+        callbacks:{ label:c=>` ${c.label}  ${c.raw}명 (${Math.round(c.raw/total*100)}%)` } } } }
+  });
+  document.getElementById('pie-legend').innerHTML = labels.map((l,i)=>`
+    <div class="leg-item">
+      <div class="leg-dot" style="background:${CLS_COLOR[l]}"></div>
+      <span class="leg-name">${CLS_ICON[l]} ${l}</span>
+      <span class="leg-cnt">${data[i]}명</span>
+      <span class="leg-pct">${Math.round(data[i]/total*100)}%</span>
+    </div>`).join('');
+}
+
+function renderDistList() {
+  const counts = {};
+  members.forEach(m => m.class && (counts[m.class]=(counts[m.class]||0)+1));
+  document.getElementById('dist-list').innerHTML = Object.entries(counts).map(([cls,cnt])=>
+    `<div class="card" style="padding:12px 20px;display:flex;align-items:center;gap:10px">
+      <span class="cls cls-${cls}">${CLS_ICON[cls]} ${cls}</span>
+      <span style="font-size:18px;font-weight:700;color:${CLS_COLOR[cls]}">${cnt}</span>
+      <span style="font-size:12px;color:var(--muted)">명</span>
+    </div>`).join('');
+}
+
+function setDistView(v) {
+  distView=v;
+  document.getElementById('vt-pie').classList.toggle('active',v==='pie');
+  document.getElementById('vt-list').classList.toggle('active',v==='list');
+  document.getElementById('dist-pie').style.display  = v==='pie'  ?'':'none';
+  document.getElementById('dist-list').style.display = v==='list' ?'flex':'none';
+  if(v==='pie') setTimeout(drawPie,50); else renderDistList();
+}
+
+// ─── Firebase CRUD ─────────────────────
+async function deleteMember() {
+  const id = document.getElementById('edit-id').value;
+  if(!confirm('이 멤버를 삭제할까요?')) return;
+  await db.collection('members').doc(id).delete();
+  closeModal('modal-edit'); toast('멤버 삭제 완료');
+}
+async function updateMember() {
+  const id=document.getElementById('edit-id').value, rank=document.getElementById('edit-rank').value;
+  await db.collection('members').doc(id).update({ rank });
+  closeModal('modal-edit'); toast('등급 변경 완료 ✓');
+}
+async function saveRecruit() {
+  const title=document.getElementById('m-title').value.trim(), author=document.getElementById('m-author').value.trim();
+  if(!title) { toast('제목을 입력해주세요'); return; }
+  if(!author){ toast('작성자를 입력해주세요'); return; }
+  const reqs=[...document.querySelectorAll('.check-group input:checked')].map(c=>c.value);
+  await db.collection('recruits').add({
+    title, type:document.getElementById('m-type').value, author, reqs,
+    min_cp: document.getElementById('m-cp').value.trim(),
+    slots:  parseInt(document.getElementById('m-slots').value)||4,
+    schedule: document.getElementById('m-schedule').value.trim(),
+    created_at: firebase.firestore.FieldValue.serverTimestamp()
+  });
+  closeModal('modal-recruit'); toast('모집 공고 등록 완료 ✓');
+}
+async function deleteRecruit(id) {
+  if(!confirm('삭제할까요?')) return;
+  await db.collection('recruits').doc(id).delete(); toast('삭제 완료');
+}
+
+// ─── 유틸 ──────────────────────────────
+function showTab(id) {
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  ['dashboard','members','recruit','register'].forEach((t,i)=>{ if(t===id) document.querySelectorAll('.nav-btn')[i].classList.add('active'); });
+}
+function openModal(id) { document.getElementById('modal-'+id).classList.add('open'); }
+function closeModal(id) { document.getElementById('modal-'+id).classList.remove('open'); }
+function closeOverlay(e,id) { if(e.target.classList.contains('overlay')) closeModal(id); }
+function openEdit(id,rank) { document.getElementById('edit-id').value=id; document.getElementById('edit-rank').value=rank; openModal('edit'); }
+function setFilter(cls,el) { mFilter=cls; document.querySelectorAll('#tab-members .chip').forEach(c=>c.classList.remove('active')); el.classList.add('active'); renderMembers(); }
+function setRFilter(t,el) { rFilter=t; document.querySelectorAll('#tab-recruit .chip').forEach(c=>c.classList.remove('active')); el.classList.add('active'); renderRecruit(); }
+
+let toastTimer;
+function toast(msg) {
+  const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove('show'),2500);
+}
+
+initFirebase();
+</script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+{
+  "rewrites": [
+    { "source": "/api/search", "destination": "/search.js" },
+    { "source": "/api/character", "destination": "/character.js" },
+    { "source": "/", "destination": "/index.html" }
+  ]
+}
