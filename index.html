@@ -220,6 +220,13 @@
   .modal { margin:10px; width:calc(100% - 20px) !important; max-width:none !important; border-radius:10px; }
   .modal-detail-content { font-size:13px; }
 
+  /* 상세 모달 3열 → 1열 */
+  .modal-detail-content [style*="grid-template-columns:1fr 1fr 1fr"] {
+    display:block !important;
+  }
+  .modal-detail-content [style*="grid-template-columns:1fr 1fr 1fr"] > div {
+    margin-bottom:16px;
+  }
   /* 상세 모달 2열 → 1열 */
   .modal-detail-content [style*="grid-template-columns:1fr 1fr"] {
     display:block !important;
@@ -1082,15 +1089,27 @@ function openDetail(m) {
 
     <!-- 종합정보 -->
     <div id="detail-info">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <!-- 스탯 -->
+      <div style="margin-bottom:14px;">
+        <div style="font-size:11px;font-weight:600;color:var(--gold);margin-bottom:8px;">주요 스탯</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:4px;">${mainStatHTML}</div>
+        <div id="extra-stats" style="display:none;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:4px;">${extraStatHTML}</div>
+        ${extraStats.length > 0 ? `<button onclick="toggleExtraStats()" id="stat-more-btn" style="font-size:11px;color:var(--gold);background:none;border:none;cursor:pointer;padding:4px 0;">▼ 더보기 (${extraStats.length})</button>` : ""}
+      </div>
+
+      <!-- 장비 3열 그리드 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;">
+        <!-- 무기/방어구 -->
         <div>
-          <div style="font-size:11px;font-weight:600;color:var(--gold);margin-bottom:8px;">주요 스탯</div>
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:4px;">${mainStatHTML}</div>
-          <div id="extra-stats" style="display:none;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:16px;">${extraStatHTML}</div>
-          ${extraStats.length > 0 ? `<button onclick="toggleExtraStats()" id="stat-more-btn" style="font-size:11px;color:var(--gold);background:none;border:none;cursor:pointer;padding:2px 0;margin-bottom:12px;">▼ 더보기 (${extraStats.length})</button>` : ""}
-          <div style="font-size:11px;font-weight:600;color:var(--gold);margin-bottom:8px;">무기/방어구</div>
+          <div style="font-size:11px;font-weight:600;color:var(--gold);margin-bottom:8px;">무기 / 방어구</div>
           ${equip1.map(equipHTML).join('')}
         </div>
+        <!-- 장신구/룬 -->
+        <div>
+          <div style="font-size:11px;font-weight:600;color:var(--gold);margin-bottom:8px;">장신구 / 룬</div>
+          ${equip2.map(equipHTML).join('')}
+        </div>
+        <!-- 펫/날개/아르카나 -->
         <div>
           <div style="font-size:11px;font-weight:600;color:var(--gold);margin-bottom:8px;">펫 / 날개</div>
           ${petHTML}
@@ -1101,7 +1120,7 @@ function openDetail(m) {
       </div>
     </div>
 
-    <!-- 장신구/룬 -->
+    <!-- 장신구/룬 탭 (별도 탭은 유지) -->
     <div id="detail-equip2" style="display:none;">
       ${equip2.map(equipHTML).join('')}
     </div>
