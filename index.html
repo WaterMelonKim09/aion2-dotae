@@ -690,6 +690,10 @@ async function fetchAndRegister() {
       stats:        data.stats        || [],
       daevanion:    data.daevanion    || [],
       ranking:      data.ranking      || [],
+      stigma:       data.stigma       || [],
+      arcana:       data.arcana       || [],
+      pet:          data.pet          || null,
+      wing:         data.wing         || null,
       server_name:  data.server_name  || '',
       guild_name:   data.guild_name   || '',
       race:         data.race         || '',
@@ -728,6 +732,10 @@ async function syncMember(id, nickname, serverId) {
       stats:        data.stats        || [],
       daevanion:    data.daevanion    || [],
       ranking:      data.ranking      || [],
+      stigma:       data.stigma       || [],
+      arcana:       data.arcana       || [],
+      pet:          data.pet          || null,
+      wing:         data.wing         || null,
       server_name:  data.server_name  || '',
       guild_name:   data.guild_name   || '',
       race:         data.race         || '',
@@ -809,121 +817,101 @@ function openDetailById(id) {
 
 function openDetail(m) {
   const el = document.getElementById('modal-detail');
-
-  // 등급 색상/이름 (NC 공홈 기준)
-  const gradeColor = {
-    Common:'#aaaaaa', Rare:'#4a90e8',
-    Hero:'#d44040', Epic:'#d44040',
-    Unique:'#e8c030', Legendary:'#ff6a20', Special:'#40d4c0',
-  };
-  const gradeName = {
-    Common:'일반', Rare:'희귀',
-    Hero:'영웅', Epic:'영웅',
-    Unique:'유일', Legendary:'전설', Special:'스페셜',
-  };
-  const slotName = {
-    MainHand:'주무기', SubHand:'보조/방패', Torso:'갑옷', Pants:'하의',
-    Helmet:'투구', Shoulder:'어깨', Gloves:'장갑', Boots:'신발',
-    Cape:'망토', Belt:'허리띠', Necklace:'목걸이',
-    Earring1:'귀걸이', Earring2:'귀걸이', Ring1:'반지', Ring2:'반지',
-    Bracelet1:'팔찌', Bracelet2:'팔찌', Rune1:'룬', Rune2:'룬',
+  const GC = {Common:'#aaaaaa',Rare:'#4a90e8',Hero:'#d44040',Epic:'#d44040',Unique:'#e8c030',Legendary:'#ff6a20',Special:'#40d4c0'};
+  const GN = {Common:'일반',Rare:'희귀',Hero:'영웅',Epic:'영웅',Unique:'유일',Legendary:'전설',Special:'스페셜'};
+  const SN = {
+    MainHand:'주무기',SubHand:'보조/방패',Torso:'갑옷',Pants:'하의',
+    Helmet:'투구',Shoulder:'어깨',Gloves:'장갑',Boots:'신발',
+    Cape:'망토',Belt:'허리띠',Necklace:'목걸이',
+    Earring1:'귀걸이',Earring2:'귀걸이',Ring1:'반지',Ring2:'반지',
+    Bracelet1:'팔찌',Bracelet2:'팔찌',Rune1:'룬',Rune2:'룬',
     Amulet:'아뮬렛',
-    Arcana1:'아르카나', Arcana2:'아르카나', Arcana3:'아르카나',
-    Arcana4:'아르카나', Arcana5:'아르카나', Arcana6:'아르카나',
+    Arcana1:'아르카나',Arcana2:'아르카나',Arcana3:'아르카나',
+    Arcana4:'아르카나',Arcana5:'아르카나',Arcana6:'아르카나',
+    Pet:'펫',Wing:'날개',
   };
 
   const equipMap = {};
-  (m.equipment||[]).forEach(e => equipMap[e.slot] = e);
+  (m.equipment||[]).forEach(e => { equipMap[e.slot] = e; });
   const statMap = {};
-  (m.stats||[]).forEach(s => statMap[s.type] = s);
+  (m.stats||[]).forEach(s => { statMap[s.type] = s; });
   const ilvl = statMap['ItemLevel'] ? statMap['ItemLevel'].value : (m.item_level||0);
 
-  // 장비 슬롯 순서 (NC 공홈 기준)
-  const slotOrder = ['MainHand','SubHand','Necklace','Earring1','Earring2','Ring1','Ring2','Bracelet1','Bracelet2','Helmet','Shoulder','Torso','Gloves','Pants','Boots','Cape','Belt','Amulet','Rune1','Rune2','Arcana1','Arcana2','Arcana3','Arcana4','Arcana5','Arcana6'];
+  // 아이템 클릭 시 툴팁
+  window._showItemTooltip = function(slotKey) {
+    const e = equipMap[slotKey];
+    if(!e) return;
+    const gc = GC[e.grade]||'#888';
+    const stats = (e.itemStats||[]).map(s=>`<div style="display:flex;justify-content:space-between;gap:16px;font-size:12px;padding:2px 0;">
+      <span style="color:var(--muted);">${s.name||s.type}</span><span style="color:#7af;">${s.value}</span></div>`).join('');
+    const options = (e.itemOptions||[]).map(o=>`<div style="font-size:12px;color:#adf;padding:2px 0;">✦ ${o.desc||o.name||''}</div>`).join('');
+    const souls = (e.itemSouls||[]).map(s=>`<div style="font-size:11px;color:#fda;padding:1px 0;">◆ ${s.name||''}</div>`).join('');
 
-  // 장비 아이템 HTML
-  const equipItemHTML = slot => {
-    const e = equipMap[slot];
-    if(!e) return `
-      <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);opacity:.25;">
-        <div style="width:32px;height:32px;border-radius:4px;background:var(--surface);border:1px solid var(--border);flex-shrink:0;"></div>
-        <div style="font-size:11px;color:var(--muted);">${slotName[slot]||slot}</div>
-      </div>`;
-    const gc = gradeColor[e.grade]||'#888';
-    const exceed = e.exceed>0 ? `<span style="color:#60c8ff;margin-left:4px;">돌파${e.exceed}</span>` : '';
-    return `
-      <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);">
-        <div style="position:relative;flex-shrink:0;">
-          <img src="${e.icon}" style="width:32px;height:32px;border-radius:4px;border:2px solid ${gc};">
+    document.getElementById('item-tooltip').innerHTML = `
+      <div style="padding:14px;max-width:300px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <img src="${e.icon}" style="width:40px;height:40px;border-radius:6px;border:2px solid ${gc};">
+          <div>
+            <div style="font-size:14px;font-weight:700;color:${gc};">${e.name}</div>
+            <div style="font-size:11px;color:var(--muted);">${SN[slotKey]||slotKey} · <span style="color:${gc};">${GN[e.grade]||e.grade}</span></div>
+          </div>
         </div>
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:12px;font-weight:600;color:${gc};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.name}</div>
-          <div style="font-size:10px;color:var(--muted);">${slotName[slot]||slot} <span style="color:var(--gold-l);">+${e.enchant||0}</span>${exceed}</div>
-        </div>
-        <span style="font-size:10px;padding:1px 5px;border-radius:3px;background:${gc}22;color:${gc};border:1px solid ${gc}44;flex-shrink:0;">${gradeName[e.grade]||e.grade}</span>
+        ${e.enchant ? `<div style="font-size:12px;color:var(--gold-l);margin-bottom:6px;">강화 +${e.enchant}${e.exceed?` · 돌파 ${e.exceed}단계`:''}</div>` : ''}
+        ${e.setName ? `<div style="font-size:12px;color:#adf;margin-bottom:6px;">[${e.setName}]</div>` : ''}
+        ${stats ? `<div style="border-top:1px solid var(--border);padding-top:8px;margin-top:6px;">${stats}</div>` : ''}
+        ${options ? `<div style="border-top:1px solid var(--border);padding-top:8px;margin-top:6px;">${options}</div>` : ''}
+        ${souls ? `<div style="border-top:1px solid var(--border);padding-top:8px;margin-top:6px;">${souls}</div>` : ''}
+        <div style="margin-top:10px;text-align:right;"><button class="btn btn-sm" onclick="document.getElementById('item-tooltip').style.display='none'">닫기</button></div>
       </div>`;
+    document.getElementById('item-tooltip').style.display = 'block';
   };
 
-  // 주요 스탯 (NC 공홈 스타일 - 아이콘+이름+수치)
-  const mainStats = [
-    {key:'STR', icon:'⚡'}, {key:'AGI', icon:'🎯'},
-    {key:'INT', icon:'✦'}, {key:'WIS', icon:'🛡'},
-    {key:'DEX', icon:'💨'}, {key:'CON', icon:'❤'},
-  ];
-  const mainStatHTML = mainStats.map(({key,icon}) => {
-    const s = statMap[key];
-    if(!s) return '';
-    return `
-      <div style="display:flex;flex-direction:column;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 8px;gap:4px;">
-        <div style="font-size:18px;">${icon}</div>
-        <div style="font-size:11px;color:var(--muted);">${s.name}</div>
-        <div style="font-size:18px;font-weight:700;color:var(--gold-l);">${s.value}</div>
-        <div style="font-size:9px;color:var(--muted);text-align:center;line-height:1.4;">${(s.statSecondList||[]).join('<br>')}</div>
-      </div>`;
-  }).join('');
-
-  // 데바니온 스탯
-  const daevStats = ['Justice','Freedom','Illusion','Life','Time','Destruction','Death','Wisdom','Destiny','Space'];
-  const daevStatHTML = daevStats.map(t => {
-    const s = statMap[t];
-    if(!s) return '';
-    const pct = Math.min(100, Math.round(s.value/2));
-    return `
-      <div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid var(--border);">
-        <span style="font-size:12px;color:var(--muted);min-width:90px;">${s.name}</span>
-        <div style="flex:1;background:var(--border);border-radius:3px;height:4px;overflow:hidden;">
-          <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--gold-d),var(--gold-l));border-radius:3px;"></div>
-        </div>
-        <span style="font-size:12px;font-weight:700;color:var(--gold-l);min-width:30px;text-align:right;">${s.value}</span>
-        <div style="font-size:10px;color:var(--muted);min-width:140px;">${(s.statSecondList||[]).join(' / ')}</div>
-      </div>`;
-  }).join('');
-
-  // 데바니온 보드
-  const daevaHTML = (m.daevanion||[]).map(d => `
-    <div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;">
-      <img src="${d.icon}" style="width:28px;height:28px;border-radius:4px;">
-      <div style="flex:1;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-          <span style="font-size:13px;font-weight:600;">${d.name}</span>
-          <span style="font-size:12px;color:var(--gold-l);font-weight:700;">${d.openPercent}%</span>
-        </div>
-        <div style="background:var(--border);border-radius:3px;height:5px;overflow:hidden;">
-          <div style="height:100%;width:${d.openPercent}%;background:linear-gradient(90deg,var(--gold-d),var(--gold-l));border-radius:3px;"></div>
-        </div>
-        <div style="font-size:10px;color:var(--muted);margin-top:3px;">${d.openNodeCount}/${d.totalNodeCount} 노드</div>
+  // 장비 아이템 HTML
+  const equipHTML = slot => {
+    const e = equipMap[slot];
+    const gc = e ? (GC[e.grade]||'#888') : null;
+    if(!e) return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);opacity:.25;cursor:default;">
+      <div style="width:32px;height:32px;border-radius:4px;background:var(--surface);border:1px solid var(--border);flex-shrink:0;"></div>
+      <div style="font-size:11px;color:var(--muted);">${SN[slot]||slot}</div></div>`;
+    return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);cursor:pointer;" onclick="_showItemTooltip('${slot}')">
+      <img src="${e.icon}" style="width:32px;height:32px;border-radius:4px;border:2px solid ${gc};flex-shrink:0;">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;font-weight:600;color:${gc};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.name}</div>
+        <div style="font-size:10px;color:var(--muted);">${SN[slot]||slot} <span style="color:var(--gold-l);">+${e.enchant||0}</span>${e.exceed?`<span style="color:#60c8ff;"> 돌파${e.exceed}</span>`:''}</div>
       </div>
+      <span style="font-size:10px;padding:1px 5px;border-radius:3px;background:${gc}22;color:${gc};border:1px solid ${gc}44;flex-shrink:0;">${GN[e.grade]||e.grade}</span>
+    </div>`;
+  };
+
+  // 스탯 HTML - 전체 표시
+  const mainStatTypes = ['STR','AGI','INT','WIS','DEX','CON'];
+  const extraStatTypes = ['MaxHP','MaxMP','PhysicalAtk','MagicAtk','PhysicalDef','MagicDef','HitRate','Evasion','Critical','CriticalRes','AttackSpeed','CastSpeed'];
+  const statCard = (s) => `<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px;display:flex;flex-direction:column;align-items:center;gap:2px;">
+    <div style="font-size:11px;color:var(--muted);text-align:center;">${s.name}</div>
+    <div style="font-size:16px;font-weight:700;color:var(--gold-l);">${s.value}</div>
+  </div>`;
+  const mainStatHTML = mainStatTypes.map(t => statMap[t] ? statCard(statMap[t]) : '').join('');
+  const extraStatHTML = extraStatTypes.map(t => statMap[t] ? statCard(statMap[t]) : '').join('');
+
+  // 데바니온 스탯 바
+  const daevStatHTML = (m.daevanion||[]).map(d => `
+    <div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid var(--border);">
+      <img src="${d.icon||''}" style="width:24px;height:24px;border-radius:4px;flex-shrink:0;" onerror="this.style.display='none'">
+      <span style="font-size:12px;color:var(--muted);min-width:80px;">${d.name||''}</span>
+      <div style="flex:1;background:var(--border);border-radius:3px;height:4px;overflow:hidden;">
+        <div style="height:100%;width:${d.openPercent||0}%;background:linear-gradient(90deg,var(--gold-d),var(--gold-l));border-radius:3px;"></div>
+      </div>
+      <span style="font-size:12px;font-weight:700;color:var(--gold-l);min-width:36px;text-align:right;">${d.openPercent||0}%</span>
+      <span style="font-size:10px;color:var(--muted);min-width:60px;">${d.openNodeCount||0}/${d.totalNodeCount||0} 노드</span>
     </div>`).join('');
 
   // 랭킹
   const rankHTML = (m.ranking||[]).map(r => `
     <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;">
       <div style="display:flex;align-items:center;gap:8px;">
-        <img src="${r.gradeIcon}" style="width:22px;height:22px;">
-        <div>
-          <div style="font-size:13px;font-weight:600;">${r.rankingContentsName}</div>
-          <div style="font-size:11px;color:var(--muted);">${r.gradeName}</div>
-        </div>
+        <img src="${r.gradeIcon||''}" style="width:22px;height:22px;" onerror="this.style.display='none'">
+        <div><div style="font-size:13px;font-weight:600;">${r.rankingContentsName||''}</div>
+        <div style="font-size:11px;color:var(--muted);">${r.gradeName||''}</div></div>
       </div>
       <div style="text-align:right;">
         <div style="font-size:15px;font-weight:700;color:var(--gold-l);">${(r.rank||0).toLocaleString()}위</div>
@@ -931,72 +919,104 @@ function openDetail(m) {
       </div>
     </div>`).join('');
 
-  // 장비 파트1: 장신구/룬/아르카나 (오른쪽)
-  const equip1Slots = ['MainHand','SubHand','Helmet','Shoulder','Torso','Gloves','Pants','Boots','Cape','Belt'];
-  const equip2Slots = ['Necklace','Earring1','Earring2','Ring1','Ring2','Bracelet1','Bracelet2','Amulet','Rune1','Rune2','Arcana1','Arcana2','Arcana3','Arcana4','Arcana5','Arcana6'];
+  // 스티그마 (스킬)
+  const stigmaHTML = (m.stigma||[]).map(s => `
+    <div style="display:flex;align-items:center;gap:8px;padding:6px;background:var(--surface);border:1px solid var(--border);border-radius:8px;">
+      <img src="${s.icon||''}" style="width:32px;height:32px;border-radius:6px;border:1px solid var(--border);" onerror="this.style.display='none'">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.name||''}</div>
+        <div style="font-size:10px;color:var(--muted);">Lv.${s.level||0}</div>
+      </div>
+    </div>`).join('');
+
+  // 펫/날개
+  const petHTML = m.pet ? `<div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;">
+    <img src="${m.pet.icon||''}" style="width:40px;height:40px;border-radius:8px;" onerror="this.style.display='none'">
+    <div><div style="font-size:13px;font-weight:600;">${m.pet.name||'펫'}</div>
+    ${m.pet.grade?`<div style="font-size:11px;color:var(--muted);">등급: ${m.pet.grade}</div>`:''}
+    </div></div>` : '<div style="font-size:12px;color:var(--muted);padding:8px;">펫 정보 없음</div>';
+
+  const wingHTML = equipMap['Wing'] ? equipHTML('Wing') : (m.wing ? `<div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;">
+    <img src="${m.wing.icon||''}" style="width:40px;height:40px;border-radius:8px;" onerror="this.style.display='none'">
+    <div><div style="font-size:13px;font-weight:600;">${m.wing.name||'날개'}</div></div></div>` : '<div style="font-size:12px;color:var(--muted);padding:8px;">날개 정보 없음</div>');
+
+  // 슬롯 그룹
+  const equip1 = ['MainHand','SubHand','Helmet','Shoulder','Torso','Gloves','Pants','Boots','Cape','Belt'];
+  const equip2 = ['Necklace','Earring1','Earring2','Ring1','Ring2','Bracelet1','Bracelet2','Amulet','Rune1','Rune2'];
 
   el.querySelector('.modal-detail-content').innerHTML = `
-    <!-- 프로필 헤더 (NC 공홈 스타일) -->
+    <!-- 아이템 툴팁 -->
+    <div id="item-tooltip" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--card);border:1px solid var(--border);border-radius:10px;z-index:200;max-width:320px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.6);"></div>
+
+    <!-- 프로필 헤더 -->
     <div style="display:flex;align-items:center;gap:16px;padding:16px;background:var(--surface);border-radius:10px;margin-bottom:16px;border:1px solid var(--border);">
-      ${m.profile_img ? `<img src="${m.profile_img}" style="width:60px;height:60px;border-radius:50%;border:2px solid var(--gold-d);">` : '<div style="width:60px;height:60px;border-radius:50%;background:var(--card);border:2px solid var(--border);"></div>'}
+      ${m.profile_img?`<img src="${m.profile_img}" style="width:60px;height:60px;border-radius:50%;border:2px solid var(--gold-d);">` : '<div style="width:60px;height:60px;border-radius:50%;background:var(--card);border:2px solid var(--border);"></div>'}
       <div style="flex:1;">
         <div style="font-size:20px;font-weight:700;">${m.nickname}</div>
         <div style="font-size:12px;color:var(--muted);margin-top:2px;">${m.server_name||''} · ${m.race||''} · ${m.class||''} · Lv.${m.level||0}</div>
         <div style="font-size:12px;color:var(--muted);">레기온: ${m.guild_name||'없음'}</div>
       </div>
-      <div style="display:flex;gap:12px;flex-shrink:0;">
-        <div style="text-align:center;padding:10px 16px;background:var(--card);border:1px solid var(--border);border-radius:8px;">
-          <div style="font-size:10px;color:var(--muted);margin-bottom:2px;">전투력</div>
-          <div style="font-size:20px;font-weight:700;color:var(--gold-l);">${(m.combat_power||0).toLocaleString()}</div>
+      <div style="display:flex;gap:10px;flex-shrink:0;">
+        <div style="text-align:center;padding:8px 14px;background:var(--card);border:1px solid var(--border);border-radius:8px;">
+          <div style="font-size:10px;color:var(--muted);">전투력</div>
+          <div style="font-size:18px;font-weight:700;color:var(--gold-l);">${(m.combat_power||0).toLocaleString()}</div>
         </div>
-        <div style="text-align:center;padding:10px 16px;background:var(--card);border:1px solid var(--border);border-radius:8px;">
-          <div style="font-size:10px;color:var(--muted);margin-bottom:2px;">아이템레벨</div>
-          <div style="font-size:20px;font-weight:700;color:var(--gold-l);">${ilvl}</div>
+        <div style="text-align:center;padding:8px 14px;background:var(--card);border:1px solid var(--border);border-radius:8px;">
+          <div style="font-size:10px;color:var(--muted);">아이템레벨</div>
+          <div style="font-size:18px;font-weight:700;color:var(--gold-l);">${ilvl}</div>
         </div>
       </div>
     </div>
 
     <!-- 탭 -->
-    <div style="display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid var(--border);" id="detail-tabs">
-      <button onclick="switchDetailTab('info')" id="dtab-info" style="background:none;border:none;color:var(--gold-l);padding:10px 20px;font-size:13px;cursor:pointer;border-bottom:2px solid var(--gold);margin-bottom:-2px;font-weight:600;">종합정보</button>
-      <button onclick="switchDetailTab('daeva')" id="dtab-daeva" style="background:none;border:none;color:var(--muted);padding:10px 20px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;">데바니온</button>
-      <button onclick="switchDetailTab('rank')" id="dtab-rank" style="background:none;border:none;color:var(--muted);padding:10px 20px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;">랭킹</button>
+    <div style="display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid var(--border);">
+      <button onclick="switchDetailTab('info')" id="dtab-info" style="background:none;border:none;color:var(--gold-l);padding:8px 16px;font-size:13px;cursor:pointer;border-bottom:2px solid var(--gold);margin-bottom:-2px;font-weight:600;">종합정보</button>
+      <button onclick="switchDetailTab('equip2')" id="dtab-equip2" style="background:none;border:none;color:var(--muted);padding:8px 16px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;">장신구/룬</button>
+      <button onclick="switchDetailTab('skill')" id="dtab-skill" style="background:none;border:none;color:var(--muted);padding:8px 16px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;">스킬</button>
+      <button onclick="switchDetailTab('daeva')" id="dtab-daeva" style="background:none;border:none;color:var(--muted);padding:8px 16px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;">데바니온</button>
+      <button onclick="switchDetailTab('rank')" id="dtab-rank" style="background:none;border:none;color:var(--muted);padding:8px 16px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;">랭킹</button>
     </div>
 
-    <!-- 종합정보 탭 -->
+    <!-- 종합정보 -->
     <div id="detail-info">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-        <!-- 왼쪽: 스탯 + 장비1 -->
         <div>
-          <div style="font-size:11px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">주요 스탯</div>
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:16px;">${mainStatHTML}</div>
-          <div style="font-size:11px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">무기/방어구</div>
-          ${equip1Slots.map(equipItemHTML).join('')}
+          <div style="font-size:11px;font-weight:600;color:var(--gold);margin-bottom:8px;">주요 스탯</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:4px;">${mainStatHTML}</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:16px;" id="extra-stats" style="display:none;">${extraStatHTML}</div>
+          <button onclick="toggleExtraStats()" id="stat-more-btn" style="font-size:11px;color:var(--gold);background:none;border:none;cursor:pointer;padding:2px 0;margin-bottom:12px;">▼ 더보기</button>
+          <div style="font-size:11px;font-weight:600;color:var(--gold);margin-bottom:8px;">무기/방어구</div>
+          ${equip1.map(equipHTML).join('')}
         </div>
-        <!-- 오른쪽: 장신구/룬/아르카나 -->
         <div>
-          <div style="font-size:11px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">장신구 / 룬 / 아르카나</div>
-          ${equip2Slots.map(equipItemHTML).join('')}
+          <div style="font-size:11px;font-weight:600;color:var(--gold);margin-bottom:8px;">펫 / 날개</div>
+          ${petHTML}
+          ${wingHTML}
+          <div style="font-size:11px;font-weight:600;color:var(--gold);margin:12px 0 8px;">아르카나</div>
+          ${['Arcana1','Arcana2','Arcana3','Arcana4','Arcana5','Arcana6'].map(equipHTML).join('')}
         </div>
       </div>
-      ${daevStatHTML ? `
-      <div style="margin-top:16px;">
-        <div style="font-size:11px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">데바니온 스탯</div>
-        ${daevStatHTML}
-      </div>` : ''}
     </div>
 
-    <!-- 데바니온 탭 -->
+    <!-- 장신구/룬 -->
+    <div id="detail-equip2" style="display:none;">
+      ${equip2.map(equipHTML).join('')}
+    </div>
+
+    <!-- 스킬 (스티그마) -->
+    <div id="detail-skill" style="display:none;">
+      ${stigmaHTML ? `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">${stigmaHTML}</div>` : '<div style="color:var(--muted);padding:20px;text-align:center;">스킬 정보 없음 (갱신 필요)</div>'}
+    </div>
+
+    <!-- 데바니온 -->
     <div id="detail-daeva" style="display:none;">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        ${daevaHTML||'<div style="color:var(--muted);padding:20px;grid-column:1/-1;text-align:center;">데바니온 정보 없음</div>'}
-      </div>
+      ${daevStatHTML || '<div style="color:var(--muted);padding:20px;text-align:center;">데바니온 정보 없음</div>'}
     </div>
 
-    <!-- 랭킹 탭 -->
+    <!-- 랭킹 -->
     <div id="detail-rank" style="display:none;">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        ${rankHTML||'<div style="color:var(--muted);padding:20px;grid-column:1/-1;text-align:center;">랭킹 정보 없음</div>'}
+        ${rankHTML || '<div style="color:var(--muted);padding:20px;grid-column:1/-1;text-align:center;">랭킹 정보 없음</div>'}
       </div>
     </div>
   `;
@@ -1004,15 +1024,24 @@ function openDetail(m) {
   el.classList.add('open');
 }
 
+function toggleExtraStats() {
+  const el = document.getElementById('extra-stats');
+  const btn = document.getElementById('stat-more-btn');
+  if(!el||!btn) return;
+  const shown = el.style.display !== 'none';
+  el.style.display = shown ? 'none' : 'grid';
+  btn.textContent = shown ? '▼ 더보기' : '▲ 접기';
+}
+
 function switchDetailTab(tab) {
-  ['info','daeva','rank'].forEach(t => {
-    const content = document.getElementById('detail-'+t);
-    if(content) content.style.display = t===tab ? '' : 'none';
-    const btn = document.getElementById('dtab-'+t);
-    if(btn) {
-      btn.style.color = t===tab ? 'var(--gold-l)' : 'var(--muted)';
-      btn.style.borderBottom = t===tab ? '2px solid var(--gold)' : '2px solid transparent';
-      btn.style.fontWeight = t===tab ? '600' : '400';
+  ['info','equip2','skill','daeva','rank'].forEach(t => {
+    const c = document.getElementById('detail-'+t);
+    if(c) c.style.display = t===tab ? '' : 'none';
+    const b = document.getElementById('dtab-'+t);
+    if(b) {
+      b.style.color = t===tab ? 'var(--gold-l)' : 'var(--muted)';
+      b.style.borderBottom = t===tab ? '2px solid var(--gold)' : '2px solid transparent';
+      b.style.fontWeight = t===tab ? '600' : '400';
     }
   });
 }
@@ -1135,7 +1164,7 @@ function renderMembers() {
         <td></td>
         <td><span style="font-size:13px;font-weight:600;color:var(--gold-l);">${(s.combat_power||0).toLocaleString()}</span></td>
         <td style="white-space:nowrap;">${s.item_level||'—'}</td>
-        <td><div class="equip-list">${(s.equipment||[]).slice(0,3).map(e=>`<div class="equip-item"><img src="${e.icon}" onerror="this.style.display='none'" style="width:20px;height:20px;border-radius:3px;"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px;display:inline-block;vertical-align:middle;">${e.name||''} ${e.enchant?'+'+e.enchant:''}</span></div>`).join('')}</div></td>
+        <td><div class="equip-list">${(s.equipment||[]).slice(0,3).map(e=>{const gc=({Common:'#aaaaaa',Rare:'#4a90e8',Hero:'#d44040',Epic:'#d44040',Unique:'#e8c030',Legendary:'#ff6a20',Special:'#40d4c0'})[e.grade]||'#555';return`<div class="equip-item grade-${e.grade||''}" style="border-color:${gc}88;"><img src="${e.icon}" onerror="this.style.display='none'" style="width:20px;height:20px;border-radius:3px;border:1px solid ${gc}66;"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px;display:inline-block;vertical-align:middle;color:${gc};">${e.name||''} ${e.enchant?'+'+e.enchant:''}</span></div>`;}).join('')}</div></td>
         <td style="white-space:nowrap;vertical-align:middle;"><button class="btn btn-sm" onclick="syncMember('${s.id}','${s.nickname}','${s.server||'2001'}')">갱신</button></td>
         <td style="white-space:nowrap;vertical-align:middle;">
           <button class="btn btn-sm" onclick="openDetailById('${s.id}')" style="font-size:11px;">상세</button>
