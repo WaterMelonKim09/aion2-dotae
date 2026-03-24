@@ -342,12 +342,10 @@
 
 <!-- 멤버 관리 모달 -->
 <!-- 상세 스펙 모달 -->
-<div class="overlay" id="modal-detail" onclick="if(event.target===this)document.getElementById('modal-detail').classList.remove('open')" style="align-items:flex-start;padding-top:40px;">
-  <div class="modal" style="max-width:800px;max-height:85vh;overflow-y:auto;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-      <div class="modal-title" style="margin:0">캐릭터 상세 스펙</div>
-      <button class="btn btn-sm" onclick="document.getElementById('modal-detail').classList.remove('open')">닫기</button>
-    </div>
+<div class="overlay" id="modal-detail" style="align-items:flex-start;padding-top:40px;">
+  <div class="modal" style="max-width:800px;max-height:85vh;overflow-y:auto;position:relative;">
+    <button id="detail-close-btn" style="position:absolute;top:12px;right:12px;background:none;border:1px solid var(--border);color:var(--muted);padding:4px 12px;border-radius:6px;font-size:13px;cursor:pointer;z-index:10;">✕ 닫기</button>
+    <div class="modal-title" style="margin-bottom:16px;">캐릭터 상세 스펙</div>
     <div class="modal-detail-content"></div>
   </div>
 </div>
@@ -798,6 +796,14 @@ function toast(msg) {
   const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show');
   clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove('show'),2500);
 }
+
+// 상세 모달 닫기
+document.getElementById('detail-close-btn').addEventListener('click', function() {
+  document.getElementById('modal-detail').classList.remove('open');
+});
+document.getElementById('modal-detail').addEventListener('click', function(e) {
+  if(e.target === this) this.classList.remove('open');
+});
 
 initFirebase();
 </script>
