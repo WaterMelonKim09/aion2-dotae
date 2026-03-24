@@ -681,6 +681,21 @@ async function syncAllMembers() {
 }
 
 // ─── 상세 보기 ────────────────────────────
+function toggleSubs(mainId) {
+  const toggle = document.getElementById('sub-toggle-' + mainId);
+  const main = members.find(m => m.id === mainId);
+  if(!main) return;
+  const subMembers = members.filter(m => m.is_main === false && m.player_id === main.nickname);
+  const isOpen = toggle.textContent.includes('▼');
+  subMembers.forEach(s => {
+    const row = document.getElementById('sub-row-' + s.id);
+    if(row) row.style.display = isOpen ? 'none' : '';
+  });
+  toggle.innerHTML = isOpen
+    ? `▶ 부캐 보기 (${subMembers.length})`
+    : `▼ 부캐 숨기기 (${subMembers.length})`;
+}
+
 function openDetailById(id) {
   const m = members.find(x => x.id === id) || members.find(x => x.nickname === id);
   if(m) openDetail(m);
@@ -967,7 +982,7 @@ function renderMembers() {
       <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px;display:inline-block;vertical-align:middle;color:${gradeColors[e.grade]||'var(--text)'};">${e.name||''} ${e.enchant?'+'+e.enchant:''}</span>
     </div>`).join('');
 
-  const rowHTML = (m, isSub) => {
+  const rowHTML = (m, isSub, extraHTML='') => {
     const isSyncing = syncingIds.has(m.id);
     const syncBtn = isSyncing
       ? `<button class="btn btn-sm" disabled><span class="spinner"></span>갱신 중</button>`
@@ -977,7 +992,7 @@ function renderMembers() {
     const prefix = isSub ? '└ ' : '';
     const mId = m.id || m.nickname;
     return `<tr style="${isSub?'background:rgba(0,0,0,.12);':''}">
-      <td style="font-weight:600;white-space:nowrap;">${prefix}${m.nickname}${subMark}</td>
+      <td style="font-weight:600;white-space:nowrap;">${prefix}${m.nickname}${subMark}${extraHTML}</td>
       <td style="white-space:nowrap;"><span class="cls cls-${CLASS_MAP[m.class]||m.class||''}">${(CLS_ICON[CLASS_MAP[m.class]||m.class]||'')} ${CLASS_MAP[m.class]||m.class||'?'}</span></td>
       <td style="white-space:nowrap;">${isSub ? '' : `<span class="rank ${rankCls(m.rank||'군단병')}">${rankLabel(m.rank||'군단병')}</span>`}</td>
       <td>${cpBar(m.combat_power)}</td>
