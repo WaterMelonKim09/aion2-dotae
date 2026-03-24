@@ -883,15 +883,17 @@ function openDetail(m) {
     </div>`;
   };
 
-  // 스탯 HTML - 전체 표시
-  const mainStatTypes = ['STR','AGI','INT','WIS','DEX','CON'];
-  const extraStatTypes = ['MaxHP','MaxMP','PhysicalAtk','MagicAtk','PhysicalDef','MagicDef','HitRate','Evasion','Critical','CriticalRes','AttackSpeed','CastSpeed'];
-  const statCard = (s) => `<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px;display:flex;flex-direction:column;align-items:center;gap:2px;">
-    <div style="font-size:11px;color:var(--muted);text-align:center;">${s.name}</div>
-    <div style="font-size:16px;font-weight:700;color:var(--gold-l);">${s.value}</div>
+  // 스탯 HTML - API에서 오는 전체 statList 사용 (타입 하드코딩 제거)
+  const allStats = (m.stats||[]).filter(s => s.type !== 'ItemLevel' && s.name && s.value !== undefined);
+  const statCard = (s) => `<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px;display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center;">
+    <div style="font-size:11px;color:var(--muted);line-height:1.3;">${s.name}</div>
+    <div style="font-size:15px;font-weight:700;color:var(--gold-l);">${s.value}</div>
+    ${(s.statSecondList||[]).length ? `<div style="font-size:9px;color:var(--muted);margin-top:1px;">${(s.statSecondList||[]).join(' ')}</div>` : ''}
   </div>`;
-  const mainStatHTML = mainStatTypes.map(t => statMap[t] ? statCard(statMap[t]) : '').join('');
-  const extraStatHTML = extraStatTypes.map(t => statMap[t] ? statCard(statMap[t]) : '').join('');
+  const mainStats = allStats.slice(0, 6);
+  const extraStats = allStats.slice(6);
+  const mainStatHTML = mainStats.map(statCard).join('');
+  const extraStatHTML = extraStats.map(statCard).join('');
 
   // 데바니온 스탯 바
   const daevStatHTML = (m.daevanion||[]).map(d => `
@@ -983,8 +985,8 @@ function openDetail(m) {
         <div>
           <div style="font-size:11px;font-weight:600;color:var(--gold);margin-bottom:8px;">주요 스탯</div>
           <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:4px;">${mainStatHTML}</div>
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:16px;" id="extra-stats" style="display:none;">${extraStatHTML}</div>
-          <button onclick="toggleExtraStats()" id="stat-more-btn" style="font-size:11px;color:var(--gold);background:none;border:none;cursor:pointer;padding:2px 0;margin-bottom:12px;">▼ 더보기</button>
+          <div id="extra-stats" style="display:none;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:16px;">${extraStatHTML}</div>
+          ${extraStats.length > 0 ? `<button onclick="toggleExtraStats()" id="stat-more-btn" style="font-size:11px;color:var(--gold);background:none;border:none;cursor:pointer;padding:2px 0;margin-bottom:12px;">▼ 더보기 (${extraStats.length})</button>` : ""}
           <div style="font-size:11px;font-weight:600;color:var(--gold);margin-bottom:8px;">무기/방어구</div>
           ${equip1.map(equipHTML).join('')}
         </div>
@@ -1028,7 +1030,7 @@ function toggleExtraStats() {
   const el = document.getElementById('extra-stats');
   const btn = document.getElementById('stat-more-btn');
   if(!el||!btn) return;
-  const shown = el.style.display !== 'none';
+  const shown = el.style.display === 'grid';
   el.style.display = shown ? 'none' : 'grid';
   btn.textContent = shown ? '▼ 더보기' : '▲ 접기';
 }
