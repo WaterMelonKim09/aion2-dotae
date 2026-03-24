@@ -178,6 +178,107 @@
   /* 토스트 */
   #toast { position:fixed; bottom:24px; right:24px; z-index:999; background:var(--card); border:1px solid var(--gold-d); border-radius:8px; padding:12px 20px; font-size:13px; opacity:0; transform:translateY(10px); transition:all .3s; pointer-events:none; }
   #toast.show { opacity:1; transform:translateY(0); }
+
+/* ── 모바일 반응형 ─────────────────── */
+@media (max-width: 768px) {
+  .header { padding:10px 14px; }
+  .header-title { font-size:16px; }
+  .online-badge { display:none; }
+  .main { padding:12px; }
+
+  /* 네비게이션 - 스크롤 가능하게 */
+  .nav { padding:0 8px; gap:0; overflow-x:auto; flex-wrap:nowrap; scrollbar-width:none; }
+  .nav::-webkit-scrollbar { display:none; }
+  .nav-btn { font-size:12px; padding:10px 10px; white-space:nowrap; flex-shrink:0; }
+
+  /* 통계 카드 2열 */
+  .stats-grid { grid-template-columns:1fr 1fr !important; gap:8px !important; }
+  .stat-card { padding:12px !important; }
+  .stat-val { font-size:20px !important; }
+
+  /* 대시보드 - 1열로 */
+  #tab-dashboard > div[style*="grid-template-columns:2fr 3fr"] {
+    display:block !important;
+  }
+  #tab-dashboard > div[style*="grid-template-columns:2fr 3fr"] > div {
+    margin-bottom:16px;
+  }
+
+  /* 멤버 테이블 - 모바일에서 스크롤 */
+  .table-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .table-wrap table { min-width:600px; }
+  /* 장비 컬럼 숨김 */
+  .table-wrap th:nth-child(6),
+  .table-wrap td:nth-child(6) { display:none; }
+
+  /* 필터 행 */
+  .filter-row { flex-wrap:wrap; gap:6px; }
+  .chip { font-size:11px; padding:4px 10px; }
+  .search-box { width:100% !important; }
+
+  /* 모달 */
+  .modal { margin:10px; width:calc(100% - 20px) !important; max-width:none !important; border-radius:10px; }
+  .modal-detail-content { font-size:13px; }
+
+  /* 상세 모달 2열 → 1열 */
+  .modal-detail-content [style*="grid-template-columns:1fr 1fr"] {
+    display:block !important;
+  }
+  .modal-detail-content [style*="grid-template-columns:1fr 1fr"] > div {
+    margin-bottom:16px;
+  }
+
+  /* 상세 모달 스탯 카드 4열 */
+  .modal-detail-content [style*="grid-template-columns:repeat(3,1fr)"] {
+    grid-template-columns:repeat(4,1fr) !important;
+  }
+
+  /* 상세 모달 프로필 헤더 */
+  .modal-detail-content [style*="display:flex;align-items:center;gap:16px;padding:16px"] {
+    flex-wrap:wrap;
+    gap:10px;
+  }
+
+  /* 파이차트 영역 */
+  .pie-wrap { flex-direction:column; align-items:center; gap:16px; }
+
+  /* 파티 모집 카드 */
+  .rc-card { padding:12px !important; }
+  .rc-foot { flex-wrap:wrap; gap:6px; }
+
+  /* form-row 1열 */
+  .form-row { grid-template-columns:1fr !important; }
+
+  /* 보스 타이머 / 슈고 타이머 */
+  #boss-grid { grid-template-columns:1fr !important; }
+
+  /* 버튼 크기 */
+  .btn-sm { font-size:11px; padding:4px 8px; }
+
+  /* 상세 모달 탭 스크롤 */
+  #modal-detail .modal [style*="display:flex;gap:0;margin-bottom:16px"] {
+    overflow-x:auto;
+    scrollbar-width:none;
+  }
+
+  /* 랭킹 2열 → 1열 */
+  #detail-rank > div { grid-template-columns:1fr !important; }
+
+  /* 스킬 3열 → 2열 */
+  #detail-skill > div { grid-template-columns:repeat(2,1fr) !important; }
+}
+
+@media (max-width: 480px) {
+  .header-title { font-size:14px; }
+  .stat-val { font-size:18px !important; }
+  .stats-grid { grid-template-columns:1fr 1fr !important; }
+  .modal-detail-content [style*="grid-template-columns:repeat(3,1fr)"] {
+    grid-template-columns:repeat(3,1fr) !important;
+  }
+  /* 테이블 갱신/시간 컬럼 숨김 */
+  .table-wrap th:nth-child(7),
+  .table-wrap td:nth-child(7) { display:none; }
+}
 </style>
 </head>
 <body>
