@@ -23,7 +23,7 @@
   .online-badge { background:#1a2e1a; border:1px solid #2a5a2a; color:#6acd8a; font-size:12px; padding:4px 10px; border-radius:20px; }
 
   /* 네비 */
-  .nav { background:var(--surface); border-bottom:1px solid var(--border); padding:0 24px; display:flex; gap:4px; }
+  .nav { background:var(--surface); border-bottom:1px solid var(--border); padding:0 24px; display:flex; gap:4px; position:sticky; top:56px; z-index:49; }
   .nav-btn { background:none; border:none; color:var(--muted); padding:14px 16px; font-size:13px; cursor:pointer; border-bottom:2px solid transparent; transition:color .2s; }
   .nav-btn:hover { color:var(--text); }
   .nav-btn.active { color:var(--gold-l); border-bottom-color:var(--gold); }
@@ -522,10 +522,11 @@ function sortMembers(arr) {
 }
 
 function renderAll() {
-  const total = members.length;
+  const mainMembers = members.filter(m => m.is_main !== false);
+  const total = mainMembers.length;
   document.getElementById('stat-total').textContent = total;
   document.getElementById('online-badge').textContent = `● 멤버 ${total}명`;
-  const avgCp = total ? Math.round(members.reduce((s,m)=>s+(m.combat_power||0),0)/total) : 0;
+  const avgCp = total ? Math.round(mainMembers.reduce((s,m)=>s+(m.combat_power||0),0)/total) : 0;
   document.getElementById('stat-avgcp').textContent = avgCp ? Math.round(avgCp/1000)+'K' : '—';
   renderTop5(); renderRecentRecruit(); renderMembers();
   if(distView==='pie') drawPie(); else renderDistList();
@@ -941,7 +942,7 @@ function cpBar(cp) {
 }
 
 function renderTop5() {
-  const top = [...members].sort((a,b)=>(b.combat_power||0)-(a.combat_power||0)).slice(0,10);
+  const top = [...members].filter(m=>m.is_main!==false).sort((a,b)=>(b.combat_power||0)-(a.combat_power||0)).slice(0,10);
   document.getElementById('top10-body').innerHTML = top.length
     ? top.map((m,i)=>`<tr>
         <td style="color:var(--muted);font-weight:600">${i+1}</td>
