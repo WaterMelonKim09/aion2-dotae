@@ -482,9 +482,11 @@ async function fetchAndRegister() {
     const data = await fetchCharacterData(nickname, serverId);
     const cls  = CLASS_MAP[data.class] || data.class || '';
 
-    const isMain = document.getElementById('reg-is-main').value === 'true';
-    const playerId = isMain ? nickname : (document.getElementById('reg-player-id').value.trim() || nickname);
-    if(!isMain && !document.getElementById('reg-player-id').value.trim()) {
+    const isMainEl = document.getElementById('reg-is-main');
+    const isMain = isMainEl ? isMainEl.value === 'true' : true;
+    const playerIdEl = document.getElementById('reg-player-id');
+    const playerId = isMain ? nickname : (playerIdEl ? playerIdEl.value.trim() || nickname : nickname);
+    if(!isMain && playerIdEl && !playerIdEl.value.trim()) {
       toast('본캐 닉네임을 입력해주세요'); btn.disabled=false; btn.textContent='닉네임으로 스펙 불러와서 등록'; return;
     }
     await db.collection('members').doc(nickname+'_'+serverId).set({
@@ -813,8 +815,10 @@ async function saveManual() {
   const rank     = document.getElementById('reg-rank').value;
   const intro    = document.getElementById('reg-intro').value.trim();
   if (!nickname) { toast('닉네임을 입력해주세요'); return; }
-  const isMainM = document.getElementById('reg-is-main').value === 'true';
-  const playerIdM = isMainM ? nickname : (document.getElementById('reg-player-id').value.trim() || nickname);
+  const isMainMEl = document.getElementById('reg-is-main');
+  const isMainM = isMainMEl ? isMainMEl.value === 'true' : true;
+  const playerIdMEl = document.getElementById('reg-player-id');
+  const playerIdM = isMainM ? nickname : (playerIdMEl ? playerIdMEl.value.trim() || nickname : nickname);
   await db.collection('members').doc(nickname+'_'+serverId).set({
     nickname, server: serverId, rank, intro,
     is_main: isMainM, player_id: playerIdM,
@@ -917,7 +921,11 @@ function renderMembers() {
   const legacy = filtered.filter(m => m.is_main === undefined);
   legacy.forEach(m => rows += rowHTML(m, false));
 
-    document.getElementById('member-body').innerHTML = rows ||
+    // 빈 rows면 filtered 전체를 legacy로 처리
+  if(!rows) {
+    filtered.forEach(m => rows += rowHTML(m, false));
+  }
+  document.getElementById('member-body').innerHTML = rows ||
     `<tr><td colspan="8"><div class="empty"><div class="empty-icon">⚔</div><p>검색 결과가 없어요</p></div></td></tr>`;
 }
 
