@@ -342,11 +342,11 @@
 
 <!-- 멤버 관리 모달 -->
 <!-- 상세 스펙 모달 -->
-<div class="overlay" id="modal-detail" onclick="closeOverlay(event,'modal-detail')" style="align-items:flex-start;padding-top:40px;">
+<div class="overlay" id="modal-detail" onclick="if(event.target===this)document.getElementById('modal-detail').classList.remove('open')" style="align-items:flex-start;padding-top:40px;">
   <div class="modal" style="max-width:800px;max-height:85vh;overflow-y:auto;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
       <div class="modal-title" style="margin:0">캐릭터 상세 스펙</div>
-      <button class="btn btn-sm" onclick="closeModal('modal-detail')">닫기</button>
+      <button class="btn btn-sm" onclick="document.getElementById('modal-detail').classList.remove('open')">닫기</button>
     </div>
     <div class="modal-detail-content"></div>
   </div>
