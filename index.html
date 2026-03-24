@@ -891,14 +891,14 @@ function renderMembers() {
     const mId = m.id;
     return `<tr style="${isSub?'background:rgba(0,0,0,.12);':''}">
       <td style="font-weight:600;white-space:nowrap;">${prefix}${m.nickname}${subMark}</td>
-      <td style="white-space:nowrap;"><span class="cls cls-${CLASS_MAP[m.class]||m.class||''}">${CLS_ICON[CLASS_MAP[m.class]||m.class]||''} ${CLASS_MAP[m.class]||m.class||'?'}</span></td>
+      <td style="white-space:nowrap;"><span class="cls cls-${CLASS_MAP[m.class]||m.class||''}">${(CLS_ICON[CLASS_MAP[m.class]||m.class]||'')} ${CLASS_MAP[m.class]||m.class||'?'}</span></td>
       <td style="white-space:nowrap;"><span class="rank ${rankCls(m.rank||'군단병')}">${m.rank||'군단병'}</span></td>
       <td>${cpBar(m.combat_power)}</td>
       <td style="white-space:nowrap;">${m.item_level||'—'}</td>
       <td><div class="equip-list">${equips(m.equipment)}</div></td>
       <td style="white-space:nowrap;vertical-align:middle;">${syncBtn}${lastSync}</td>
       <td style="white-space:nowrap;vertical-align:middle;">
-        <button class="btn btn-sm" onclick='openDetail(${mData})' style="font-size:11px;">상세</button>
+        <button class="btn btn-sm" onclick="openDetailById('${mId}')" style="font-size:11px;">상세</button>
         <button class="btn btn-sm" onclick="openEdit('${m.id}','${m.rank||'군단병'}')">관리</button>
       </td>
     </tr>`;
@@ -910,6 +910,7 @@ function renderMembers() {
   }
 
   // 본캐 먼저, 본캐 아래 부캐 그룹핑
+  console.log('filtered:', filtered.length, 'mains:', filtered.filter(m => m.is_main !== false).length);
   const mains = filtered.filter(m => m.is_main !== false);
   const subs  = filtered.filter(m => m.is_main === false);
   let rows = '';
@@ -920,7 +921,12 @@ function renderMembers() {
   // 본캐 없는 부캐 & player_id 매칭 안 되는 경우
   subs.filter(s => !mains.find(m => m.nickname === s.player_id)).forEach(s => rows += rowHTML(s, true));
 
-  document.getElementById('member-body').innerHTML = rows;
+  // rows가 비어있으면 filtered 전체를 그냥 표시 (is_main 없는 기존 데이터 대비)
+  if (!rows) {
+    filtered.forEach(m => { rows += rowHTML(m, false); });
+  }
+  document.getElementById('member-body').innerHTML = rows ||
+    `<tr><td colspan="8"><div class="empty"><div class="empty-icon">⚔</div><p>검색 결과가 없어요</p></div></td></tr>`;
 }
 
 
