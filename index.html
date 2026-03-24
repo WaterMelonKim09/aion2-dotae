@@ -222,21 +222,23 @@
       </div>
       <div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-          <div class="section-title" style="margin:0">최근 모집</div>
-          <button class="btn btn-sm" onclick="showTab('recruit')">전체 보기</button>
+          <div class="section-title" style="margin:0">직업 분포</div>
+          <div class="view-toggle">
+            <button class="vt active" id="vt-pie" onclick="setDistView('pie')">원형</button>
+            <button class="vt" id="vt-list" onclick="setDistView('list')">목록</button>
+          </div>
         </div>
-        <div id="recent-recruit" style="display:flex;flex-direction:column;gap:10px;"></div>
+        <div id="dist-pie"><div class="pie-wrap"><div class="pie-rel"><canvas id="pie-chart" width="180" height="180"></canvas><div class="pie-center"><div class="pie-total" id="pie-total">—</div><div class="pie-sub">총 길드원</div></div></div><div class="legend" id="pie-legend"></div></div></div>
+        <div id="dist-list" style="display:none;gap:10px;flex-wrap:wrap;"></div>
       </div>
     </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-      <div class="section-title" style="margin:0">직업 분포</div>
-      <div class="view-toggle">
-        <button class="vt active" id="vt-pie" onclick="setDistView('pie')">원형</button>
-        <button class="vt" id="vt-list" onclick="setDistView('list')">목록</button>
+    <div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div class="section-title" style="margin:0">최근 모집</div>
+        <button class="btn btn-sm" onclick="showTab('recruit')">전체 보기</button>
       </div>
+      <div id="recent-recruit" style="display:flex;flex-direction:column;gap:10px;"></div>
     </div>
-    <div id="dist-pie"><div class="pie-wrap"><div class="pie-rel"><canvas id="pie-chart" width="180" height="180"></canvas><div class="pie-center"><div class="pie-total" id="pie-total">—</div><div class="pie-sub">총 길드원</div></div></div><div class="legend" id="pie-legend"></div></div></div>
-    <div id="dist-list" style="display:none;gap:10px;flex-wrap:wrap;"></div>
   </div>
 
   <!-- 멤버 스펙 -->
@@ -645,7 +647,7 @@ function openDetail(m) {
         <div style="font-size:11px;color:var(--muted);">${slotName[slot]||slot}</div>
       </div>`;
     const gc = gradeColor[e.grade]||'#888';
-    const exceed = e.exceed>0 ? `<span style="color:#60c8ff;margin-left:4px;">초월${e.exceed}</span>` : '';
+    const exceed = e.exceed>0 ? `<span style="color:#60c8ff;margin-left:4px;">돌파${e.exceed}</span>` : '';
     return `
       <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);">
         <div style="position:relative;flex-shrink:0;">
@@ -1038,6 +1040,7 @@ function showTab(id) {
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('tab-'+id).classList.add('active');
   ['dashboard','members','recruit','register'].forEach((t,i)=>{ if(t===id) document.querySelectorAll('.nav-btn')[i].classList.add('active'); });
+  localStorage.setItem('activeTab', id);
 }
 function openModal(id) { 
   const el = document.getElementById('modal-'+id) || document.getElementById(id);
@@ -1076,6 +1079,10 @@ document.getElementById('detail-close-btn').addEventListener('click', function()
 document.getElementById('modal-detail').addEventListener('click', function(e) {
   if(e.target === this) this.classList.remove('open');
 });
+
+// 마지막 탭 복원
+const savedTab = localStorage.getItem('activeTab');
+if(savedTab) showTab(savedTab);
 
 initFirebase();
 </script>
