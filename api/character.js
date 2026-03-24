@@ -7,17 +7,41 @@ module.exports = async function handler(req, res) {
 
   const headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
-    'Referer': `https://aion2.plaync.com/ko-kr/characters/${serverId}/${characterId}`,
+    'Referer': 'https://aion2.plaync.com/ko-kr/characters/index',
+    'Accept': 'application/json, text/plain, */*',
+    'Accept-Language': 'ko-KR,ko;q=0.9',
   };
 
   try {
+    const infoUrl  = `https://aion2.plaync.com/api/character/info?lang=ko&characterId=${encodeURIComponent(characterId)}&serverId=${serverId}`;
+    const equipUrl = `https://aion2.plaync.com/api/character/equipment?lang=ko&characterId=${encodeURIComponent(characterId)}&serverId=${serverId}`;
+
     const [infoRes, equipRes] = await Promise.all([
-      fetch(`https://aion2.plaync.com/api/character/info?lang=ko&characterId=${encodeURIComponent(characterId)}&serverId=${serverId}`, { headers }),
-      fetch(`https://aion2.plaync.com/api/character/equipment?lang=ko&characterId=${encodeURIComponent(characterId)}&serverId=${serverId}`, { headers }),
+      fetch(infoUrl,  { headers }),
+      fetch(equipUrl, { headers }),
     ]);
 
-    const infoData  = await infoRes.json();
-    const equipData = await equipRes.json();
+    // 응답 상태 확인
+    if (!infoRes.ok) {
+      return res.status(502).json({ 
+        error: `NC 공홈 응답 오류: ${infoRes.status}`,
+        url: infoUrl
+      });
+    }
+
+    const infoText  = await infoRes.text();
+    const equipText = await equipRes.text();
+
+    let infoData, equipData;
+    try {
+      infoData  = JSON.parse(infoText);
+      equipData = JSON.parse(equipText);
+    } catch(e) {
+      return res.status(502).json({ 
+        error: 'NC 응답 파싱 실패',
+        infoPreview: infoText.slice(0, 200),
+      });
+    }
 
     const info  = infoData?.characterInfo || infoData || {};
     const equip = equipData?.equipment?.equipmentList || [];
