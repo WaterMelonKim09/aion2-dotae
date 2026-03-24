@@ -1140,7 +1140,7 @@ function drawPie() {
   });
   const labels = Object.keys(counts), data = Object.values(counts);
   const total  = data.reduce((a,b)=>a+b,0);
-  document.getElementById('pie-total').textContent = total ? `${total}` : '—';
+  document.getElementById('pie-total').textContent = document.getElementById('stat-total').textContent || total || '—';
   if(!total) return;
   const ctx = document.getElementById('pie-chart').getContext('2d');
   if(pieChart) pieChart.destroy();
