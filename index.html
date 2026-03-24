@@ -217,8 +217,8 @@
     </div>
     <div style="display:grid;grid-template-columns:2fr 3fr;gap:20px;margin-bottom:20px;align-items:stretch;">
       <div style="display:flex;flex-direction:column;">
-        <div class="section-title">스펙 TOP 5</div>
-        <div class="table-wrap" style="flex:1;"><table><thead><tr><th>#</th><th>닉네임</th><th>직업</th><th>전투력</th></tr></thead><tbody id="top5-body"></tbody></table></div>
+        <div class="section-title">스펙 TOP 10</div>
+        <div class="table-wrap" style="flex:1;"><table><thead><tr><th>#</th><th>닉네임</th><th>직업</th><th>전투력</th></tr></thead><tbody id="top10-body"></tbody></table></div>
       </div>
       <div style="display:flex;flex-direction:column;height:100%;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
@@ -445,7 +445,7 @@ let pieChart = null;
 let distView = 'pie';
 let syncingIds = new Set();
 let sortBy  = 'rank';
-let sortAsc = false;
+let sortAsc = true;
 
 // ─── Firebase 구독 ──────────────────────
 // 구버전 계급 마이그레이션 (일반→군단병, 부마스터→엘리트장교, 마스터→군단장)
@@ -926,8 +926,8 @@ function cpBar(cp) {
 }
 
 function renderTop5() {
-  const top = [...members].sort((a,b)=>(b.combat_power||0)-(a.combat_power||0)).slice(0,5);
-  document.getElementById('top5-body').innerHTML = top.length
+  const top = [...members].sort((a,b)=>(b.combat_power||0)-(a.combat_power||0)).slice(0,10);
+  document.getElementById('top10-body').innerHTML = top.length
     ? top.map((m,i)=>`<tr>
         <td style="color:var(--muted);font-weight:600">${i+1}</td>
         <td style="font-weight:600;white-space:nowrap;">${m.nickname}</td>
@@ -1059,12 +1059,14 @@ function drawPie() {
       plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'#1a1e28', borderColor:'#2a2f3d', borderWidth:1, titleColor:'#00ffa3', bodyColor:'#e8e2d4',
         callbacks:{ label:c=>` ${c.label}  ${c.raw}명 (${Math.round(c.raw/total*100)}%)` } } } }
   });
-  document.getElementById('pie-legend').innerHTML = labels.map((l,i)=>`
+  // legend를 count 내림차순으로 정렬
+  const legendItems = labels.map((l,i) => ({l, d:data[i]})).sort((a,b) => b.d - a.d);
+  document.getElementById('pie-legend').innerHTML = legendItems.map(({l,d})=>`
     <div class="leg-item">
       <div class="leg-dot" style="background:${CLS_COLOR[l]||'#888'}"></div>
       <span class="leg-name">${CLS_ICON[l]||''} ${l}</span>
-      <span class="leg-cnt">${data[i]}명</span>
-      <span class="leg-pct">${Math.round(data[i]/total*100)}%</span>
+      <span class="leg-cnt">${d}명</span>
+      <span class="leg-pct">${Math.round(d/total*100)}%</span>
     </div>`).join('');
 }
 
@@ -1173,7 +1175,7 @@ document.getElementById('modal-detail').addEventListener('click', function(e) {
 // 초기 정렬 아이콘
 setTimeout(() => {
   const el = document.getElementById('sort-rank');
-  if(el) el.textContent = '▼';
+  if(el) el.textContent = '▲';
 }, 100);
 const savedTab = localStorage.getItem('activeTab');
 if(savedTab) showTab(savedTab);
