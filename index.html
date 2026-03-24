@@ -202,7 +202,7 @@
   <button class="nav-btn active" onclick="showTab('dashboard')">대시보드</button>
   <button class="nav-btn" onclick="showTab('members')">멤버 스펙</button>
   <button class="nav-btn" onclick="showTab('recruit')">파티 모집</button>
-  <button class="nav-btn" onclick="showTab('timer')">보스 타이머</button>
+  <button class="nav-btn" onclick="showTab('timer')">슈고 타이머</button>
   <button class="nav-btn" onclick="showTab('register')">멤버 등록</button>
 </div>
 
@@ -289,22 +289,68 @@
     <div class="recruit-grid" id="recruit-grid"></div>
   </div>
 
-  <!-- 보스 타이머 -->
+  <!-- 슈고 타이머 -->
   <div id="tab-timer" class="tab-content">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-      <div class="section-title" style="margin:0">🔔 보스 타이머</div>
-      <div style="font-size:12px;color:var(--muted);">킬 시간을 기록하면 자동으로 리젠 카운트다운이 시작돼요</div>
-    </div>
+    <div class="section-title">🐹 슈고 타이머</div>
+    <div style="max-width:480px;margin:0 auto;">
 
-    <!-- 종족 필터 -->
-    <div class="filter-row" style="margin-bottom:16px;">
-      <button class="chip active" onclick="setBossFilter('all',this)">전체</button>
-      <button class="chip" onclick="setBossFilter('천족',this)">천족</button>
-      <button class="chip" onclick="setBossFilter('마족',this)">마족</button>
-      <button class="chip" onclick="setBossFilter('어비스',this)">어비스</button>
-    </div>
+      <!-- 메인 시계 카드 -->
+      <div class="card" style="padding:32px;text-align:center;margin-bottom:16px;">
+        <div id="shugo-clock" style="font-size:56px;font-weight:700;font-family:monospace;color:var(--gold-l);letter-spacing:4px;margin-bottom:8px;">--:--:--</div>
+        <div id="shugo-next" style="font-size:14px;color:var(--muted);margin-bottom:24px;">다음 슈고까지 --:--</div>
+        <div style="background:var(--border);border-radius:6px;height:8px;margin-bottom:24px;overflow:hidden;">
+          <div id="shugo-bar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--gold-d),var(--gold-l));border-radius:6px;transition:width .5s;"></div>
+        </div>
+        <div id="shugo-status" style="font-size:13px;padding:8px 20px;border-radius:20px;display:inline-block;background:var(--surface);border:1px solid var(--border);color:var(--muted);">대기 중</div>
+      </div>
 
-    <div id="boss-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;"></div>
+      <!-- 설정 카드 -->
+      <div class="card" style="padding:20px;margin-bottom:16px;">
+        <div style="font-size:13px;font-weight:600;color:var(--gold);margin-bottom:16px;">⚙ 알림 설정</div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <span style="font-size:13px;">TTS 음성 알림</span>
+          <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;" onclick="toggleTTS()">
+            <span id="tts-track" style="position:absolute;inset:0;background:var(--gold);border-radius:24px;transition:.3s;">
+              <span id="tts-knob" style="position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s;transform:translateX(20px);display:block;"></span>
+            </span>
+          </label>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <span style="font-size:13px;">브라우저 알림</span>
+          <button class="btn btn-sm" id="notif-btn" onclick="requestNotifPermission()">권한 요청</button>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <span style="font-size:13px;">볼륨</span>
+          <span id="vol-label" style="font-size:13px;color:var(--gold-l);font-weight:600;">80%</span>
+        </div>
+        <input type="range" id="vol-slider" min="0" max="100" value="80"
+          oninput="updateVolume(this.value)"
+          style="width:100%;accent-color:var(--gold);cursor:pointer;margin-bottom:16px;">
+
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-sm" style="flex:1;" onclick="testTTS()">🔊 테스트</button>
+          <button class="btn btn-primary btn-sm" style="flex:1;" id="shugo-start-btn" onclick="toggleShugoTimer()">▶ 시작</button>
+        </div>
+      </div>
+
+      <!-- 알림 일정 안내 -->
+      <div class="card" style="padding:16px;">
+        <div style="font-size:12px;font-weight:600;color:var(--gold);margin-bottom:10px;">📋 알림 일정</div>
+        <div style="display:flex;gap:8px;">
+          <div style="flex:1;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;text-align:center;">
+            <div style="font-size:24px;font-weight:700;color:var(--gold-l);">:15</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:4px;">매 시 15분</div>
+          </div>
+          <div style="flex:1;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;text-align:center;">
+            <div style="font-size:24px;font-weight:700;color:var(--gold-l);">:45</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:4px;">매 시 45분</div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- 멤버 등록 -->
@@ -521,7 +567,7 @@ async function migrateRanks() {
 
 function initFirebase() {
   migrateRanks(); // 구버전 계급 자동 변환
-  initBossTimers(); // 보스 타이머 구독
+  initBossTimers(); // 슈고 타이머 구독
   db.collection('members').orderBy('combat_power','desc')
     .onSnapshot(snap => {
       members = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -1351,7 +1397,7 @@ document.getElementById('modal-detail').addEventListener('click', function(e) {
   if(e.target === this) this.classList.remove('open');
 });
 
-// ─── 보스 타이머 ────────────────────────────
+// ─── 슈고 타이머 ────────────────────────────
 const BOSSES = [
   // 천족
   {id:'kermon',   name:'서쪽의 케르논',   zone:'칸타스 계곡',      race:'천족', respawn:60},
@@ -1458,7 +1504,7 @@ async function clearKill(bossId) {
   toast('초기화 완료');
 }
 
-// Firebase 보스 타이머 구독
+// Firebase 슈고 타이머 구독
 function initBossTimers() {
   db.collection('boss_timers').onSnapshot(snap => {
     bossData = {};
@@ -1510,6 +1556,128 @@ const savedTab = localStorage.getItem('activeTab');
 if(savedTab) showTab(savedTab);
 
 initFirebase();
+
+// ─── 슈고 타이머 ────────────────────────────
+let shugoRunning = false;
+let shugoInterval = null;
+let ttsEnabled = true;
+let shugoVolume = 0.8;
+
+function toggleTTS() {
+  ttsEnabled = !ttsEnabled;
+  const slider = document.getElementById('tts-slider');
+  const knob = slider?.querySelector('span');
+  if(slider) slider.style.background = ttsEnabled ? 'var(--gold)' : 'var(--border)';
+  if(knob) knob.style.transform = ttsEnabled ? 'translateX(20px)' : 'translateX(0)';
+}
+
+function updateVolume(val) {
+  shugoVolume = val / 100;
+  const lbl = document.getElementById('vol-label');
+  if(lbl) lbl.textContent = val + '%';
+}
+
+function requestNotifPermission() {
+  Notification.requestPermission().then(p => {
+    const btn = document.getElementById('notif-btn');
+    if(btn) btn.textContent = p === 'granted' ? '✓ 허용됨' : '✗ 거부됨';
+    if(p === 'granted') toast('브라우저 알림 허용됨 ✓');
+  });
+}
+
+function speakShugo() {
+  if(!ttsEnabled) return;
+  const utter = new SpeechSynthesisUtterance('슈고 시간입니다.');
+  utter.lang = 'ko-KR';
+  utter.volume = shugoVolume;
+  utter.rate = 0.9;
+  speechSynthesis.cancel();
+  speechSynthesis.speak(utter);
+
+  if(Notification.permission === 'granted') {
+    new Notification('🐹 슈고 시간입니다!', { body: '슈고 상인이 등장했어요!' });
+  }
+  // 상태 표시
+  const st = document.getElementById('shugo-status');
+  if(st) {
+    st.textContent = '🐹 슈고 등장!';
+    st.style.background = 'rgba(0,200,138,.15)';
+    st.style.borderColor = 'var(--gold)';
+    st.style.color = 'var(--gold-l)';
+    setTimeout(() => {
+      if(st) { st.textContent = '다음 슈고 대기 중'; st.style.background='var(--surface)'; st.style.borderColor='var(--border)'; st.style.color='var(--muted)'; }
+    }, 5000);
+  }
+}
+
+function testTTS() {
+  speakShugo();
+}
+
+function updateShugoDisplay() {
+  const now = new Date();
+  const h = now.getHours(), m = now.getMinutes(), s = now.getSeconds();
+
+  // 현재 시각 표시
+  const clockEl = document.getElementById('shugo-clock');
+  if(clockEl) clockEl.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+
+  // 다음 슈고 시각 계산 (매 시 :15, :45)
+  const totalSec = m * 60 + s;
+  let nextMin, remainSec;
+  if(totalSec < 15 * 60) {
+    nextMin = 15; remainSec = 15 * 60 - totalSec;
+  } else if(totalSec < 45 * 60) {
+    nextMin = 45; remainSec = 45 * 60 - totalSec;
+  } else {
+    nextMin = 75; remainSec = 60 * 60 - totalSec + 15 * 60;
+  }
+
+  const rm = Math.floor(remainSec / 60), rs = remainSec % 60;
+  const nextEl = document.getElementById('shugo-next');
+  if(nextEl) nextEl.textContent = `다음 슈고까지 ${String(rm).padStart(2,'0')}:${String(rs).padStart(2,'0')} (${h}:${String(nextMin % 60).padStart(2,'0')})`;
+
+  // 진행 바 (30분 주기)
+  const cycleSec = 30 * 60;
+  const inCycle = totalSec % cycleSec;
+  const pct = (inCycle / cycleSec) * 100;
+  const bar = document.getElementById('shugo-bar');
+  if(bar) bar.style.width = pct + '%';
+
+  // 임박 색상 (1분 이내 빨강)
+  if(nextEl) nextEl.style.color = remainSec <= 60 ? 'var(--red)' : remainSec <= 300 ? 'var(--gold)' : 'var(--muted)';
+
+  // 정각 :15, :45 TTS 알림
+  if(s === 0 && (m === 15 || m === 45)) speakShugo();
+}
+
+function toggleShugoTimer() {
+  const btn = document.getElementById('shugo-start-btn');
+  if(!shugoRunning) {
+    shugoRunning = true;
+    shugoInterval = setInterval(updateShugoDisplay, 1000);
+    updateShugoDisplay();
+    if(btn) { btn.textContent = '⏹ 정지'; btn.classList.add('btn-primary'); }
+    const st = document.getElementById('shugo-status');
+    if(st) { st.textContent = '타이머 실행 중'; st.style.background='rgba(0,200,138,.1)'; st.style.borderColor='var(--gold-d)'; st.style.color='var(--gold-l)'; }
+    // 알림 권한 자동 요청
+    if(Notification.permission === 'default') Notification.requestPermission();
+  } else {
+    shugoRunning = false;
+    clearInterval(shugoInterval);
+    if(btn) { btn.textContent = '▶ 시작'; }
+    const st = document.getElementById('shugo-status');
+    if(st) { st.textContent = '대기 중'; st.style.background='var(--surface)'; st.style.borderColor='var(--border)'; st.style.color='var(--muted)'; }
+  }
+}
+
+// 마지막 탭 복원// 마지막 탭 복원
+// 초기 정렬 아이콘
+setTimeout(() => {
+  const el = document.getElementById('sort-rank');
+  if(el) el.textContent = '▲';
+}, 100);
+
 </script>
 </body>
 </html>
