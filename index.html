@@ -311,7 +311,7 @@
           <div id="fetch-result" style="margin-top:10px;font-size:12px;color:var(--muted);"></div>
         </div>
 
-        <button class="btn" style="width:100%;padding:10px;" onclick="saveManual()">수동으로 등록 (스펙 없이)</button>
+
       </div>
     </div>
   </div>
@@ -597,8 +597,9 @@ async function syncAllMembers() {
 
 // ─── 상세 보기 ────────────────────────────
 function openDetailById(id) {
-  const m = members.find(x => x.id === id);
+  const m = members.find(x => x.id === id) || members.find(x => x.nickname === id);
   if(m) openDetail(m);
+  else console.log('멤버 못찾음:', id, members.map(x=>x.id));
 }
 
 function openDetail(m) {
@@ -836,8 +837,7 @@ async function saveManual() {
 // ─── 렌더 함수들 ───────────────────────
 function cpBar(cp) {
   if (!cp) return '<span style="color:var(--muted)">—</span>';
-  const pct = Math.min(100, Math.round((cp/250000)*100));
-  return `<div class="cp-bar"><span class="cp-num">${Math.round(cp/1000)}K</span><div class="bar-bg"><div class="bar-fill" style="width:${pct}%"></div></div></div>`;
+  return `<span style="font-size:13px;font-weight:600;color:var(--gold-l);">${cp.toLocaleString()}</span>`;
 }
 
 function renderTop5() {
@@ -888,7 +888,7 @@ function renderMembers() {
     const lastSync = m.last_synced ? `<span style="font-size:10px;color:var(--muted);margin-left:6px;white-space:nowrap;">${fmtTime(m.last_synced)}</span>` : '';
     const subMark = isSub ? `<span style="font-size:10px;color:var(--muted);margin-left:4px;border:1px solid var(--border);border-radius:3px;padding:1px 4px;">부캐</span>` : '';
     const prefix = isSub ? '└ ' : '';
-    const mId = m.id;
+    const mId = m.id || m.nickname;
     return `<tr style="${isSub?'background:rgba(0,0,0,.12);':''}">
       <td style="font-weight:600;white-space:nowrap;">${prefix}${m.nickname}${subMark}</td>
       <td style="white-space:nowrap;"><span class="cls cls-${CLASS_MAP[m.class]||m.class||''}">${(CLS_ICON[CLASS_MAP[m.class]||m.class]||'')} ${CLASS_MAP[m.class]||m.class||'?'}</span></td>
