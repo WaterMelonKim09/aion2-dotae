@@ -871,63 +871,53 @@ function renderMembers() {
   const gradeColors = {Common:'#aaaaaa',Rare:'#4a90e8',Hero:'#d44040',Epic:'#d44040',Unique:'#e8c030',Legendary:'#ff6a20',Special:'#40d4c0'};
   const equips = eq => (eq||[]).slice(0,3).map(e=>
     `<div class="equip-item grade-${e.grade||''}" style="border-color:${gradeColors[e.grade]||'#555'}88;">
-      ${e.icon ? `<img src="${e.icon}" onerror="this.style.display='none'">` : ''}
+      ${e.icon?`<img src="${e.icon}" onerror="this.style.display='none'">`:''}
       <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px;display:inline-block;vertical-align:middle;color:${gradeColors[e.grade]||'var(--text)'};">${e.name||''} ${e.enchant?'+'+e.enchant:''}</span>
     </div>`).join('');
 
-  const rowHTML = (m, isSub=false) => {
+  const rowHTML = (m, isSub) => {
     const isSyncing = syncingIds.has(m.id);
     const syncBtn = isSyncing
       ? `<button class="btn btn-sm" disabled><span class="spinner"></span>갱신 중</button>`
       : `<button class="btn btn-sm" onclick="syncMember('${m.id}','${m.nickname}','${m.server||'2001'}')">갱신</button>`;
     const lastSync = m.last_synced ? `<span style="font-size:10px;color:var(--muted);margin-left:6px;white-space:nowrap;">${fmtTime(m.last_synced)}</span>` : '';
-    const subStyle = isSub ? 'background:rgba(0,0,0,.15);' : '';
     const subMark = isSub ? `<span style="font-size:10px;color:var(--muted);margin-left:4px;border:1px solid var(--border);border-radius:3px;padding:1px 4px;">부캐</span>` : '';
-    return `<tr style="${subStyle}">
-      <td style="font-weight:600;white-space:nowrap;">${isSub?'└ ':''}${m.nickname}${subMark}</td>
-      <td style="white-space:nowrap;"><span class="cls cls-${CLASS_MAP[m.class]||m.class||''}">${(CLS_ICON[CLASS_MAP[m.class]||m.class]||'')} ${CLASS_MAP[m.class]||m.class||'?'}</span></td>
+    const prefix = isSub ? '└ ' : '';
+    const mData = JSON.stringify(m).replace(/\/g,'\\').replace(/'/g,"&#39;");
+    return `<tr style="${isSub?'background:rgba(0,0,0,.12);':''}">
+      <td style="font-weight:600;white-space:nowrap;">${prefix}${m.nickname}${subMark}</td>
+      <td style="white-space:nowrap;"><span class="cls cls-${CLASS_MAP[m.class]||m.class||''}">${CLS_ICON[CLASS_MAP[m.class]||m.class]||''} ${CLASS_MAP[m.class]||m.class||'?'}</span></td>
       <td style="white-space:nowrap;"><span class="rank ${rankCls(m.rank||'군단병')}">${m.rank||'군단병'}</span></td>
       <td>${cpBar(m.combat_power)}</td>
       <td style="white-space:nowrap;">${m.item_level||'—'}</td>
       <td><div class="equip-list">${equips(m.equipment)}</div></td>
       <td style="white-space:nowrap;vertical-align:middle;">${syncBtn}${lastSync}</td>
       <td style="white-space:nowrap;vertical-align:middle;">
-        <button class="btn btn-sm" onclick='openDetail(${JSON.stringify(m).replace(/'/g,"&#39;")})' style="font-size:11px;">상세</button>
+        <button class="btn btn-sm" onclick='openDetail(${mData})' style="font-size:11px;">상세</button>
         <button class="btn btn-sm" onclick="openEdit('${m.id}','${m.rank||'군단병'}')">관리</button>
       </td>
     </tr>`;
   };
 
-  // 본캐/부캐 그룹핑
+  if(!filtered.length) {
+    document.getElementById('member-body').innerHTML = `<tr><td colspan="8"><div class="empty"><div class="empty-icon">⚔</div><p>검색 결과가 없어요</p></div></td></tr>`;
+    return;
+  }
+
+  // 본캐 먼저, 본캐 아래 부캐 그룹핑
   const mains = filtered.filter(m => m.is_main !== false);
   const subs  = filtered.filter(m => m.is_main === false);
-
-  // 본캐 기준으로 그룹 생성
-  const groups = mains.map(main => ({
-    main,
-    subs: subs.filter(s => s.player_id === main.nickname)
-  }));
-  // 본캐 없이 등록된 부캐 (orphan)
-  const orphanSubs = subs.filter(s => !mains.find(m => m.nickname === s.player_id));
-
   let rows = '';
-  groups.forEach(({main, subs: subList}) => {
+  mains.forEach(main => {
     rows += rowHTML(main, false);
-    subList.forEach(sub => rows += rowHTML(sub, true));
+    subs.filter(s => s.player_id === main.nickname).forEach(s => rows += rowHTML(s, true));
   });
-  orphanSubs.forEach(sub => rows += rowHTML(sub, true));
+  // 본캐 없는 부캐 & player_id 매칭 안 되는 경우
+  subs.filter(s => !mains.find(m => m.nickname === s.player_id)).forEach(s => rows += rowHTML(s, true));
 
-  // 본캐가 없고 is_main 필드 자체가 없는 기존 멤버 처리
-  const legacy = filtered.filter(m => m.is_main === undefined);
-  legacy.forEach(m => rows += rowHTML(m, false));
-
-    // 빈 rows면 filtered 전체를 legacy로 처리
-  if(!rows) {
-    filtered.forEach(m => rows += rowHTML(m, false));
-  }
-  document.getElementById('member-body').innerHTML = rows ||
-    `<tr><td colspan="8"><div class="empty"><div class="empty-icon">⚔</div><p>검색 결과가 없어요</p></div></td></tr>`;
+  document.getElementById('member-body').innerHTML = rows;
 }
+
 
 function renderRecruit() {
   const filtered = recruits.filter(r => rFilter==='all'||r.type===rFilter);
@@ -1057,11 +1047,16 @@ function toast(msg) {
   clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove('show'),2500);
 }
 
-// 본캐/부캐 선택 이벤트
-document.getElementById('reg-is-main').addEventListener('change', function() {
-  document.getElementById('player-id-group').style.display = this.value === 'false' ? '' : 'none';
-  if(this.value === 'true') document.getElementById('reg-player-id').value = '';
-});
+// 본캐/부캐 선택 이벤트 (null 안전 처리)
+const regIsMainEl = document.getElementById('reg-is-main');
+if(regIsMainEl) {
+  regIsMainEl.addEventListener('change', function() {
+    const pg = document.getElementById('player-id-group');
+    if(pg) pg.style.display = this.value === 'false' ? '' : 'none';
+    const rp = document.getElementById('reg-player-id');
+    if(rp && this.value === 'true') rp.value = '';
+  });
+}
 
 // 상세 모달 닫기
 document.getElementById('detail-close-btn').addEventListener('click', function() {
