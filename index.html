@@ -59,7 +59,7 @@
   .table-wrap { background:var(--card); border:1px solid var(--border); border-radius:8px; overflow-x:auto; }
   table { width:100%; border-collapse:collapse; min-width:800px; }
   th { text-align:left; font-size:11px; color:var(--muted); padding:10px 14px; border-bottom:1px solid var(--border); text-transform:uppercase; letter-spacing:.06em; font-weight:400; }
-  td { padding:11px 14px; border-bottom:1px solid var(--border); font-size:13px; vertical-align:middle; }
+  td { padding:8px 12px; border-bottom:1px solid var(--border); font-size:13px; vertical-align:middle; white-space:nowrap; }
   tr:last-child td { border-bottom:none; }
   tr:hover td { background:rgba(201,147,42,.04); }
 
@@ -247,7 +247,7 @@
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>닉네임</th><th>직업</th><th>등급</th><th>전투력</th><th>아이템레벨</th><th>장비</th><th>갱신</th><th>관리</th></tr></thead>
+        <thead><tr><th>닉네임</th><th>직업</th><th>등급</th><th>전투력</th><th style="white-space:nowrap;">아이템레벨</th><th>장비</th><th>갱신</th><th>관리</th></tr></thead>
         <tbody id="member-body"></tbody>
       </table>
     </div>
@@ -740,7 +740,7 @@ function renderMembers() {
     (m.nickname||'').toLowerCase().includes(search)
   );
   const rankCls = r => r==='마스터'?'rank-마스터':r==='부마스터'?'rank-부마스터':'rank-일반';
-  const fmtTime = iso => iso ? new Date(iso).toLocaleDateString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+  const fmtTime = iso => { if(!iso) return '—'; const d=new Date(iso); return `${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
   const equips  = eq => (eq||[]).slice(0,3).map(e=>
     `<div class="equip-item grade-${e.grade||''}">
       ${e.icon ? `<img src="${e.icon}" onerror="this.style.display='none'">` : ''}
@@ -753,7 +753,7 @@ function renderMembers() {
         const syncBtn = isSyncing
           ? `<button class="btn btn-sm" disabled><span class="spinner"></span>갱신 중</button>`
           : `<button class="btn btn-sm" onclick="syncMember('${m.id}','${m.nickname}','${m.server||'2001'}')">갱신</button>`;
-        const lastSync = m.last_synced ? `<div style="font-size:10px;color:var(--muted);margin-top:3px">${fmtTime(m.last_synced)}</div>` : '';
+        const lastSync = m.last_synced ? `<span style="font-size:10px;color:var(--muted);margin-left:6px;white-space:nowrap;">${fmtTime(m.last_synced)}</span>` : '';
         return `<tr>
           <td style="font-weight:600;white-space:nowrap;">${m.nickname}</td>
           <td style="white-space:nowrap;"><span class="cls cls-${m.class||''}">${(CLS_ICON[CLASS_MAP[m.class]||m.class]||'')} ${CLASS_MAP[m.class]||m.class||'?'}</span></td>
@@ -761,11 +761,11 @@ function renderMembers() {
           <td>${cpBar(m.combat_power)}</td>
           <td style="white-space:nowrap;">${m.item_level||'—'}</td>
           <td><div class="equip-list">${equips(m.equipment)}</div></td>
-          <td>${syncBtn}${lastSync}</td>
-          <td style="display:flex;gap:4px;">
-          <button class="btn btn-sm" onclick='openDetail(${JSON.stringify(m).replace(/'/g,"&#39;")})' style="font-size:11px;">상세</button>
-          <button class="btn btn-sm" onclick="openEdit('${m.id}','${m.rank||'일반'}')">관리</button>
-        </td>
+          <td style="white-space:nowrap;vertical-align:middle;">${syncBtn}${lastSync}</td>
+          <td style="white-space:nowrap;vertical-align:middle;">
+            <button class="btn btn-sm" onclick='openDetail(${JSON.stringify(m).replace(/'/g,"&#39;")})' style="font-size:11px;">상세</button>
+            <button class="btn btn-sm" onclick="openEdit('${m.id}','${m.rank||'일반'}')">관리</button>
+          </td>
         </tr>`;
       }).join('')
     : `<tr><td colspan="8"><div class="empty"><div class="empty-icon">⚔</div><p>검색 결과가 없어요</p></div></td></tr>`;
