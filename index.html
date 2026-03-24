@@ -485,6 +485,13 @@ async function fetchAndRegister() {
       combat_power: data.combat_power || 0,
       item_level:   data.item_level   || 0,
       equipment:    data.equipment    || [],
+      stats:        data.stats        || [],
+      daevanion:    data.daevanion    || [],
+      ranking:      data.ranking      || [],
+      server_name:  data.server_name  || '',
+      guild_name:   data.guild_name   || '',
+      race:         data.race         || '',
+      profile_img:  data.profile_img  || '',
       character_id: data.characterId  || '',
       last_synced:  new Date().toISOString(),
       updated_at:   firebase.firestore.FieldValue.serverTimestamp(),
@@ -516,6 +523,13 @@ async function syncMember(id, nickname, serverId) {
       combat_power: data.combat_power || 0,
       item_level:   data.item_level   || 0,
       equipment:    data.equipment    || [],
+      stats:        data.stats        || [],
+      daevanion:    data.daevanion    || [],
+      ranking:      data.ranking      || [],
+      server_name:  data.server_name  || '',
+      guild_name:   data.guild_name   || '',
+      race:         data.race         || '',
+      profile_img:  data.profile_img  || '',
       last_synced:  new Date().toISOString(),
     });
     toast(`${nickname} 갱신 완료! ✓`);
@@ -557,7 +571,7 @@ function openDetail(m) {
   (m.equipment||[]).forEach(e => equipMap[e.slot] = e);
   const statMap = {};
   (m.stats||[]).forEach(s => statMap[s.type] = s);
-  const ilvl = statMap['ItemLevel'] ? Math.round(statMap['ItemLevel'].value/10) : (m.item_level||0);
+  const ilvl = statMap['ItemLevel'] ? statMap['ItemLevel'].value : (m.item_level||0);
 
   // 장비 슬롯 순서 (NC 공홈 기준)
   const slotOrder = ['MainHand','SubHand','Necklace','Earring1','Earring2','Ring1','Ring2','Bracelet1','Bracelet2','Helmet','Shoulder','Torso','Gloves','Pants','Boots','Cape','Belt','Amulet','Rune1','Rune2','Arcana1','Arcana2','Arcana3','Arcana4','Arcana5','Arcana6'];
