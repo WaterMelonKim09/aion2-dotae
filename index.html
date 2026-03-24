@@ -721,8 +721,8 @@ function openDetail(m) {
         </div>
       </div>
       <div style="text-align:right;">
-        <div style="font-size:15px;font-weight:700;color:var(--gold-l);">${r.rank.toLocaleString()}위</div>
-        <div style="font-size:11px;color:var(--muted);">${r.point.toLocaleString()}점</div>
+        <div style="font-size:15px;font-weight:700;color:var(--gold-l);">${(r.rank||0).toLocaleString()}위</div>
+        <div style="font-size:11px;color:var(--muted);">${(r.point||0).toLocaleString()}점</div>
       </div>
     </div>`).join('');
 
