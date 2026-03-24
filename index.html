@@ -241,6 +241,10 @@
 
   <!-- 멤버 스펙 -->
   <div id="tab-members" class="tab-content">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div id="sync-all-status" style="font-size:12px;color:var(--muted);"></div>
+      <button class="btn btn-primary btn-sm" id="sync-all-btn" onclick="syncAllMembers()">⟳ 전체 갱신</button>
+    </div>
     <div class="filter-row">
       <input class="search-box" id="member-search" placeholder="닉네임 검색..." oninput="renderMembers()">
       <button class="chip active" onclick="setFilter('all',this)">전체</button>
@@ -539,6 +543,48 @@ async function syncMember(id, nickname, serverId) {
     syncingIds.delete(id);
     renderMembers();
   }
+}
+
+// ─── 전체 갱신 ────────────────────────────
+async function syncAllMembers() {
+  if (!members.length) { toast('등록된 멤버가 없어요'); return; }
+  const btn = document.getElementById('sync-all-btn');
+  const status = document.getElementById('sync-all-status');
+  btn.disabled = true;
+
+  let done = 0, fail = 0;
+  const total = members.length;
+
+  for (const m of members) {
+    status.textContent = `갱신 중... ${done+fail+1}/${total} (${m.nickname})`;
+    try {
+      const data = await fetchCharacterData(m.nickname, m.server||'2001');
+      const cls = CLASS_MAP[data.class] || data.class || '';
+      await db.collection('members').doc(m.id).update({
+        class: cls, level: data.level||0,
+        combat_power: data.combat_power||0,
+        item_level:   data.item_level||0,
+        equipment:    data.equipment||[],
+        stats:        data.stats||[],
+        daevanion:    data.daevanion||[],
+        ranking:      data.ranking||[],
+        server_name:  data.server_name||'',
+        guild_name:   data.guild_name||'',
+        race:         data.race||'',
+        profile_img:  data.profile_img||'',
+        last_synced:  new Date().toISOString(),
+      });
+      done++;
+    } catch(e) {
+      fail++;
+    }
+    // 요청 간격 (API 제한 방지)
+    await new Promise(r => setTimeout(r, 500));
+  }
+
+  btn.disabled = false;
+  status.textContent = `완료: ${done}명 성공 ${fail>0?'/ '+fail+'명 실패':''}`;
+  toast(`전체 갱신 완료! ${done}명 성공${fail>0?' / '+fail+'명 실패':''}`);
 }
 
 // ─── 상세 보기 ────────────────────────────
