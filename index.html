@@ -376,6 +376,7 @@
   <th><span onclick="setSortBy('rank')" style="cursor:pointer;user-select:none;">계급 <span id="sort-rank"></span></span></th>
   <th><span onclick="setSortBy('combat_power')" style="cursor:pointer;user-select:none;">전투력 <span id="sort-combat_power"></span></span></th>
   <th style="white-space:nowrap;"><span onclick="setSortBy('item_level')" style="cursor:pointer;user-select:none;">아이템레벨 <span id="sort-item_level"></span></span></th>
+  <th style="white-space:nowrap;"><span onclick="setSortBy('abyss_rank')" style="cursor:pointer;user-select:none;">어비스 <span id="sort-abyss_rank"></span></span></th>
   <th>장비</th><th>갱신</th><th>관리</th>
 </tr></thead>
         <tbody id="member-body"></tbody>
@@ -678,7 +679,17 @@ function initFirebase() {
   initBossTimers(); // 슈고 타이머 구독
   db.collection('members').orderBy('combat_power','desc')
     .onSnapshot(snap => {
-      members = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      members = snap.docs.map(d => {
+        const data = d.data();
+        // 어비스 랭킹 순서 계산 (정렬용)
+        const abyssR = (data.ranking||[]).find(r => r.rankingContentsName?.includes('어비스') || r.rankingType === 'Abyss');
+        const ABYSS_ORDER = {
+          '오천인대장':1,'천인대장':2,'백인대장':3,'오십인대장':4,'십인대장':5,
+          '일인대장':6,'장교':7,'하급장교':8,'병사':9,'신병':10,
+        };
+        const rankOrder = abyssR ? (ABYSS_ORDER[abyssR.gradeName] ?? 99) : 999;
+        return { id: d.id, ...data, abyss_rank_order: rankOrder };
+      });
       renderAll();
     });
   db.collection('recruits').orderBy('created_at','desc')
@@ -701,7 +712,7 @@ function setSortBy(col) {
   if(sortBy === col) sortAsc = !sortAsc;
   else { sortBy = col; sortAsc = col === 'nickname'; }
   // 아이콘 업데이트
-  ['nickname','class','rank','combat_power','item_level'].forEach(c => {
+  ['nickname','class','rank','combat_power','item_level','abyss_rank'].forEach(c => {
     const el = document.getElementById('sort-'+c);
     if(!el) return;
     if(c === sortBy) el.textContent = sortAsc ? '▲' : '▼';
@@ -722,6 +733,9 @@ function sortMembers(arr) {
     } else if(sortBy === 'class') {
       av = (CLASS_MAP[a.class]||a.class||'').localeCompare(CLASS_MAP[b.class]||b.class||'', 'ko');
       return sortAsc ? av : -av;
+    } else if(sortBy === 'abyss_rank') {
+      av = a.abyss_rank_order ?? 999;
+      bv = b.abyss_rank_order ?? 999;
     } else {
       av = a[sortBy]||0; bv = b[sortBy]||0;
     }
@@ -1253,6 +1267,14 @@ function renderMembers() {
       <td style="white-space:nowrap;">${isSub ? '' : `<span class="rank ${rankCls(m.rank||'군단병')}">${rankLabel(m.rank||'군단병')}</span>`}</td>
       <td>${cpBar(m.combat_power)}</td>
       <td style="white-space:nowrap;">${m.item_level||'—'}</td>
+      <td style="white-space:nowrap;">${(() => {
+        const abyssRank = (m.ranking||[]).find(r => r.rankingContentsName?.includes('어비스') || r.rankingType === 'Abyss');
+        if(!abyssRank) return '<span style="color:var(--muted);font-size:12px;">—</span>';
+        return `<div style="display:flex;align-items:center;gap:5px;">
+          ${abyssRank.gradeIcon ? `<img src="${abyssRank.gradeIcon}" style="width:18px;height:18px;" onerror="this.style.display='none'">` : ''}
+          <span style="font-size:12px;color:var(--gold-l);font-weight:600;">${abyssRank.gradeName||''}</span>
+        </div>`;
+      })()}</td>
       <td><div class="equip-list">${equips(m.equipment)}</div></td>
       <td style="white-space:nowrap;vertical-align:middle;">${syncBtn}${lastSync}</td>
       <td style="white-space:nowrap;vertical-align:middle;">
@@ -1285,6 +1307,7 @@ function renderMembers() {
         <td></td>
         <td><span style="font-size:13px;font-weight:600;color:var(--gold-l);">${(s.combat_power||0).toLocaleString()}</span></td>
         <td style="white-space:nowrap;">${s.item_level||'—'}</td>
+        <td style="white-space:nowrap;">—</td>
         <td><div class="equip-list">${(s.equipment||[]).slice(0,3).map(e=>{const gc=({Common:'#aaaaaa',Rare:'#4a90e8',Hero:'#d44040',Epic:'#d44040',Unique:'#e8c030',Legendary:'#ff6a20',Special:'#40d4c0'})[e.grade]||'#555';return`<div class="equip-item grade-${e.grade||''}" style="border-color:${gc}88;"><img src="${e.icon}" onerror="this.style.display='none'" style="width:20px;height:20px;border-radius:3px;border:1px solid ${gc}66;"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px;display:inline-block;vertical-align:middle;color:${gc};">${e.name||''} ${e.enchant?'+'+e.enchant:''}</span></div>`;}).join('')}</div></td>
         <td style="white-space:nowrap;vertical-align:middle;"><button class="btn btn-sm" onclick="syncMember('${s.id}','${s.nickname}','${s.server||'2001'}')">갱신</button></td>
         <td style="white-space:nowrap;vertical-align:middle;">
