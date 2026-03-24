@@ -366,6 +366,7 @@
       </div>
     </div>
     <div class="form-group"><label class="form-label">작성자 닉네임 *</label><input class="form-input" id="m-author" placeholder="내 닉네임"></div>
+    <div class="form-group"><label class="form-label">상세 내용</label><textarea class="form-input" id="m-desc" rows="3" placeholder="모집 조건, 공략 방식 등 자세한 내용을 적어주세요" style="resize:vertical;"></textarea></div>
     <div class="modal-foot">
       <button class="btn" onclick="closeModal('modal-recruit')">취소</button>
       <button class="btn btn-primary" onclick="saveRecruit()">등록</button>
@@ -380,6 +381,38 @@
     <button id="detail-close-btn" style="position:absolute;top:12px;right:12px;background:none;border:1px solid var(--border);color:var(--muted);padding:4px 12px;border-radius:6px;font-size:13px;cursor:pointer;z-index:10;">✕ 닫기</button>
     <div class="modal-title" style="margin-bottom:16px;">캐릭터 상세 스펙</div>
     <div class="modal-detail-content"></div>
+  </div>
+</div>
+
+<!-- 파티 모집 상세 모달 -->
+<div class="overlay" id="modal-recruit-detail" onclick="closeOverlay(event,'modal-recruit-detail')">
+  <div class="modal" style="max-width:600px;max-height:85vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div class="modal-title" style="margin:0" id="rd-title">파티 모집 상세</div>
+      <button class="btn btn-sm" onclick="closeModal('modal-recruit-detail')">닫기</button>
+    </div>
+    <div id="rd-body"></div>
+
+    <!-- 신청 -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;margin-top:16px;">
+      <div style="font-size:12px;font-weight:600;color:var(--gold);margin-bottom:10px;">✦ 참가 신청</div>
+      <div style="display:flex;gap:8px;">
+        <input class="form-input" id="apply-nickname" placeholder="내 닉네임" style="flex:1;">
+        <button class="btn btn-primary btn-sm" onclick="applyRecruit()">신청하기</button>
+      </div>
+      <div id="apply-list" style="margin-top:10px;"></div>
+    </div>
+
+    <!-- 댓글 -->
+    <div style="margin-top:16px;">
+      <div style="font-size:12px;font-weight:600;color:var(--gold);margin-bottom:10px;">💬 댓글</div>
+      <div id="comment-list" style="margin-bottom:10px;display:flex;flex-direction:column;gap:8px;"></div>
+      <div style="display:flex;gap:8px;">
+        <input class="form-input" id="comment-nickname" placeholder="닉네임" style="width:120px;">
+        <input class="form-input" id="comment-text" placeholder="댓글 내용..." style="flex:1;" onkeydown="if(event.key==='Enter')addComment()">
+        <button class="btn btn-primary btn-sm" onclick="addComment()">등록</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -479,6 +512,11 @@ function initFirebase() {
       recruits = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       renderRecruit();
       document.getElementById('stat-recruit').textContent = recruits.length;
+      // 상세 모달 열려있으면 갱신
+      if(currentRecruitId && document.getElementById('modal-recruit-detail').classList.contains('open')) {
+        renderApplyList(currentRecruitId);
+        renderCommentList(currentRecruitId);
+      }
     });
 }
 
@@ -1015,19 +1053,38 @@ function renderMembers() {
   // 본캐 먼저, 본캐 아래 부캐 그룹핑
   console.log('filtered:', filtered.length, 'mains:', filtered.filter(m => m.is_main !== false).length);
   const mains = filtered.filter(m => m.is_main !== false);
-  const subs  = filtered.filter(m => m.is_main === false);
+  const subs  = members.filter(m => m.is_main === false); // 검색 필터 무관하게 전체 부캐
   let rows = '';
+
   mains.forEach(main => {
-    rows += rowHTML(main, false);
-    subs.filter(s => s.player_id === main.nickname).forEach(s => rows += rowHTML(s, true));
+    const mainSubs = subs.filter(s => s.player_id === main.nickname);
+    const subToggle = mainSubs.length > 0
+      ? `<div style="margin-top:3px;"><span id="sub-toggle-${main.id}" onclick="toggleSubs('${main.id}')" style="font-size:11px;color:var(--gold);cursor:pointer;user-select:none;">▶ 부캐 보기 (${mainSubs.length})</span></div>`
+      : '';
+    rows += rowHTML(main, false, subToggle);
+    mainSubs.forEach(s => {
+      rows += `<tr id="sub-row-${s.id}" style="display:none;background:rgba(0,0,0,.15);">
+        <td style="font-weight:600;white-space:nowrap;padding-left:20px;">└ ${s.nickname}<span style="font-size:10px;color:var(--muted);margin-left:4px;border:1px solid var(--border);border-radius:3px;padding:1px 4px;">부캐</span></td>
+        <td style="white-space:nowrap;"><span class="cls cls-${CLASS_MAP[s.class]||s.class||''}">${CLS_ICON[CLASS_MAP[s.class]||s.class]||''} ${CLASS_MAP[s.class]||s.class||'?'}</span></td>
+        <td></td>
+        <td><span style="font-size:13px;font-weight:600;color:var(--gold-l);">${(s.combat_power||0).toLocaleString()}</span></td>
+        <td style="white-space:nowrap;">${s.item_level||'—'}</td>
+        <td><div class="equip-list">${(s.equipment||[]).slice(0,3).map(e=>`<div class="equip-item"><img src="${e.icon}" onerror="this.style.display='none'" style="width:20px;height:20px;border-radius:3px;"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px;display:inline-block;vertical-align:middle;">${e.name||''} ${e.enchant?'+'+e.enchant:''}</span></div>`).join('')}</div></td>
+        <td style="white-space:nowrap;vertical-align:middle;"><button class="btn btn-sm" onclick="syncMember('${s.id}','${s.nickname}','${s.server||'2001'}')">갱신</button></td>
+        <td style="white-space:nowrap;vertical-align:middle;">
+          <button class="btn btn-sm" onclick="openDetailById('${s.id}')" style="font-size:11px;">상세</button>
+          <button class="btn btn-sm" onclick="openEdit('${s.id}','${s.rank||'군단병'}')">관리</button>
+        </td>
+      </tr>`;
+    });
   });
-  // 본캐 없는 부캐 & player_id 매칭 안 되는 경우
+
+  // 본캐 없는 부캐
   subs.filter(s => !mains.find(m => m.nickname === s.player_id)).forEach(s => rows += rowHTML(s, true));
 
-  // rows가 비어있으면 filtered 전체를 그냥 표시 (is_main 없는 기존 데이터 대비)
-  if (!rows) {
-    filtered.forEach(m => { rows += rowHTML(m, false); });
-  }
+  // is_main 필드 없는 기존 멤버
+  const legacy = filtered.filter(m => m.is_main === undefined);
+  if(!mains.length && !subs.length) legacy.forEach(m => rows += rowHTML(m, false));
   document.getElementById('member-body').innerHTML = rows ||
     `<tr><td colspan="8"><div class="empty"><div class="empty-icon">⚔</div><p>검색 결과가 없어요</p></div></td></tr>`;
 }
@@ -1045,6 +1102,7 @@ function renderRecruit() {
             <span class="rc-author">by ${r.author}</span>
             <div style="display:flex;align-items:center;gap:8px">
               <span class="${r.slots>0?'slots-open':'slots-full'}">${r.slots>0?'모집중 '+r.slots+'자리':'마감'}</span>
+              <button class="btn btn-sm" onclick="openRecruit('${r.id}')">상세보기</button>
               <button class="btn btn-sm btn-danger" onclick="deleteRecruit('${r.id}')">삭제</button>
             </div>
           </div>
@@ -1062,7 +1120,7 @@ function drawPie() {
   });
   const labels = Object.keys(counts), data = Object.values(counts);
   const total  = data.reduce((a,b)=>a+b,0);
-  document.getElementById('pie-total').textContent = total||'—';
+  document.getElementById('pie-total').textContent = total ? `${total}명` : '—';
   if(!total) return;
   const ctx = document.getElementById('pie-chart').getContext('2d');
   if(pieChart) pieChart.destroy();
@@ -1125,13 +1183,95 @@ async function saveRecruit() {
   const reqs=[...document.querySelectorAll('.check-group input:checked')].map(c=>c.value);
   await db.collection('recruits').add({
     title, type:document.getElementById('m-type').value, author, reqs,
-    min_cp: document.getElementById('m-cp').value.trim(),
-    slots:  parseInt(document.getElementById('m-slots').value)||4,
+    min_cp:   document.getElementById('m-cp').value.trim(),
+    slots:    parseInt(document.getElementById('m-slots').value)||4,
     schedule: document.getElementById('m-schedule').value.trim(),
+    desc:     document.getElementById('m-desc').value.trim(),
     created_at: firebase.firestore.FieldValue.serverTimestamp()
   });
   closeModal('modal-recruit'); toast('모집 공고 등록 완료 ✓');
 }
+let currentRecruitId = null;
+
+async function openRecruit(id) {
+  currentRecruitId = id;
+  const r = recruits.find(x => x.id === id);
+  if(!r) return;
+
+  document.getElementById('rd-title').textContent = r.title;
+  document.getElementById('rd-body').innerHTML = `
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <span class="rc-tag tag-${r.type}">${r.type}</span>
+      <span class="${r.slots>0?'slots-open':'slots-full'}">${r.slots>0?'모집중 '+r.slots+'자리':'마감'}</span>
+    </div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:8px;">📅 ${r.schedule||'일정 미정'} · 최소 ${r.min_cp||'제한 없음'} · by ${r.author}</div>
+    ${r.desc ? `<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:13px;line-height:1.6;margin-bottom:12px;white-space:pre-wrap;">${r.desc}</div>` : ''}
+    ${r.reqs&&r.reqs.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">${r.reqs.map(x=>`<span class="req-item">${x}</span>`).join('')}</div>` : ''}
+  `;
+
+  // 신청자 목록
+  renderApplyList(id);
+  // 댓글 목록
+  renderCommentList(id);
+
+  openModal('modal-recruit-detail');
+}
+
+function renderApplyList(recruitId) {
+  const r = recruits.find(x => x.id === recruitId);
+  const applies = r?.applies || [];
+  document.getElementById('apply-list').innerHTML = applies.length
+    ? `<div style="font-size:12px;color:var(--muted);margin-bottom:6px;">신청자 ${applies.length}명</div>` +
+      applies.map(a=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;background:var(--card);border-radius:6px;margin-bottom:4px;font-size:13px;">
+        <span>${a.nickname}</span>
+        <span style="font-size:11px;color:var(--muted);">${a.time||''}</span>
+      </div>`).join('')
+    : '<div style="font-size:12px;color:var(--muted);">신청자가 없어요</div>';
+}
+
+function renderCommentList(recruitId) {
+  const r = recruits.find(x => x.id === recruitId);
+  const comments = r?.comments || [];
+  document.getElementById('comment-list').innerHTML = comments.map(c=>`
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+        <span style="font-size:13px;font-weight:600;color:var(--gold-l);">${c.nickname}</span>
+        <span style="font-size:11px;color:var(--muted);">${c.time||''}</span>
+      </div>
+      <div style="font-size:13px;line-height:1.5;">${c.text}</div>
+    </div>`).join('') || '<div style="font-size:12px;color:var(--muted);">댓글이 없어요</div>';
+}
+
+async function applyRecruit() {
+  const nickname = document.getElementById('apply-nickname').value.trim();
+  if(!nickname) { toast('닉네임을 입력해주세요'); return; }
+  const r = recruits.find(x => x.id === currentRecruitId);
+  if(!r) return;
+  const applies = r.applies || [];
+  if(applies.find(a => a.nickname === nickname)) { toast('이미 신청했어요'); return; }
+  const now = new Date();
+  const time = `${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  applies.push({nickname, time});
+  await db.collection('recruits').doc(currentRecruitId).update({applies});
+  document.getElementById('apply-nickname').value = '';
+  toast(`${nickname} 신청 완료! ✓`);
+}
+
+async function addComment() {
+  const nickname = document.getElementById('comment-nickname').value.trim();
+  const text = document.getElementById('comment-text').value.trim();
+  if(!nickname||!text) { toast('닉네임과 댓글을 입력해주세요'); return; }
+  const r = recruits.find(x => x.id === currentRecruitId);
+  if(!r) return;
+  const comments = r.comments || [];
+  const now = new Date();
+  const time = `${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  comments.push({nickname, text, time});
+  await db.collection('recruits').doc(currentRecruitId).update({comments});
+  document.getElementById('comment-text').value = '';
+  toast('댓글 등록 완료 ✓');
+}
+
 async function deleteRecruit(id) {
   if(!confirm('삭제할까요?')) return;
   await db.collection('recruits').doc(id).delete(); toast('삭제 완료');
