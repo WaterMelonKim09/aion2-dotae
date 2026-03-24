@@ -159,9 +159,12 @@
   .equip-list { display:flex; flex-wrap:wrap; gap:6px; }
   .equip-item { display:flex; align-items:center; gap:6px; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:4px 8px; font-size:11px; max-width:120px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .equip-item img { width:20px; height:20px; border-radius:3px; }
-  .grade-Unique   { border-color:#5a3a8a; }
-  .grade-Legendary{ border-color:#7a5a1a; }
-  .grade-Epic     { border-color:#1a4a6a; }
+  .grade-Common   { border-color:#aaaaaa55; }
+  .grade-Rare     { border-color:#4a90e8; }
+  .grade-Hero     { border-color:#b060e8; }
+  .grade-Unique   { border-color:#e8c030; }
+  .grade-Legendary{ border-color:#ff6a20; }
+  .grade-Special  { border-color:#e060b0; }
 
   /* 스피너 */
   .spinner { display:inline-block; width:14px; height:14px; border:2px solid var(--border); border-top-color:var(--gold); border-radius:50%; animation:spin .7s linear infinite; vertical-align:middle; margin-right:4px; }
@@ -526,8 +529,22 @@ async function syncMember(id, nickname, serverId) {
 // ─── 상세 보기 ────────────────────────────
 function openDetail(m) {
   const el = document.getElementById('modal-detail');
-  const gradeColor = { Unique:'#e8b84b', Legendary:'#e87040', Epic:'#6080e8', Special:'#9060d0', Common:'#888' };
-  const gradeName  = { Unique:'유니크', Legendary:'레전더리', Epic:'에픽', Special:'스페셜', Common:'일반' };
+  const gradeColor = {
+    Common:'#aaaaaa',       // 일반 - 흰색/회색
+    Rare:'#4a90e8',         // 희귀 - 파랑
+    Hero:'#b060e8',         // 영웅 - 보라
+    Unique:'#e8c030',       // 유일 - 금색
+    Legendary:'#ff6a20',    // 전설 - 주황
+    Special:'#e060b0',      // 스페셜 - 분홍
+  };
+  const gradeName  = {
+    Common:'일반',
+    Rare:'희귀',
+    Hero:'영웅',
+    Unique:'유일',
+    Legendary:'전설',
+    Special:'스페셜',
+  };
   const slotName = {
     MainHand:'주무기', SubHand:'보조무기/방패', Torso:'갑옷', Pants:'하의',
     Helmet:'투구', Shoulder:'어깨', Gloves:'장갑', Boots:'신발',
@@ -741,10 +758,11 @@ function renderMembers() {
   );
   const rankCls = r => r==='마스터'?'rank-마스터':r==='부마스터'?'rank-부마스터':'rank-일반';
   const fmtTime = iso => { if(!iso) return '—'; const d=new Date(iso); return `${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
+  const gradeColors = {Common:'#aaaaaa',Rare:'#4a90e8',Hero:'#b060e8',Unique:'#e8c030',Legendary:'#ff6a20',Special:'#e060b0'};
   const equips  = eq => (eq||[]).slice(0,3).map(e=>
-    `<div class="equip-item grade-${e.grade||''}">
+    `<div class="equip-item grade-${e.grade||''}" style="border-color:${gradeColors[e.grade]||'#555'}88;">
       ${e.icon ? `<img src="${e.icon}" onerror="this.style.display='none'">` : ''}
-      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px;display:inline-block;vertical-align:middle;">${e.name||''} ${e.enchant?'+'+e.enchant:''}</span>
+      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px;display:inline-block;vertical-align:middle;color:${gradeColors[e.grade]||'var(--text)'};">${e.name||''} ${e.enchant?'+'+e.enchant:''}</span>
     </div>`).join('');
 
   document.getElementById('member-body').innerHTML = filtered.length
