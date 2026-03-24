@@ -30,11 +30,10 @@ module.exports = async function handler(req, res) {
 
     // 직업명 한국어 매핑
     const classMap = {
-      'Gladiator':'전사', 'Templar':'성전사',
-      'Sorcerer':'마법사', 'Spiritmaster':'정령사',
-      'Ranger':'레인저', 'Gunslinger':'건슬링거',
-      'Cleric':'사제', 'Chanter':'음유시인',
-      'Assassin':'어쌔신', 'Aethertech':'에테르테크',
+      'Gladiator':'검성', 'Templar':'수호성',
+      'Assassin':'살성', 'Ranger':'궁성',
+      'Sorcerer':'마도성', 'Spiritmaster':'정령성',
+      'Cleric':'치유성', 'Chanter':'호법성',
     };
 
     res.status(200).json({
@@ -45,7 +44,7 @@ module.exports = async function handler(req, res) {
       class_raw:    profile.className || '',
       level:        profile.characterLevel || 0,
       combat_power: profile.combatPower || 0,
-      item_level:   Math.round((infoData?.stat?.statList?.find(s => s.type === 'ItemLevel')?.value || 0) / 10),
+      item_level:   infoData?.stat?.statList?.find(s => s.type === 'ItemLevel')?.value || 0,
       server_name:  profile.serverName || '',
       guild_name:   profile.regionName || '',
       race:         profile.raceName || '',
