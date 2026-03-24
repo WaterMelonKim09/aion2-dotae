@@ -780,24 +780,32 @@ function renderRecruit() {
 }
 
 function drawPie() {
+  if(typeof Chart === 'undefined') { setTimeout(drawPie, 200); return; }
   const counts = {};
-  members.forEach(m => m.class && (counts[m.class]=(counts[m.class]||0)+1));
+  members.forEach(m => {
+    if(!m.class) return;
+    const cls = CLASS_MAP[m.class] || m.class; // 영어 직업명 → 한국어 변환
+    counts[cls] = (counts[cls]||0) + 1;
+  });
   const labels = Object.keys(counts), data = Object.values(counts);
   const total  = data.reduce((a,b)=>a+b,0);
   document.getElementById('pie-total').textContent = total||'—';
+  if(!total) return;
   const ctx = document.getElementById('pie-chart').getContext('2d');
   if(pieChart) pieChart.destroy();
+  const bgColors = labels.map(l => CLS_BG[l]    || 'rgba(128,128,128,.6)');
+  const bdColors = labels.map(l => CLS_COLOR[l]  || '#888');
   pieChart = new Chart(ctx,{
     type:'doughnut',
-    data:{ labels, datasets:[{ data, backgroundColor:labels.map(l=>CLS_BG[l]), borderColor:labels.map(l=>CLS_COLOR[l]), borderWidth:2, hoverOffset:8 }] },
+    data:{ labels, datasets:[{ data, backgroundColor:bgColors, borderColor:bdColors, borderWidth:2, hoverOffset:8 }] },
     options:{ cutout:'62%', responsive:false, animation:{duration:500},
       plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'#1a1e28', borderColor:'#2a2f3d', borderWidth:1, titleColor:'#e8b84b', bodyColor:'#e8e2d4',
         callbacks:{ label:c=>` ${c.label}  ${c.raw}명 (${Math.round(c.raw/total*100)}%)` } } } }
   });
   document.getElementById('pie-legend').innerHTML = labels.map((l,i)=>`
     <div class="leg-item">
-      <div class="leg-dot" style="background:${CLS_COLOR[l]}"></div>
-      <span class="leg-name">${CLS_ICON[l]} ${l}</span>
+      <div class="leg-dot" style="background:${CLS_COLOR[l]||'#888'}"></div>
+      <span class="leg-name">${CLS_ICON[l]||''} ${l}</span>
       <span class="leg-cnt">${data[i]}명</span>
       <span class="leg-pct">${Math.round(data[i]/total*100)}%</span>
     </div>`).join('');
