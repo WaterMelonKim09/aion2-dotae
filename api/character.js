@@ -35,21 +35,33 @@ module.exports = async function handler(req, res) {
       'Cleric':'치유성','Chanter':'호법성',
     };
 
-    // 장비 아이템 전체 필드 포함
+    // 장비 아이템 - 가능한 모든 필드 포함
     const mapEquip = e => ({
-      name:    e.name,
-      slot:    e.slotPosName,
-      enchant: e.enchantLevel,
-      exceed:  e.exceedLevel,
-      grade:   e.grade,
-      icon:    e.icon,
-      // 아이템 상세 스탯
-      itemStats:   e.itemStat?.statList || e.statList || [],
-      itemOptions: e.itemOption?.optionList || e.optionList || [],
-      itemSouls:   e.soulCrystal?.crystalList || [],
-      setName:     e.setItemName || '',
+      name:        e.name || '',
+      slot:        e.slotPosName || '',
+      enchant:     e.enchantLevel || 0,
+      exceed:      e.exceedLevel || 0,
+      grade:       e.grade || '',
+      icon:        e.icon || '',
       itemLevel:   e.itemLevel || 0,
+      setName:     e.setItemName || '',
+      // 아이템 스탯 - 여러 가능한 경로 시도
+      itemStats:   e.itemStat?.statList || e.statList || e.stats || [],
+      // 아이템 옵션
+      itemOptions: e.itemOption?.optionList || e.optionList || e.options || [],
+      // 소울 크리스탈
+      itemSouls:   e.soulCrystal?.crystalList || e.crystalList || [],
+      // 마석 각인
+      souls:       e.soul || [],
+      // 잠재력
+      potential:   e.potential || null,
+      // 아이템 레벨 강화 수치
+      upgradeLevel: e.upgradeLevel || 0,
     });
+
+    // 펫/날개 슬롯 (equipmentList 안에 포함될 수 있음)
+    const petSlot  = equip.find(e => e.slotPosName === 'Pet'  || e.slotType === 'Pet');
+    const wingSlot = equip.find(e => e.slotPosName === 'Wing' || e.slotType === 'Wing');
 
     res.status(200).json({
       characterId: rawId,
@@ -62,29 +74,34 @@ module.exports = async function handler(req, res) {
       item_level:   infoData?.stat?.statList?.find(s => s.type === 'ItemLevel')?.value || 0,
       server_name:  profile.serverName || '',
       guild_name:   profile.regionName || '',
-      race:         profile.raceName || '',
+      race:         profile.raceName   || '',
       profile_img:  profile.profileImage || '',
-      // 장비 (전체 슬롯 - 펫/날개 포함)
-      equipment: equip.map(mapEquip),
-      // 스탯 (전체)
-      stats:     infoData?.stat?.statList || [],
-      // 데바니온
-      daevanion: infoData?.daevanion?.boardList || [],
-      // 랭킹
-      ranking:   infoData?.ranking?.rankingList || [],
-      // 칭호
-      titles:    infoData?.title?.titleList || [],
-      // 스티그마 (스킬)
-      stigma:    infoData?.stigma?.stigmaList || equipData?.stigma?.stigmaList || [],
+      equipment:    equip.map(mapEquip),
+      // 스탯 전체 (name, type, value, statSecondList 포함)
+      stats:        infoData?.stat?.statList || [],
+      daevanion:    infoData?.daevanion?.boardList || [],
+      ranking:      infoData?.ranking?.rankingList || [],
+      titles:       infoData?.title?.titleList || [],
+      // 스티그마 (장비에 있는 경우 vs info에 있는 경우)
+      stigma:       infoData?.stigma?.stigmaList
+                 || equipData?.stigma?.stigmaList
+                 || equipData?.equipment?.stigmaList
+                 || [],
       // 아르카나
-      arcana:    infoData?.arcana?.arcanaList || equipData?.arcana?.arcanaList || [],
-      // 펫
-      pet:       infoData?.pet || equipData?.pet || null,
-      // 날개
-      wing:      infoData?.wing || equipData?.wing || null,
-      // raw 디버그용
-      _raw_keys_info:  Object.keys(infoData || {}),
-      _raw_keys_equip: Object.keys(equipData || {}),
+      arcana:       infoData?.arcana?.arcanaList
+                 || equipData?.arcana?.arcanaList
+                 || [],
+      // 펫/날개
+      pet:          petSlot ? mapEquip(petSlot) : (infoData?.pet || null),
+      wing:         wingSlot ? mapEquip(wingSlot) : (infoData?.wing || null),
+      // API 응답 최상위 키 (디버깅용)
+      _debug: {
+        info_keys:  Object.keys(infoData  || {}),
+        equip_keys: Object.keys(equipData || {}),
+        equip_slot_names: equip.map(e => e.slotPosName),
+        stat_types: (infoData?.stat?.statList || []).map(s => s.type),
+        first_equip_keys: equip[0] ? Object.keys(equip[0]) : [],
+      }
     });
   } catch (err) {
     res.status(500).json({ error: '조회 실패', detail: err.message });
