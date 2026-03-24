@@ -341,6 +341,17 @@
 </div>
 
 <!-- 멤버 관리 모달 -->
+<!-- 상세 스펙 모달 -->
+<div class="overlay" id="modal-detail" onclick="closeOverlay(event,'modal-detail')" style="align-items:flex-start;padding-top:40px;">
+  <div class="modal" style="max-width:800px;max-height:85vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+      <div class="modal-title" style="margin:0">캐릭터 상세 스펙</div>
+      <button class="btn btn-sm" onclick="closeModal('modal-detail')">닫기</button>
+    </div>
+    <div class="modal-detail-content"></div>
+  </div>
+</div>
+
 <div class="overlay" id="modal-edit" onclick="closeOverlay(event,'modal-edit')">
   <div class="modal">
     <div class="modal-title">멤버 관리</div>
@@ -373,17 +384,17 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 // ════════════════════════════════════════
 
-const CLS_ICON  = {전사:'⚔',마법사:'✦',레인저:'◈',사제:'✚',어쌔신:'◆'};
-const CLS_COLOR = {전사:'#e86060',마법사:'#6080e8',레인저:'#60c070',사제:'#d4c060',어쌔신:'#9060d0'};
-const CLS_BG    = {전사:'rgba(232,96,96,.6)',마법사:'rgba(96,128,232,.6)',레인저:'rgba(96,192,112,.6)',사제:'rgba(212,192,96,.6)',어쌔신:'rgba(144,96,208,.6)'};
+const CLS_ICON  = {전사:'⚔',성전사:'🛡',마법사:'✦',정령사:'✧',레인저:'◈',건슬링거:'◉',사제:'✚',음유시인:'♪',어쌔신:'◆',에테르테크:'⚙'};
+const CLS_COLOR = {전사:'#e86060',성전사:'#e8a060',마법사:'#6080e8',정령사:'#8060e8',레인저:'#60c070',건슬링거:'#60e8a0',사제:'#d4c060',음유시인:'#e8d060',어쌔신:'#9060d0',에테르테크:'#60c0e8'};
+const CLS_BG    = {전사:'rgba(232,96,96,.6)',성전사:'rgba(232,160,96,.6)',마법사:'rgba(96,128,232,.6)',정령사:'rgba(128,96,232,.6)',레인저:'rgba(96,192,112,.6)',건슬링거:'rgba(96,232,160,.6)',사제:'rgba(212,192,96,.6)',음유시인:'rgba(232,208,96,.6)',어쌔신:'rgba(144,96,208,.6)',에테르테크:'rgba(96,192,232,.6)'};
 
 // NC 직업명 → 한국어 매핑
 const CLASS_MAP = {
-  'Gladiator':'전사', 'Templar':'전사',
-  'Sorcerer':'마법사', 'Spiritmaster':'마법사',
-  'Ranger':'레인저', 'Gunslinger':'레인저',
-  'Cleric':'사제', 'Chanter':'사제',
-  'Assassin':'어쌔신', 'Aethertech':'어쌔신',
+  'Gladiator':'전사', 'Templar':'성전사',
+  'Sorcerer':'마법사', 'Spiritmaster':'정령사',
+  'Ranger':'레인저', 'Gunslinger':'건슬링거',
+  'Cleric':'사제', 'Chanter':'음유시인',
+  'Assassin':'어쌔신', 'Aethertech':'에테르테크',
 };
 
 let members  = [];
@@ -503,6 +514,92 @@ async function syncMember(id, nickname, serverId) {
   }
 }
 
+// ─── 상세 보기 ────────────────────────────
+function openDetail(m) {
+  const el = document.getElementById('modal-detail');
+  const gradeColor = { Unique:'#e8b84b', Legendary:'#e87040', Epic:'#6080e8', Special:'#9060d0', Common:'#7a7a8a' };
+  const slotName = {
+    MainHand:'주무기', SubHand:'보조무기', Torso:'갑옷', Pants:'하의',
+    Helmet:'투구', Shoulder:'어깨', Gloves:'장갑', Boots:'신발',
+    Cape:'망토', Belt:'허리띠', Necklace:'목걸이',
+    Earring1:'귀걸이1', Earring2:'귀걸이2',
+    Ring1:'반지1', Ring2:'반지2',
+    Bracelet1:'팔찌1', Bracelet2:'팔찌2',
+    Rune1:'룬1', Rune2:'룬2', Amulet:'아뮬렛',
+    Arcana1:'아르카나1', Arcana2:'아르카나2', Arcana3:'아르카나3',
+    Arcana4:'아르카나4', Arcana5:'아르카나5', Arcana6:'아르카나6',
+  };
+
+  const equips = (m.equipment||[]).map(e => `
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);">
+      ${e.icon ? `<img src="${e.icon}" style="width:32px;height:32px;border-radius:4px;border:1px solid ${gradeColor[e.grade]||'#555'}">` : ''}
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:600;color:${gradeColor[e.grade]||'var(--text)'};">${e.name}</div>
+        <div style="font-size:11px;color:var(--muted);">${slotName[e.slot]||e.slot} · +${e.enchant||0}강화 ${e.exceed>0?'· 초월 '+e.exceed+'단계':''}</div>
+      </div>
+    </div>`).join('');
+
+  const stats = (m.stats||[]).filter(s=>s.type!=='ItemLevel').map(s => `
+    <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:12px;">
+      <span style="color:var(--muted);">${s.name}</span>
+      <span style="font-weight:600;color:var(--gold-l);">${s.value}</span>
+    </div>`).join('');
+
+  const daeva = (m.daevanion||[]).map(d => `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+      <img src="${d.icon}" style="width:24px;height:24px;border-radius:4px;">
+      <span style="font-size:12px;flex:1;">${d.name}</span>
+      <div style="background:var(--border);border-radius:4px;height:6px;width:80px;overflow:hidden;">
+        <div style="height:100%;width:${d.openPercent}%;background:var(--gold);border-radius:4px;"></div>
+      </div>
+      <span style="font-size:11px;color:var(--muted);min-width:36px;text-align:right;">${d.openPercent}%</span>
+    </div>`).join('');
+
+  const ranks = (m.ranking||[]).map(r => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px;">
+      <span style="color:var(--muted);">${r.rankingContentsName}</span>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <img src="${r.gradeIcon}" style="width:16px;height:16px;">
+        <span style="color:var(--gold-l);font-weight:600;">${r.rank}위</span>
+        <span style="color:var(--muted);">${r.point.toLocaleString()}점</span>
+      </div>
+    </div>`).join('');
+
+  el.querySelector('.modal-detail-content').innerHTML = `
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;">
+      ${m.profile_img ? `<img src="${m.profile_img}" style="width:56px;height:56px;border-radius:50%;border:2px solid var(--gold-d);">` : ''}
+      <div>
+        <div style="font-size:18px;font-weight:700;">${m.nickname}</div>
+        <div style="font-size:13px;color:var(--muted);">${m.class||''} · ${m.server_name||''} · ${m.guild_name||''}</div>
+        <div style="font-size:12px;color:var(--muted);">Lv.${m.level||0} · ${m.race||''}</div>
+      </div>
+      <div style="margin-left:auto;text-align:right;">
+        <div style="font-size:22px;font-weight:700;color:var(--gold-l);">${(m.combat_power||0).toLocaleString()}</div>
+        <div style="font-size:11px;color:var(--muted);">전투력</div>
+        <div style="font-size:14px;font-weight:600;color:var(--text);">IL ${m.item_level||0}</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div>
+        <div style="font-size:12px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">장비</div>
+        ${equips || '<div style="color:var(--muted);font-size:13px;">장비 정보 없음</div>'}
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">스탯</div>
+        ${stats || '<div style="color:var(--muted);font-size:13px;">스탯 정보 없음</div>'}
+        ${daeva ? `
+        <div style="font-size:12px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;margin:14px 0 10px;">데바니온</div>
+        ${daeva}` : ''}
+        ${ranks ? `
+        <div style="font-size:12px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;margin:14px 0 10px;">랭킹</div>
+        ${ranks}` : ''}
+      </div>
+    </div>
+  `;
+  el.classList.add('open');
+}
+
 // ─── 수동 등록 ─────────────────────────
 async function saveManual() {
   const nickname = document.getElementById('reg-name').value.trim();
@@ -579,7 +676,10 @@ function renderMembers() {
           <td>${m.item_level||'—'}</td>
           <td><div class="equip-list">${equips(m.equipment)}</div></td>
           <td>${syncBtn}${lastSync}</td>
-          <td><button class="btn btn-sm" onclick="openEdit('${m.id}','${m.rank||'일반'}')">관리</button></td>
+          <td style="display:flex;gap:4px;">
+          <button class="btn btn-sm" onclick='openDetail(${JSON.stringify(m).replace(/'/g,"&#39;")})' style="font-size:11px;">상세</button>
+          <button class="btn btn-sm" onclick="openEdit('${m.id}','${m.rank||'일반'}')">관리</button>
+        </td>
         </tr>`;
       }).join('')
     : `<tr><td colspan="8"><div class="empty"><div class="empty-icon">⚔</div><p>검색 결과가 없어요</p></div></td></tr>`;
