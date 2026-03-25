@@ -632,10 +632,11 @@ window.onerror = function(msg, src, line, col, err) {
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
         <input class="search-box" id="recruit-search" placeholder="제목 검색..." style="width:160px;" oninput="renderRecruit()">
-        <div style="display:flex;align-items:center;gap:4px;">
-          <input type="date" id="recruit-date-from" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px 8px;font-size:12px;" onchange="renderRecruit()">
+        <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
+          <input type="date" id="recruit-date-from" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px 8px;font-size:12px;">
           <span style="color:var(--muted);font-size:12px;">~</span>
-          <input type="date" id="recruit-date-to" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px 8px;font-size:12px;" onchange="renderRecruit()">
+          <input type="date" id="recruit-date-to" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px 8px;font-size:12px;">
+          <button id="date-search-btn" class="btn btn-sm" onclick="toggleDateSearch()" style="white-space:nowrap;font-size:12px;">날짜 검색</button>
           </div>
         <button class="btn btn-primary" onclick="openModal('modal-recruit')">+ 모집 등록</button>
       </div>
@@ -878,9 +879,25 @@ window.onerror = function(msg, src, line, col, err) {
   <div class="modal">
     <div class="modal-title">멤버 관리</div>
     <input type="hidden" id="edit-id">
-    <div class="form-group"><label class="form-label">등급 변경</label><select class="form-select" id="edit-rank"><option>일반</option><option>부마스터</option><option>마스터</option></select></div>
+    <div class="form-group"><label class="form-label">계급</label>
+      <select class="form-select" id="edit-rank">
+        <option>군단장</option><option>엘리트장교</option><option>군단병</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">소개</label>
+      <textarea class="form-input" id="edit-intro" rows="2" style="resize:vertical;"></textarea>
+    </div>
+    <div class="form-group"><label class="form-label">본캐/부캐</label>
+      <select class="form-select" id="edit-is-main" onchange="toggleEditSubFields(this)">
+        <option value="true">본캐</option><option value="false">부캐</option>
+      </select>
+    </div>
+    <div class="form-group" id="edit-player-id-group" style="display:none;">
+      <label class="form-label">본캐 닉네임</label>
+      <input class="form-input" id="edit-player-id" placeholder="본캐 닉네임 입력">
+    </div>
     <div class="modal-foot">
-      <button class="btn btn-danger" onclick="deleteMember()">멤버 삭제</button>
+      <button class="btn btn-danger" onclick="deleteMember(document.getElementById('edit-id').value)">멤버 삭제</button>
       <button class="btn" onclick="closeModal('modal-edit')">취소</button>
       <button class="btn btn-primary" onclick="updateMember()">저장</button>
     </div>
@@ -1586,8 +1603,15 @@ function openEdit(id, currentRank) {
 async function updateMember() {
   const id = document.getElementById('edit-id').value;
   const rank = document.getElementById('edit-rank').value;
-  const intro = (document.getElementById('edit-intro')||{value:''}).value.trim();
-  await db.collection('members').doc(id).update({ rank, intro, updated_at: firebase.firestore.FieldValue.serverTimestamp() });
+  const introEl = document.getElementById('edit-intro');
+  const intro = introEl ? introEl.value.trim() : '';
+  const isMainEl = document.getElementById('edit-is-main');
+  const isMain = !isMainEl || isMainEl.value === 'true';
+  const playerIdEl = document.getElementById('edit-player-id');
+  const playerId = isMain ? '' : (playerIdEl ? playerIdEl.value.trim() : '');
+  const updateData = { rank, intro, updated_at: firebase.firestore.FieldValue.serverTimestamp() };
+  if(isMainEl) { updateData.is_main = isMain; if(!isMain && playerId) updateData.player_id = playerId; }
+  await db.collection('members').doc(id).update(updateData);
   closeModal('modal-edit');
   toast('수정됐어요 ✓');
 }
@@ -1677,6 +1701,12 @@ async function syncAllMembers() {
 }
 
 // ─── 멤버 등록 ────────────────────────────
+function toggleEditSubFields(sel) {
+  const isSub = sel.value === 'false';
+  const pg = document.getElementById('edit-player-id-group');
+  if(pg) pg.style.display = isSub ? '' : 'none';
+}
+
 function toggleSubFields(sel) {
   const isSub = sel.value === 'false';
   const pg = document.getElementById('player-id-group'); if(pg) pg.style.display = isSub?'':'none';
@@ -1721,6 +1751,48 @@ async function fetchAndRegister() {
 
 // ─── 파티 모집 ────────────────────────────
 
+function toggleDateSearch() {
+  const btn = document.getElementById('date-search-btn');
+  const from = document.getElementById('recruit-date-from');
+  const to = document.getElementById('recruit-date-to');
+  const isActive = btn.dataset.active === '1';
+  if(isActive) {
+    // 초기화
+    from.value = '';
+    to.value = '';
+    btn.dataset.active = '0';
+    btn.textContent = '날짜 검색';
+    btn.style.background = '';
+    btn.style.color = '';
+    btn.style.borderColor = '';
+  } else {
+    // 검색
+    if(!from.value && !to.value) { toast('날짜를 선택해주세요'); return; }
+    btn.dataset.active = '1';
+    btn.textContent = '날짜 초기화';
+    btn.style.background = 'rgba(0,200,138,.15)';
+    btn.style.color = 'var(--gold-l)';
+    btn.style.borderColor = 'var(--gold-d)';
+  }
+  renderRecruit();
+}
+
+function toggleDateSearch() {
+  const btn = document.getElementById('date-search-btn');
+  const from = document.getElementById('recruit-date-from');
+  const to = document.getElementById('recruit-date-to');
+  const isActive = btn && btn.dataset.active === '1';
+  if(isActive) {
+    if(from) from.value = '';
+    if(to) to.value = '';
+    if(btn) { btn.textContent = '날짜 검색'; btn.dataset.active = '0'; btn.style.background=''; btn.style.color=''; btn.style.borderColor=''; }
+  } else {
+    if(!from.value && !to.value) { toast('날짜를 먼저 선택해주세요'); return; }
+    if(btn) { btn.textContent = '날짜 초기화'; btn.dataset.active = '1'; btn.style.background='rgba(0,200,138,.15)'; btn.style.color='var(--gold-l)'; btn.style.borderColor='var(--gold-d)'; }
+  }
+  renderRecruit();
+}
+
 function setRFilter(f, btn) {
   rFilter = f;
   document.querySelectorAll('.chip').forEach(b => b.classList.remove('active'));
@@ -1735,7 +1807,8 @@ function renderRecruit() {
   const filtered = recruits.filter(r => {
     if(rFilter!=='all' && r.type!==rFilter) return false;
     if(searchQ && !(r.title||'').toLowerCase().includes(searchQ)) return false;
-    if(dateFrom||dateTo) {
+    const dateBtn = document.getElementById('date-search-btn');
+    if(dateBtn && dateBtn.dataset.active === '1' && (dateFrom||dateTo)) {
       if(!r.created_at) return false;
       const d = r.created_at.toDate ? r.created_at.toDate() : new Date(r.created_at.seconds*1000);
       const rDate = d.toISOString().slice(0,10);
@@ -2090,7 +2163,9 @@ async function saveRecruit() {
   const title = (document.getElementById('m-title')||{value:''}).value.trim();
   const author = (document.getElementById('m-author')||{value:''}).value.trim();
   if(!title) { toast('제목을 입력해주세요'); return; }
-  if(!author) { toast('작성자를 입력해주세요'); return; }
+  const authorMember = members.find(x => x.nickname === author);
+  if(!author) { toast('작성자 닉네임을 입력해주세요'); return; }
+  if(!authorMember) { toast(author + ' 닉네임이 등록된 멤버 목록에 없어요'); return; }
   const reqs = [];
   ['검성','수호성','살성','궁성','마도성','정령성','치유성','호법성','상관없음'].forEach(cls => {
     const cnt = parseInt((document.getElementById('req-'+cls)||{value:'0'}).value)||0;
