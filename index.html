@@ -1286,6 +1286,11 @@ function toggleSubs(mainId) {
     : `▼ 부캐 숨기기 (${subMembers.length})`;
 }
 
+function closeItemTooltip() {
+  var t = document.getElementById('item-tooltip');
+  if(t) t.style.display = 'none';
+}
+
 function openDetailByNickname(nickname) {
   const m = members.find(x => x.nickname === nickname);
   if(m) {
@@ -1327,29 +1332,100 @@ function openDetail(m) {
   window._showItemTooltip = function(slotKey) {
     const e = equipMap[slotKey];
     if(!e) return;
-    const gc = GC[e.grade]||'#888';
-    const stats = (e.itemStats||[]).map(s=>`<div style="display:flex;justify-content:space-between;gap:16px;font-size:12px;padding:2px 0;">
-      <span style="color:var(--muted);">${s.name||s.type}</span><span style="color:#7af;">${s.value}</span></div>`).join('');
-    const options = (e.itemOptions||[]).map(o=>`<div style="font-size:12px;color:#adf;padding:2px 0;">✦ ${o.desc||o.name||''}</div>`).join('');
-    const souls = (e.itemSouls||[]).map(s=>`<div style="font-size:11px;color:#fda;padding:1px 0;">◆ ${s.name||''}</div>`).join('');
+    const gradeColor = {'Common':'#aaa','Rare':'#4a90e8','Hero':'#d44040','Epic':'#d44040','Unique':'#e8c030','Legendary':'#ff6a20','Special':'#40d4c0'};
+    const gc = gradeColor[e.grade] || '#888';
+    const tooltip = document.getElementById('item-tooltip');
+    tooltip.style.display = '';
 
-    document.getElementById('item-tooltip').innerHTML = `
-      <div style="padding:14px;max-width:300px;">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-          <img src="${e.icon}" style="width:40px;height:40px;border-radius:6px;border:2px solid ${gc};">
-          <div>
-            <div style="font-size:14px;font-weight:700;color:${gc};">${e.name}</div>
-            <div style="font-size:11px;color:var(--muted);">${SN[slotKey]||slotKey} · <span style="color:${gc};">${GN[e.grade]||e.grade}</span></div>
-          </div>
-        </div>
-        ${e.enchant ? `<div style="font-size:12px;color:var(--gold-l);margin-bottom:6px;">강화 +${e.enchant}${e.exceed?` · 돌파 ${e.exceed}단계`:''}</div>` : ''}
-        ${e.setName ? `<div style="font-size:12px;color:#adf;margin-bottom:6px;">[${e.setName}]</div>` : ''}
-        ${stats ? `<div style="border-top:1px solid var(--border);padding-top:8px;margin-top:6px;">${stats}</div>` : ''}
-        ${options ? `<div style="border-top:1px solid var(--border);padding-top:8px;margin-top:6px;">${options}</div>` : ''}
-        ${souls ? `<div style="border-top:1px solid var(--border);padding-top:8px;margin-top:6px;">${souls}</div>` : ''}
-        <div style="margin-top:10px;text-align:right;"><button class="btn btn-sm" onclick="document.getElementById('item-tooltip').style.display='none'">닫기</button></div>
-      </div>`;
-    document.getElementById('item-tooltip').style.display = 'block';
+    // 로딩 표시
+    tooltip.innerHTML = '<div style="padding:14px;min-width:220px;">'
+      + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">'
+      + '<img src="'+e.icon+'" style="width:40px;height:40px;border-radius:6px;border:2px solid '+gc+';">'
+      + '<div><div style="font-size:14px;font-weight:700;color:'+gc+';">'+e.name+'</div>'
+      + '<div style="font-size:11px;color:var(--muted);">'+(e.enchant>0?'강화 +'+e.enchant:'')+(e.exceed>0?' · 돌파 '+e.exceed+'단계':'')+'</div></div></div>'
+      + '<div style="font-size:12px;color:var(--muted);text-align:center;">상세 정보 불러오는 중...</div>'
+      + '<div style="margin-top:10px;text-align:right;"><button class="btn btn-sm" onclick="closeItemTooltip()">닫기</button></div>'
+      + '</div>';
+
+    const charId = m.character_id || '';
+    const slotPosMap = {MainHand:1,SubHand:2,Torso:3,Pants:4,Helmet:5,Shoulder:6,Gloves:7,Boots:8,Cape:9,Belt:10,Necklace:11,Earring1:12,Earring2:13,Ring1:14,Ring2:15,Bracelet1:16,Bracelet2:17,Rune1:18,Rune2:19,Amulet:20,Arcana1:21,Arcana2:22,Arcana3:23,Arcana4:24,Arcana5:25,Arcana6:26};
+    const slotPos = slotPosMap[slotKey] || 1;
+    const itemId = e.itemId || 0;
+
+    var url = '/api/item?enchantLevel='+(e.enchant||0)+'&characterId='+encodeURIComponent(charId)+'&serverId='+(m.server||'2001')+'&slotPos='+slotPos+'&lang=ko';
+    if(itemId) url += '&id='+itemId;
+
+    fetch(url)
+      .then(function(r){ return r.json(); })
+      .then(function(d){ _renderItemTooltip(tooltip, e, d, gc, gradeColor); })
+      .catch(function(){ _renderItemTooltip(tooltip, e, null, gc, gradeColor); });
+  };
+
+  function _renderItemTooltip(tooltip, e, d, gc, gradeColor) {
+    var mainStatsHTML = '';
+    var subStatsHTML = '';
+    var magicStoneHTML = '';
+    var godStoneHTML = '';
+
+    if(d && !d.error) {
+      gc = gradeColor[d.grade] || gc;
+      mainStatsHTML = (d.mainStats||[]).map(function(s) {
+        var extra = (s.extra && s.extra !== '0' && s.extra !== '0%') ? ' <span style="color:#60c8ff;">(+'+s.extra+')</span>' : '';
+        var col = s.exceed ? '#60c8ff' : 'var(--text)';
+        return '<div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;padding:2px 0;">'
+          + '<span style="color:var(--muted);">'+s.name+'</span>'
+          + '<span style="color:'+col+';">'+s.value+extra+'</span></div>';
+      }).join('');
+
+      subStatsHTML = (d.subStats||[]).length
+        ? '<div style="border-top:1px solid var(--border);margin:8px 0;padding-top:8px;">'
+          + '<div style="font-size:10px;color:var(--muted);margin-bottom:4px;">✦ 추가 옵션</div>'
+          + (d.subStats||[]).map(function(s){
+              return '<div style="font-size:12px;color:#adf;padding:1px 0;">'+s.name+' '+s.value+'</div>';
+            }).join('')
+          + '</div>' : '';
+
+      magicStoneHTML = (d.magicStoneStat||[]).length
+        ? '<div style="border-top:1px solid var(--border);margin:8px 0;padding-top:8px;">'
+          + '<div style="font-size:10px;color:var(--muted);margin-bottom:4px;">마법석</div>'
+          + (d.magicStoneStat||[]).map(function(s){
+              var sc = gradeColor[s.grade]||'#888';
+              return '<div style="display:flex;align-items:center;gap:6px;font-size:11px;padding:1px 0;">'
+                + '<img src="'+(s.icon||'')+'" style="width:16px;height:16px;border-radius:3px;border:1px solid '+sc+';">'
+                + '<span style="color:'+sc+';">'+s.name+' '+s.value+'</span></div>';
+            }).join('')
+          + '</div>' : '';
+
+      godStoneHTML = (d.godStoneStat||[]).length
+        ? '<div style="border-top:1px solid var(--border);margin:8px 0;padding-top:8px;">'
+          + '<div style="font-size:10px;color:var(--muted);margin-bottom:4px;">신석</div>'
+          + (d.godStoneStat||[]).map(function(s){
+              var sc = gradeColor[s.grade]||'#888';
+              return '<div style="display:flex;align-items:center;gap:6px;font-size:11px;margin-bottom:4px;">'
+                + '<img src="'+(s.icon||'')+'" style="width:20px;height:20px;border-radius:4px;">'
+                + '<div><div style="color:'+sc+';">'+s.name+'</div>'
+                + (s.desc?'<div style="font-size:10px;color:var(--muted);line-height:1.4;">'+s.desc+'</div>':'')
+                + '</div></div>';
+            }).join('')
+          + '</div>' : '';
+    }
+
+    tooltip.innerHTML = '<div style="padding:14px;max-width:320px;">'
+      + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">'
+      + '<img src="'+e.icon+'" style="width:40px;height:40px;border-radius:6px;border:2px solid '+gc+';">'
+      + '<div>'
+      + '<div style="font-size:14px;font-weight:700;color:'+gc+';">'+e.name+'</div>'
+      + '<div style="font-size:11px;color:var(--muted);">'
+      + (d&&d.categoryName?d.categoryName:'')
+      + (e.enchant>0?' · 강화 +'+e.enchant:'')
+      + (e.exceed>0?' · 돌파 '+e.exceed+'단계':'')
+      + '</div>'
+      + (d&&d.classNames&&d.classNames.length?'<div style="font-size:10px;color:var(--muted);">'+d.classNames.join(', ')+'</div>':'')
+      + '</div></div>'
+      + mainStatsHTML + subStatsHTML + magicStoneHTML + godStoneHTML
+      + '<div style="margin-top:10px;text-align:right;">'
+      + '<button class="btn btn-sm" onclick="closeItemTooltip()">닫기</button>'
+      + '</div></div>';
   };
 
   // 장비 아이템 HTML
