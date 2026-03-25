@@ -810,7 +810,7 @@ function initFirebase() {
   initBossTimers(); // 슈고 타이머 구독
   db.collection('members').orderBy('combat_power','desc')
     .onSnapshot(snap => {
-      const isFirstLoad = members.length === 0;
+      const isFirstLoad = !window._loginInitialized;
       members = snap.docs.map(d => {
         const data = d.data();
         // 어비스 랭킹 순서 계산 (정렬용)
@@ -830,7 +830,10 @@ function initFirebase() {
         return { id: d.id, ...data, abyss_rank_order: rankOrder };
       });
       renderAll();
-      if(isFirstLoad) initLoginScreen();
+      if(isFirstLoad) {
+        window._loginInitialized = true;
+        initLoginScreen();
+      }
     });
   db.collection('recruits').orderBy('created_at','desc')
     .onSnapshot(snap => {
@@ -1643,7 +1646,12 @@ async function saveRecruit() {
     slots:    parseInt(document.getElementById('m-slots').value)||4,
     schedule: document.getElementById('m-schedule').value.trim(),
     desc:     document.getElementById('m-desc').value.trim(),
-    created_at: firebase.firestore.FieldValue.serverTimestamp()
+    created_at: firebase.firestore.FieldValue.serverTimestamp(),
+    // 작성자 자동 신청
+    applies: author ? [{
+      nickname: author,
+      time: (() => { const d=new Date(); return String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); })()
+    }] : []
   });
   closeModal('modal-recruit'); toast('모집 공고 등록 완료 ✓');
 }
