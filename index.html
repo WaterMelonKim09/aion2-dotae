@@ -814,7 +814,7 @@ window.onerror = function(msg, src, line, col, err) {
 <!-- 상세 스펙 모달 -->
 <div class="overlay" id="modal-detail" style="align-items:flex-start;padding-top:40px;">
   <div class="modal" style="max-width:800px;max-height:85vh;overflow-y:auto;position:relative;">
-    <button id="detail-close-btn" style="position:absolute;top:12px;right:12px;background:none;border:1px solid var(--border);color:var(--muted);padding:4px 12px;border-radius:6px;font-size:13px;cursor:pointer;z-index:10;">✕ 닫기</button>
+    <button id="detail-close-btn" onclick="closeModal('modal-detail')" style="position:absolute;top:12px;right:12px;background:none;border:1px solid var(--border);color:var(--muted);padding:4px 12px;border-radius:6px;font-size:13px;cursor:pointer;z-index:10;">✕ 닫기</button>
     <div class="modal-title" style="margin-bottom:16px;">캐릭터 상세 스펙</div>
     <div class="modal-detail-content"></div>
   </div>
@@ -925,8 +925,14 @@ const CLS_COLOR = {
 
 // 직업 아이콘 (base64 이미지)
 const CLS_ICON = {
-  '검성':'⚔','수호성':'🛡','살성':'🗡','궁성':'🏹',
-  '마도성':'🔮','정령성':'🌀','치유성':'✚','호법성':'📯'
+  '검성':  '<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#7ab8cc;color:#fff;font-size:10px;font-weight:700;margin-right:3px;flex-shrink:0;">검</span>',
+  '수호성': '<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#7a90d0;color:#fff;font-size:10px;font-weight:700;margin-right:3px;flex-shrink:0;">수</span>',
+  '살성':  '<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#b080d0;color:#fff;font-size:10px;font-weight:700;margin-right:3px;flex-shrink:0;">살</span>',
+  '궁성':  '<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#60c890;color:#fff;font-size:10px;font-weight:700;margin-right:3px;flex-shrink:0;">궁</span>',
+  '마도성': '<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#c04090;color:#fff;font-size:9px;font-weight:700;margin-right:3px;flex-shrink:0;">마</span>',
+  '정령성': '<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#50a0d0;color:#fff;font-size:9px;font-weight:700;margin-right:3px;flex-shrink:0;">정</span>',
+  '치유성': '<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#c0a030;color:#fff;font-size:10px;font-weight:700;margin-right:3px;flex-shrink:0;">치</span>',
+  '호법성': '<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#c06030;color:#fff;font-size:10px;font-weight:700;margin-right:3px;flex-shrink:0;">호</span>'
 };
 
 const _GC = {Common:'#aaaaaa',Rare:'#4a90e8',Hero:'#d44040',Epic:'#d44040',Unique:'#e8c030',Legendary:'#ff6a20',Special:'#40d4c0'};
@@ -1202,7 +1208,7 @@ function renderMembers() {
       +'</td></tr>';
   };
 
-  const mains2 = filtered.filter(m => m.is_main !== false || m.is_main === undefined);
+  const mains2 = filtered.filter(m => m.is_main !== false);
   let rows = '';
   mains2.forEach(main => {
     const mainSubs = subs.filter(s => s.player_id === main.nickname);
@@ -1452,7 +1458,7 @@ function openDetail(m) {
       +'<div><div style="font-size:15px;font-weight:700;color:'+gc2+';">'+e.name+'</div>'
       +'<div style="font-size:11px;color:var(--muted);">'+(e.enchant>0?'강화 +'+e.enchant:'')+(e.exceed>0?' · 돌파 '+e.exceed+'단계':'')+'</div></div></div>'
       +'<div style="font-size:12px;color:var(--muted);text-align:center;">상세 불러오는 중...</div>'
-      +'<div style="margin-top:10px;text-align:right;"><button class="btn btn-sm" onclick="this.closest(\'#item-tooltip\').style.display=\'none\'">닫기</button></div></div>';
+      +'<div style="margin-top:10px;text-align:right;"><button class="btn btn-sm" onclick="var t=this.closest(\'[id=item-tooltip]\') || document.getElementById(\'item-tooltip\');if(t)t.style.display=\'none\';">닫기</button></div></div>';
     
     const charId = m.character_id||'';
     const slotPosMap = {MainHand:1,SubHand:2,Torso:3,Pants:4,Helmet:5,Shoulder:6,Gloves:7,Boots:8,Cape:9,Belt:10,Necklace:11,Earring1:12,Earring2:13,Ring1:14,Ring2:15,Bracelet1:16,Bracelet2:17,Rune1:18,Rune2:19,Amulet:20,Arcana1:21,Arcana2:22,Arcana3:23,Arcana4:24,Arcana5:25,Arcana6:26};
@@ -1521,6 +1527,11 @@ function _renderItemTooltip2(tooltip, e, d, gc, gradeColor, isAccessory) {
 
 function showItemTooltip(slotKey) {
   if(window._currentShowItemTooltip) window._currentShowItemTooltip(slotKey);
+}
+
+function closeItemTooltip() {
+  var t=document.getElementById("item-tooltip");
+  if(t) t.style.display="none";
 }
 
 function switchDetailTab(tab) {
