@@ -1457,46 +1457,7 @@ function openDetail(m) {
   const content2 = el.querySelector('.modal-detail-content');
   if(!content2) return;
   content2.innerHTML =
-    '<div id="item-tooltip" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--card);border:1px solid var(--border);border-radius:10px;z-index:200;max-width:340px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.6);max-height:80vh;overflow-y:auto;"></div>'
-    +'<div style="display:flex;align-items:center;gap:16px;padding:16px;background:var(--surface);border-radius:10px;margin-bottom:16px;border:1px solid var(--border);">'
-    +(m.profile_img?'<img src="'+m.profile_img+'" style="width:60px;height:60px;border-radius:50%;border:2px solid var(--gold-d);">':'<div style="width:60px;height:60px;border-radius:50%;background:var(--card);border:2px solid var(--border);"></div>')
-    +'<div style="flex:1;">'
-    +'<div style="font-size:20px;font-weight:700;">'+m.nickname+'</div>'
-    +'<div style="font-size:12px;color:var(--muted);">'+(m.server_name||'')+' · '+(m.race||'')+' · '+(m.class||'')+' · Lv.'+(m.level||0)+'</div>'
-    +'<div style="font-size:12px;color:var(--muted);">레기온: '+(m.guild_name||'없음')+'</div>'
-    +'</div>'
-    +'<div style="display:flex;gap:10px;flex-shrink:0;">'
-    +'<div style="text-align:center;padding:8px 14px;background:var(--card);border:1px solid var(--border);border-radius:8px;"><div style="font-size:10px;color:var(--muted);">전투력</div><div style="font-size:18px;font-weight:700;color:var(--gold-l);">'+(m.combat_power||0).toLocaleString()+'</div></div>'
-    +'<div style="text-align:center;padding:8px 14px;background:var(--card);border:1px solid var(--border);border-radius:8px;"><div style="font-size:10px;color:var(--muted);">아이템레벨</div><div style="font-size:18px;font-weight:700;color:var(--gold-l);">'+( m.item_level?(+m.item_level).toLocaleString():'—')+'</div></div>'
-    +'</div></div>'
-    +'<div style="display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid var(--border);">'
-    +'<button onclick="switchDetailTab(\'info\')" id="dtab-info" style="background:none;border:none;color:var(--gold-l);padding:8px 16px;font-size:13px;cursor:pointer;border-bottom:2px solid var(--gold);margin-bottom:-2px;font-weight:600;">종합정보</button>'
-    +'<button onclick="switchDetailTab(\'skill\')" id="dtab-skill" style="background:none;border:none;color:var(--muted);padding:8px 16px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;">스킬</button>'
-    +'<button onclick="switchDetailTab(\'title\')" id="dtab-title" style="background:none;border:none;color:var(--muted);padding:8px 16px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;">타이틀</button>'
-    +'<button onclick="switchDetailTab(\'daeva\')" id="dtab-daeva" style="background:none;border:none;color:var(--muted);padding:8px 16px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;">데바니온</button>'
-    +'<button onclick="switchDetailTab(\'rank\')" id="dtab-rank" style="background:none;border:none;color:var(--muted);padding:8px 16px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;">랭킹</button>'
-    +'</div>'
-    +'<div id="detail-info">'
-    +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;">'
-    +'<div>'+_EQ1.map(equipHTML).join('')+'</div>'
-    +'<div>'+_EQ2.map(equipHTML).join('')+'</div>'
-    +'<div>'
-    +'<div style="font-size:11px;font-weight:600;color:var(--gold);margin-bottom:8px;">펫 / 날개</div>'
-    +petHTML+wingHTML
-    +'<div style="font-size:11px;font-weight:600;color:var(--gold);margin:12px 0 8px;">아르카나</div>'
-    +arcanaSlots.map(equipHTML).join('')
-    +'</div></div>'
-    +'<div style="font-size:11px;font-weight:600;color:var(--gold);margin-bottom:8px;">스탯</div>'
-    +statHTML
-    +(extraStats.length?'<div id="extra-stats" style="display:none;">'+extraStatHTML+'</div><button onclick="const e=document.getElementById(\'extra-stats\');e.style.display=e.style.display===\'none\'?\'block\':\'none\';" style="font-size:12px;color:var(--gold);background:none;border:none;cursor:pointer;padding:4px 0;margin-top:4px;">더보기 ▼</button>':'')
-    +'<div id="detail-title-section" style="margin-top:16px;">'
-    +'<div style="font-size:11px;font-weight:600;color:var(--gold);margin-bottom:8px;">✦ 타이틀</div>'
-    +titleHTML+'</div>'
-    +'</div>'
-    +'<div id="detail-skill" style="display:none;">'+skillHTML+'</div>'
-    +'<div id="detail-title" style="display:none;">'+titleHTML+'</div>'
-    +'<div id="detail-daeva" style="display:none;">'+daevStatHTML+'</div>'
-    +'<div id="detail-rank" style="display:none;">'+rankingHTML+'</div>';
+    '<div id="item-tooltip" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--card);border:1px solid var(--border);border-radius:10px;z-index:200;max-width:340px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.6);max-height:85vh;flex-direction:column;">'    +'<div id="item-tooltip-header" style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--border);border-radius:10px 10px 0 0;flex-shrink:0;">'    +'<span style="font-size:14px;font-weight:700;color:var(--gold-l);">아이템 정보</span>'    +'<button onclick="closeItemTooltip()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:0 4px;line-height:1;">✕</button>'    +'</div>'    +'<div id="item-tooltip-body" style="overflow-y:auto;flex:1;"></div>'    +'</div>';
 
   // showItemTooltip 설정
   const showItemTooltip = function(slotKey) {
@@ -1506,8 +1467,9 @@ function openDetail(m) {
     const gc2 = gradeColor[e.grade]||'#888';
     const tooltip = content2.querySelector('#item-tooltip');
     if(!tooltip) return;
-    tooltip.style.display = '';
-    tooltip.innerHTML = '<div style="padding:14px;min-width:260px;">'
+    tooltip.style.display='flex';
+  const tooltipBody = document.getElementById('item-tooltip-body') || tooltip;
+  tooltipBody.innerHTML = '<div style="padding:14px;min-width:260px;">'
       +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">'
       +'<img src="'+e.icon+'" style="width:44px;height:44px;border-radius:6px;border:2px solid '+gc2+';flex-shrink:0;">'
       +'<div><div style="font-size:15px;font-weight:700;color:'+gc2+';">'+e.name+'</div>'
@@ -1571,7 +1533,7 @@ function _renderItemTooltip2(tooltip, e, d, gc, gradeColor, isAccessory) {
     }).join('');
     if(godList) godStoneHTML = '<div style="border-top:1px solid var(--border);margin:8px 0;padding-top:8px;"><div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600;">신석</div>'+godList+'</div>';
   }
-  tooltip.innerHTML = '<div style="padding:16px;max-width:340px;min-width:260px;">'
+  (document.getElementById('item-tooltip-body')||tooltip).innerHTML = '<div style="padding:16px;max-width:340px;min-width:260px;">'
     +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">'
     +'<img src="'+e.icon+'" style="width:44px;height:44px;border-radius:6px;border:2px solid '+gc+';flex-shrink:0;">'
     +'<div><div style="font-size:15px;font-weight:700;color:'+gc+';">'+e.name+'</div>'
@@ -1586,7 +1548,7 @@ function showItemTooltip(slotKey) {
 
 function closeItemTooltip() {
   var t=document.getElementById("item-tooltip");
-  if(t) t.style.display="none";
+  if(t){ t.style.display="none"; }
 }
 
 function switchDetailTab(tab) {
@@ -2678,54 +2640,66 @@ function renderWarSurveys() {
     };
 
     var surveyId = survey.id;
-    var attendStyle = myRes&&myRes.type==='attend';
-    var absentStyle = myRes&&myRes.type==='absent';
+    var isAttend = myRes && myRes.type==='attend';
+    var isAbsent = myRes && myRes.type==='absent';
+
+    // 마감까지 남은 시간 계산
+    var timeLeftStr = '';
+    if(survey.deadline) {
+      var now = new Date(new Date().toLocaleString('en-US', {timeZone:'Asia/Seoul'}));
+      var parts = survey.deadline.match(/(\d+)\.(\d+)\s+(\d+):(\d+)/);
+      if(parts) {
+        var dl = new Date(now.getFullYear(), parseInt(parts[1])-1, parseInt(parts[2]), parseInt(parts[3]), parseInt(parts[4]));
+        var diff = dl - now;
+        if(diff > 0) {
+          var h = Math.floor(diff/3600000);
+          var m2 = Math.floor((diff%3600000)/60000);
+          timeLeftStr = h > 0 ? h+'시간 '+m2+'분 후 마감' : m2+'분 후 마감';
+        } else {
+          timeLeftStr = '마감됨';
+        }
+      }
+    }
 
     return '<div class="card" style="margin-bottom:16px;padding:0;overflow:hidden;">'
 
       // ── 헤더
       +'<div style="padding:14px 16px;background:var(--surface);border-bottom:1px solid var(--border);">'
       +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">'
-      +'<div>'
-      +'<div style="font-size:17px;font-weight:700;margin-bottom:3px;">⚔ '+survey.title+'</div>'
-      +'<div style="font-size:11px;color:var(--muted);">'+(survey.deadline?'마감 '+survey.deadline+' · ':'')+fmtDate(survey.created_at)+'</div>'
+      +'<div style="flex:1;min-width:0;">'
+      +'<div style="font-size:17px;font-weight:700;margin-bottom:4px;">⚔ '+survey.title+'</div>'
+      +(timeLeftStr?'<div style="font-size:12px;color:'+(timeLeftStr==='마감됨'?'#e06060':'var(--gold-l)')+';">⏱ '+timeLeftStr+'</div>':'')
       +'</div>'
       +(isAdmin()?'<button onclick="deleteWarSurvey('+JSON.stringify(surveyId)+')" style="font-size:11px;padding:4px 8px;background:none;border:1px solid var(--red);border-radius:6px;color:var(--red);cursor:pointer;flex-shrink:0;">삭제</button>':'')
       +'</div>'
       +'</div>'
 
-      // ── 참가/불참 버튼 (로그인한 경우)
+      // ── 참가/불참 버튼
       +(currentUser
-        ? '<div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:2px solid var(--border);">'
-          // 참가 버튼
+        ? '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px 16px;background:var(--bg);border-bottom:1px solid var(--border);">'
           +'<button data-sid="'+surveyId+'" data-type="attend" onclick="respondWarSurvey(this.dataset.sid,this.dataset.type)" '
-          +'style="padding:16px 8px;font-size:16px;font-weight:700;border:none;border-right:1px solid var(--border);border-radius:0;cursor:pointer;'
-          +'background:'+(attendStyle?'rgba(0,200,138,.18)':'transparent')+';'
-          +'color:'+(attendStyle?'#00c88a':'var(--muted)')+';'
-          +'transition:all .15s;">'
-          +'✔ 참가</button>'
-          // 불참 버튼
+          +'style="padding:14px 8px;font-size:15px;font-weight:700;border-radius:10px;cursor:pointer;transition:all .15s;'
+          +(isAttend
+            ? 'background:rgba(0,200,138,.25);border:2px solid #00c88a;color:#00c88a;'
+            : 'background:var(--surface);border:2px solid var(--border);color:var(--muted);')
+          +'">✔ 참가</button>'
           +'<button data-sid="'+surveyId+'" data-type="absent" onclick="respondWarSurvey(this.dataset.sid,this.dataset.type)" '
-          +'style="padding:16px 8px;font-size:16px;font-weight:700;border:none;border-radius:0;cursor:pointer;'
-          +'background:'+(absentStyle?'rgba(220,50,50,.18)':'transparent')+';'
-          +'color:'+(absentStyle?'#e06060':'var(--muted)')+';'
-          +'transition:all .15s;">'
-          +'✘ 불참</button>'
+          +'style="padding:14px 8px;font-size:15px;font-weight:700;border-radius:10px;cursor:pointer;transition:all .15s;'
+          +(isAbsent
+            ? 'background:rgba(220,50,50,.25);border:2px solid #e06060;color:#e06060;'
+            : 'background:var(--surface);border:2px solid var(--border);color:var(--muted);')
+          +'">✘ 불참</button>'
           +'</div>'
         : '<div style="padding:10px 16px;text-align:center;font-size:12px;color:var(--muted);border-bottom:1px solid var(--border);">로그인 후 참여 가능해요</div>'
       )
 
-      // ── 명단 (2열)
+      // ── 명단 헤더 + 내용 (2열)
       +'<div style="display:grid;grid-template-columns:1fr 1fr;">'
-
-      // 참가 명단
       +'<div style="border-right:1px solid var(--border);">'
       +'<div style="padding:8px 12px;background:rgba(0,200,138,.06);font-size:12px;font-weight:700;color:#00c88a;border-bottom:1px solid var(--border);text-align:center;">✔ 참가 '+attendList.length+'명</div>'
       +attendList.map(renderMemberRow).join('')
       +(attendList.length===0?'<div style="padding:16px 0;font-size:12px;color:var(--muted);text-align:center;">없음</div>':'')
       +'</div>'
-
-      // 불참 명단
       +'<div>'
       +'<div style="padding:8px 12px;background:rgba(220,50,50,.06);font-size:12px;font-weight:700;color:#e06060;border-bottom:1px solid var(--border);text-align:center;">✘ 불참 '+absentList.length+'명</div>'
       +absentList.map(renderMemberRow).join('')
@@ -2739,18 +2713,16 @@ function renderWarSurveys() {
           +'<div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-weight:600;">📊 누적 참여 스탯</div>'
           +'<div style="display:flex;flex-wrap:wrap;gap:6px;">'
           +Object.entries(stats).sort(function(a,b){return (b[1].attend+b[1].absent)-(a[1].attend+a[1].absent);}).map(function(entry){
-            var nm=entry[0], st=entry[1], tot=st.attend+st.absent;
+            var nm=entry[0],st=entry[1],tot=st.attend+st.absent;
             return '<div style="padding:4px 8px;background:var(--card);border:1px solid var(--border);border-radius:20px;font-size:11px;display:flex;gap:5px;align-items:center;">'
               +'<span style="font-weight:600;">'+nm+'</span>'
               +'<span style="color:#00c88a;">✔'+st.attend+'</span>'
               +'<span style="color:#e06060;">✘'+st.absent+'</span>'
               +'<span style="color:var(--muted);">'+(tot>0?Math.round(st.attend/tot*100)+'%':'—')+'</span>'
               +'</div>';
-          }).join('')
-          +'</div></div>'
+          }).join('')+'</div></div>'
         : ''
       )
-
       +'</div>';
   }).join('');
 }
