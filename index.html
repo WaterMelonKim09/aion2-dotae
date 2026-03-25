@@ -538,6 +538,7 @@
         <div style="display:flex;align-items:center;gap:4px;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:4px 8px;"><span style="font-size:12px;flex:1;">정령성</span><input type="number" id="req-정령성" min="0" max="9" value="0" style="width:36px;background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);text-align:center;font-size:13px;padding:2px;"></div>
         <div style="display:flex;align-items:center;gap:4px;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:4px 8px;"><span style="font-size:12px;flex:1;">치유성</span><input type="number" id="req-치유성" min="0" max="9" value="0" style="width:36px;background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);text-align:center;font-size:13px;padding:2px;"></div>
         <div style="display:flex;align-items:center;gap:4px;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:4px 8px;"><span style="font-size:12px;flex:1;">호법성</span><input type="number" id="req-호법성" min="0" max="9" value="0" style="width:36px;background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);text-align:center;font-size:13px;padding:2px;"></div>
+        <div style="display:flex;align-items:center;gap:4px;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:4px 8px;grid-column:span 2;"><span style="font-size:12px;flex:1;">상관없음</span><input type="number" id="req-상관없음" min="0" max="9" value="0" style="width:36px;background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);text-align:center;font-size:13px;padding:2px;"></div>
       </div>
     </div>
     <div class="form-group"><label class="form-label">작성자 닉네임 *</label>
@@ -599,8 +600,13 @@
     <div style="margin-top:16px;">
       <div style="font-size:12px;font-weight:600;color:var(--gold);margin-bottom:10px;">💬 댓글</div>
       <div id="comment-list" style="margin-bottom:10px;display:flex;flex-direction:column;gap:8px;"></div>
+      <div style="position:relative;margin-bottom:8px;">
+        <input class="form-input" id="comment-nickname" placeholder="닉네임 검색..." autocomplete="off"
+          oninput="searchCommentMember(this.value)" style="width:100%;">
+        <div id="comment-suggest" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--border);border-radius:8px;z-index:100;max-height:200px;overflow-y:auto;margin-top:4px;box-shadow:0 4px 16px rgba(0,0,0,.4);"></div>
+      </div>
+      <div id="comment-preview" style="display:none;margin-bottom:8px;padding:8px 10px;background:var(--card);border:1px solid var(--border);border-radius:8px;"></div>
       <div style="display:flex;gap:8px;">
-        <input class="form-input" id="comment-nickname" placeholder="닉네임" style="width:120px;">
         <input class="form-input" id="comment-text" placeholder="댓글 내용..." style="flex:1;" onkeydown="if(event.key==='Enter')addComment()">
         <button class="btn btn-primary btn-sm" onclick="addComment()">등록</button>
       </div>
@@ -1482,7 +1488,7 @@ async function saveRecruit() {
   if(!title) { toast('제목을 입력해주세요'); return; }
   if(!author){ toast('작성자를 입력해주세요'); return; }
   const reqs=[];
-  ['검성','수호성','살성','궁성','마도성','정령성','치유성','호법성'].forEach(cls=>{
+  ['검성','수호성','살성','궁성','마도성','정령성','치유성','호법성','상관없음'].forEach(cls=>{
     const cnt = parseInt(document.getElementById('req-'+cls)?.value)||0;
     for(let i=0;i<cnt;i++) reqs.push(cls);
   });
@@ -1511,7 +1517,25 @@ async function openRecruit(id) {
     </div>
     <div style="font-size:13px;color:var(--muted);margin-bottom:8px;">📅 ${r.schedule||'일정 미정'} · 최소 ${r.min_cp||'제한 없음'} · by ${r.author}</div>
     ${r.desc ? `<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:13px;line-height:1.6;margin-bottom:12px;white-space:pre-wrap;">${r.desc}</div>` : ''}
-    ${r.reqs&&r.reqs.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">${r.reqs.map(x=>`<span class="req-item">${x}</span>`).join('')}</div>` : ''}
+    ${r.reqs&&r.reqs.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">${(() => {
+      const applies = r.applies||[];
+      const filled = [];
+      applies.forEach(a => {
+        const m = members.find(x=>x.nickname===a.nickname);
+        if(m) filled.push(CLASS_MAP[m.class]||m.class);
+      });
+      const remaining = [...r.reqs];
+      const usedIdx = [];
+      filled.forEach(cls => {
+        let idx = remaining.findIndex((r,i) => !usedIdx.includes(i) && (r===cls||r==='상관없음'));
+        if(idx === -1) idx = remaining.findIndex((r,i) => !usedIdx.includes(i));
+        if(idx !== -1) usedIdx.push(idx);
+      });
+      return r.reqs.map((x,i) => {
+        const isFilled = usedIdx.includes(i);
+        return `<span class="req-item" style="${isFilled?'background:rgba(0,200,138,.15);border-color:var(--gold-d);color:var(--gold-l);':''}">${x}${isFilled?' ✓':''}</span>`;
+      }).join('');
+    })()}</div>` : ''}
   `;
 
   // 신청자 목록
@@ -1561,14 +1585,28 @@ async function cancelApply(index) {
 function renderCommentList(recruitId) {
   const r = recruits.find(x => x.id === recruitId);
   const comments = r?.comments || [];
-  document.getElementById('comment-list').innerHTML = comments.map(c=>`
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;">
-      <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
-        <span style="font-size:13px;font-weight:600;color:var(--gold-l);">${c.nickname}</span>
-        <span style="font-size:11px;color:var(--muted);">${c.time||''}</span>
+  document.getElementById('comment-list').innerHTML = comments.map((c,i)=>{
+    const m = members.find(x=>x.nickname===c.nickname);
+    const cls = m ? (CLASS_MAP[m.class]||m.class||'') : '';
+    const clsColor = cls ? (CLS_COLOR[cls]||'var(--muted)') : 'var(--muted)';
+    return `<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          ${m?.profile_img?`<img src="${m.profile_img}" style="width:24px;height:24px;border-radius:50%;">`:''}
+          <div>
+            <span style="font-size:13px;font-weight:700;color:var(--gold-l);">${c.nickname}</span>
+            ${cls?`<span style="font-size:11px;color:${clsColor};margin-left:6px;">${CLS_ICON[cls]||''} ${cls}</span>`:''}
+            ${m?`<span style="font-size:11px;color:var(--muted);margin-left:6px;">전투력 ${(m.combat_power||0).toLocaleString()}</span>`:''}
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+          <span style="font-size:11px;color:var(--muted);">${c.time||''}</span>
+          <button onclick="deleteComment(${i})" style="font-size:10px;padding:2px 7px;background:none;border:1px solid var(--red);border-radius:4px;color:var(--red);cursor:pointer;">삭제</button>
+        </div>
       </div>
-      <div style="font-size:13px;line-height:1.5;">${c.text}</div>
-    </div>`).join('') || '<div style="font-size:12px;color:var(--muted);">댓글이 없어요</div>';
+      <div style="font-size:13px;line-height:1.5;padding-left:32px;">${c.text}</div>
+    </div>`;
+  }).join('') || '<div style="font-size:12px;color:var(--muted);">댓글이 없어요</div>';
 }
 
 function searchAuthorMember(query) {
@@ -1712,6 +1750,63 @@ async function applyRecruit() {
   toast(`${nickname} 신청 완료! ✓`);
 }
 
+function searchCommentMember(query) {
+  const suggest = document.getElementById('comment-suggest');
+  const preview = document.getElementById('comment-preview');
+  if(!suggest) return;
+  if(!query.trim()) { suggest.style.display='none'; if(preview) preview.style.display='none'; return; }
+  const matched = members.filter(m =>
+    (m.nickname||'').toLowerCase().includes(query.toLowerCase())
+  ).slice(0, 6);
+  if(!matched.length) { suggest.style.display='none'; return; }
+  suggest.innerHTML = matched.map(m => {
+    const cls = CLASS_MAP[m.class]||m.class||'?';
+    const clsColor = CLS_COLOR[cls]||'var(--muted)';
+    const isSub = m.is_main === false;
+    return `<div onclick="selectCommentMember('${m.id}')"
+      style="display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border);"
+      onmouseover="this.style.background='rgba(255,255,255,.05)'" onmouseout="this.style.background='transparent'">
+      ${m.profile_img?`<img src="${m.profile_img}" style="width:28px;height:28px;border-radius:50%;flex-shrink:0;">`:`<div style="width:28px;height:28px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;">${CLS_ICON[cls]||'?'}</div>`}
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:700;">${m.nickname}${isSub?'<span style="font-size:10px;color:var(--muted);margin-left:4px;">[부캐]</span>':''}</div>
+        <div style="font-size:11px;color:${clsColor};">${cls} · 전투력 ${(m.combat_power||0).toLocaleString()} · 아이템레벨 ${m.item_level||'—'}</div>
+      </div>
+    </div>`;
+  }).join('');
+  suggest.style.display = 'block';
+}
+
+function selectCommentMember(memberId) {
+  const m = members.find(x => x.id === memberId);
+  if(!m) return;
+  document.getElementById('comment-nickname').value = m.nickname;
+  document.getElementById('comment-suggest').style.display = 'none';
+  const preview = document.getElementById('comment-preview');
+  const cls = CLASS_MAP[m.class]||m.class||'?';
+  const clsColor = CLS_COLOR[cls]||'var(--muted)';
+  preview.style.display = 'flex';
+  preview.style.alignItems = 'center';
+  preview.style.gap = '10px';
+  preview.innerHTML = `
+    ${m.profile_img?`<img src="${m.profile_img}" style="width:32px;height:32px;border-radius:50%;border:2px solid var(--gold-d);">`:''}
+    <div style="flex:1;">
+      <div style="font-size:13px;font-weight:700;">${m.nickname}</div>
+      <div style="font-size:11px;color:${clsColor};">${CLS_ICON[cls]||''} ${cls} · 전투력 ${(m.combat_power||0).toLocaleString()} · 아이템레벨 ${m.item_level||'—'}</div>
+    </div>
+    <button onclick="openDetailById('${m.id}')" style="font-size:11px;padding:4px 8px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--gold);cursor:pointer;flex-shrink:0;">상세</button>`;
+  document.getElementById('comment-text').focus();
+}
+
+async function deleteComment(index) {
+  if(!confirm('댓글을 삭제할까요?')) return;
+  const r = recruits.find(x => x.id === currentRecruitId);
+  if(!r) return;
+  const comments = [...(r.comments||[])];
+  comments.splice(index, 1);
+  await db.collection('recruits').doc(currentRecruitId).update({comments});
+  toast('댓글이 삭제되었어요');
+}
+
 async function addComment() {
   const nickname = document.getElementById('comment-nickname').value.trim();
   const text = document.getElementById('comment-text').value.trim();
@@ -1776,9 +1871,9 @@ if(regIsMainEl) {
 
 // 자동완성 드롭다운 바깥 클릭 닫기
 document.addEventListener('click', function(e) {
-  ['apply-suggest','author-suggest'].forEach(id => {
+  ['apply-suggest','author-suggest','comment-suggest'].forEach(id => {
     const suggest = document.getElementById(id);
-    const inputId = id === 'apply-suggest' ? 'apply-nickname' : 'm-author';
+    const inputId = id === 'apply-suggest' ? 'apply-nickname' : id === 'author-suggest' ? 'm-author' : 'comment-nickname';
     const input = document.getElementById(inputId);
     if(suggest && !suggest.contains(e.target) && e.target !== input) {
       suggest.style.display = 'none';
