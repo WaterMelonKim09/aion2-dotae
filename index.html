@@ -290,19 +290,20 @@
   .table-wrap th:nth-child(7),
   .table-wrap td:nth-child(7) { display:none; }
 }
+  @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+  @-webkit-keyframes spin { from{-webkit-transform:rotate(0deg)} to{-webkit-transform:rotate(360deg)} }
 </style>
 </head>
 <body>
 
 <!-- 로딩 화면 -->
-<div id="loading-screen" style="display:flex;position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:16px;">
-  <svg viewBox="0 0 100 100" width="56" height="56" style="animation:spin 1.5s linear infinite;">
+<div id="loading-screen" style="display:-webkit-flex;display:flex;position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);z-index:9999;-webkit-align-items:center;align-items:center;-webkit-justify-content:center;justify-content:center;-webkit-flex-direction:column;flex-direction:column;gap:16px;">
+  <svg viewBox="0 0 100 100" width="56" height="56" style="animation:spin 1.5s linear infinite;-webkit-animation:spin 1.5s linear infinite;">
     <polygon points="50,5 95,27 95,73 50,95 5,73 5,27" fill="#111318" stroke="#00c88a" stroke-width="6"/>
     <polygon points="50,35 65,43 65,57 50,65 35,57 35,43" fill="#00c88a"/>
   </svg>
   <div style="font-size:14px;color:var(--muted);">데이터 불러오는 중...</div>
 </div>
-<style>@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }</style>
 
 <!-- 로그인 화면 -->
 <div id="login-screen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);z-index:999;align-items:center;justify-content:center;">
@@ -943,6 +944,14 @@ async function migrateRanks() {
 }
 
 function initFirebase() {
+  // 5초 후에도 로딩중이면 강제로 숨기기 (Firebase 연결 실패 대비)
+  setTimeout(() => {
+    const loadingEl = document.getElementById('loading-screen');
+    if(loadingEl && loadingEl.style.display !== 'none') {
+      loadingEl.style.display = 'none';
+      initLoginScreen();
+    }
+  }, 5000);
   migrateRanks(); // 구버전 계급 자동 변환
   initBossTimers(); // 슈고 타이머 구독
   db.collection('members').orderBy('combat_power','desc')
@@ -963,7 +972,7 @@ function initFirebase() {
           '6급병':15,'7급병':16,'8급병':17,'9급병':18,
           '훈련병':19,
         };
-        const rankOrder = abyssR ? (ABYSS_ORDER[abyssR.gradeName] ?? 99) : 999;
+        const rankOrder = abyssR ? ((ABYSS_ORDER[abyssR.gradeName] !== undefined ? ABYSS_ORDER[abyssR.gradeName] : 99)) : 999;
         return { id: d.id, ...data, abyss_rank_order: rankOrder };
       });
       renderAll();
@@ -1014,8 +1023,8 @@ function sortMembers(arr) {
   return [...arr].sort((a, b) => {
     let av, bv;
     if(sortBy === 'rank') {
-      av = RANK_ORDER[a.rank||''] ?? 3;
-      bv = RANK_ORDER[b.rank||''] ?? 3;
+      av = (RANK_ORDER[a.rank||''] !== undefined ? RANK_ORDER[a.rank||''] : 3);
+      bv = (RANK_ORDER[b.rank||''] !== undefined ? RANK_ORDER[b.rank||''] : 3);
     } else if(sortBy === 'nickname') {
       av = (a.nickname||'').localeCompare(b.nickname||'', 'ko');
       return sortAsc ? av : -av;
@@ -2785,7 +2794,62 @@ function renderNotices(notices) {
   }).join('');
 
   // 초기 패치노트 항상 마지막에
-  const initNote = '';
+  const initNote = `
+  <div class="card" style="padding:20px;border-left:3px solid var(--gold);opacity:.75;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+      <div>
+        <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(0,200,138,.15);color:var(--gold-l);border:1px solid var(--gold-d);margin-right:8px;">패치노트</span>
+        <span style="font-size:16px;font-weight:700;">v1.2.1 — 호환성 개선 및 버그 수정</span>
+      </div>
+      <span style="font-size:12px;color:var(--muted);white-space:nowrap;">2026.03.25</span>
+    </div>
+    <div style="font-size:13px;color:var(--muted);line-height:1.8;">
+      🍎 <b style="color:var(--text)">iOS / 아이폰 호환성 수정</b><br>
+      &nbsp;&nbsp;아이폰 사파리에서 무한 로딩되던 문제를 해결했어요.<br><br>
+      🔧 <b style="color:var(--text)">기타 버그 수정</b><br>
+      &nbsp;&nbsp;공지/패치노트 탭 작성 버튼 노출 버그 수정, 직업 필터 시 부캐 구분 표시, 파티 모집 종류 세분화.
+    </div>
+  </div>
+  <div class="card" style="padding:20px;border-left:3px solid var(--gold);opacity:.65;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+      <div>
+        <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(0,200,138,.15);color:var(--gold-l);border:1px solid var(--gold-d);margin-right:8px;">패치노트</span>
+        <span style="font-size:16px;font-weight:700;">v1.2.0 — 파티 모집 강화 · 로그인 · 공지 시스템</span>
+      </div>
+      <span style="font-size:12px;color:var(--muted);white-space:nowrap;">2026.03.25</span>
+    </div>
+    <div style="font-size:13px;color:var(--muted);line-height:1.8;">
+      👤 닉네임 로그인 · 내 정보 모달 · 권한 기반 삭제<br>
+      ⚔ 파티 모집 검색/기간필터 · 신청자 자동완성 · 글 수정 기능<br>
+      📋 공지/패치노트 탭 신설 · 슈고 타이머 개선
+    </div>
+  </div>
+  <div class="card" style="padding:20px;border-left:3px solid var(--gold);opacity:.55;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+      <div>
+        <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(0,200,138,.15);color:var(--gold-l);border:1px solid var(--gold-d);margin-right:8px;">패치노트</span>
+        <span style="font-size:16px;font-weight:700;">v1.1.0 — 스펙 상세 · 장비 · 어비스 급수</span>
+      </div>
+      <span style="font-size:12px;color:var(--muted);white-space:nowrap;">2026.03.25</span>
+    </div>
+    <div style="font-size:13px;color:var(--muted);line-height:1.8;">
+      🛡 NC 공홈 수준 캐릭터 상세 스펙 · 장비 2x5 그리드 표시<br>
+      🎖 어비스 급수 표시 및 정렬 · 본캐/부캐 시스템 · 멤버 정렬 기능
+    </div>
+  </div>
+  <div class="card" style="padding:20px;border-left:3px solid var(--gold);opacity:.45;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+      <div>
+        <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(0,200,138,.15);color:var(--gold-l);border:1px solid var(--gold-d);margin-right:8px;">패치노트</span>
+        <span style="font-size:16px;font-weight:700;">v1.0.0 — 레기온 관리 시스템 오픈</span>
+      </div>
+      <span style="font-size:12px;color:var(--muted);white-space:nowrap;">2026.03.25</span>
+    </div>
+    <div style="font-size:13px;color:var(--muted);line-height:1.8;">
+      🎉 아이온2 도태 레기온 관리 시스템 오픈!<br>
+      ✦ 멤버 스펙 관리 · 대시보드 · 파티 모집 · 슈고 타이머 · Firebase 실시간 동기화
+    </div>
+  </div>`;
   list.innerHTML = dbItems + initNote;
 }
 
@@ -3010,7 +3074,62 @@ function renderNotices(notices) {
   }).join('');
 
   // 초기 패치노트 항상 마지막에
-  const initNote = '';
+  const initNote = `
+  <div class="card" style="padding:20px;border-left:3px solid var(--gold);opacity:.75;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+      <div>
+        <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(0,200,138,.15);color:var(--gold-l);border:1px solid var(--gold-d);margin-right:8px;">패치노트</span>
+        <span style="font-size:16px;font-weight:700;">v1.2.1 — 호환성 개선 및 버그 수정</span>
+      </div>
+      <span style="font-size:12px;color:var(--muted);white-space:nowrap;">2026.03.25</span>
+    </div>
+    <div style="font-size:13px;color:var(--muted);line-height:1.8;">
+      🍎 <b style="color:var(--text)">iOS / 아이폰 호환성 수정</b><br>
+      &nbsp;&nbsp;아이폰 사파리에서 무한 로딩되던 문제를 해결했어요.<br><br>
+      🔧 <b style="color:var(--text)">기타 버그 수정</b><br>
+      &nbsp;&nbsp;공지/패치노트 탭 작성 버튼 노출 버그 수정, 직업 필터 시 부캐 구분 표시, 파티 모집 종류 세분화.
+    </div>
+  </div>
+  <div class="card" style="padding:20px;border-left:3px solid var(--gold);opacity:.65;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+      <div>
+        <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(0,200,138,.15);color:var(--gold-l);border:1px solid var(--gold-d);margin-right:8px;">패치노트</span>
+        <span style="font-size:16px;font-weight:700;">v1.2.0 — 파티 모집 강화 · 로그인 · 공지 시스템</span>
+      </div>
+      <span style="font-size:12px;color:var(--muted);white-space:nowrap;">2026.03.25</span>
+    </div>
+    <div style="font-size:13px;color:var(--muted);line-height:1.8;">
+      👤 닉네임 로그인 · 내 정보 모달 · 권한 기반 삭제<br>
+      ⚔ 파티 모집 검색/기간필터 · 신청자 자동완성 · 글 수정 기능<br>
+      📋 공지/패치노트 탭 신설 · 슈고 타이머 개선
+    </div>
+  </div>
+  <div class="card" style="padding:20px;border-left:3px solid var(--gold);opacity:.55;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+      <div>
+        <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(0,200,138,.15);color:var(--gold-l);border:1px solid var(--gold-d);margin-right:8px;">패치노트</span>
+        <span style="font-size:16px;font-weight:700;">v1.1.0 — 스펙 상세 · 장비 · 어비스 급수</span>
+      </div>
+      <span style="font-size:12px;color:var(--muted);white-space:nowrap;">2026.03.25</span>
+    </div>
+    <div style="font-size:13px;color:var(--muted);line-height:1.8;">
+      🛡 NC 공홈 수준 캐릭터 상세 스펙 · 장비 2x5 그리드 표시<br>
+      🎖 어비스 급수 표시 및 정렬 · 본캐/부캐 시스템 · 멤버 정렬 기능
+    </div>
+  </div>
+  <div class="card" style="padding:20px;border-left:3px solid var(--gold);opacity:.45;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+      <div>
+        <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(0,200,138,.15);color:var(--gold-l);border:1px solid var(--gold-d);margin-right:8px;">패치노트</span>
+        <span style="font-size:16px;font-weight:700;">v1.0.0 — 레기온 관리 시스템 오픈</span>
+      </div>
+      <span style="font-size:12px;color:var(--muted);white-space:nowrap;">2026.03.25</span>
+    </div>
+    <div style="font-size:13px;color:var(--muted);line-height:1.8;">
+      🎉 아이온2 도태 레기온 관리 시스템 오픈!<br>
+      ✦ 멤버 스펙 관리 · 대시보드 · 파티 모집 · 슈고 타이머 · Firebase 실시간 동기화
+    </div>
+  </div>`;
   list.innerHTML = dbItems + initNote;
 }
 
@@ -3102,7 +3221,62 @@ function renderNotices(notices) {
   }).join('');
 
   // 초기 패치노트 항상 마지막에
-  const initNote = '';
+  const initNote = `
+  <div class="card" style="padding:20px;border-left:3px solid var(--gold);opacity:.75;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+      <div>
+        <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(0,200,138,.15);color:var(--gold-l);border:1px solid var(--gold-d);margin-right:8px;">패치노트</span>
+        <span style="font-size:16px;font-weight:700;">v1.2.1 — 호환성 개선 및 버그 수정</span>
+      </div>
+      <span style="font-size:12px;color:var(--muted);white-space:nowrap;">2026.03.25</span>
+    </div>
+    <div style="font-size:13px;color:var(--muted);line-height:1.8;">
+      🍎 <b style="color:var(--text)">iOS / 아이폰 호환성 수정</b><br>
+      &nbsp;&nbsp;아이폰 사파리에서 무한 로딩되던 문제를 해결했어요.<br><br>
+      🔧 <b style="color:var(--text)">기타 버그 수정</b><br>
+      &nbsp;&nbsp;공지/패치노트 탭 작성 버튼 노출 버그 수정, 직업 필터 시 부캐 구분 표시, 파티 모집 종류 세분화.
+    </div>
+  </div>
+  <div class="card" style="padding:20px;border-left:3px solid var(--gold);opacity:.65;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+      <div>
+        <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(0,200,138,.15);color:var(--gold-l);border:1px solid var(--gold-d);margin-right:8px;">패치노트</span>
+        <span style="font-size:16px;font-weight:700;">v1.2.0 — 파티 모집 강화 · 로그인 · 공지 시스템</span>
+      </div>
+      <span style="font-size:12px;color:var(--muted);white-space:nowrap;">2026.03.25</span>
+    </div>
+    <div style="font-size:13px;color:var(--muted);line-height:1.8;">
+      👤 닉네임 로그인 · 내 정보 모달 · 권한 기반 삭제<br>
+      ⚔ 파티 모집 검색/기간필터 · 신청자 자동완성 · 글 수정 기능<br>
+      📋 공지/패치노트 탭 신설 · 슈고 타이머 개선
+    </div>
+  </div>
+  <div class="card" style="padding:20px;border-left:3px solid var(--gold);opacity:.55;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+      <div>
+        <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(0,200,138,.15);color:var(--gold-l);border:1px solid var(--gold-d);margin-right:8px;">패치노트</span>
+        <span style="font-size:16px;font-weight:700;">v1.1.0 — 스펙 상세 · 장비 · 어비스 급수</span>
+      </div>
+      <span style="font-size:12px;color:var(--muted);white-space:nowrap;">2026.03.25</span>
+    </div>
+    <div style="font-size:13px;color:var(--muted);line-height:1.8;">
+      🛡 NC 공홈 수준 캐릭터 상세 스펙 · 장비 2x5 그리드 표시<br>
+      🎖 어비스 급수 표시 및 정렬 · 본캐/부캐 시스템 · 멤버 정렬 기능
+    </div>
+  </div>
+  <div class="card" style="padding:20px;border-left:3px solid var(--gold);opacity:.45;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+      <div>
+        <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(0,200,138,.15);color:var(--gold-l);border:1px solid var(--gold-d);margin-right:8px;">패치노트</span>
+        <span style="font-size:16px;font-weight:700;">v1.0.0 — 레기온 관리 시스템 오픈</span>
+      </div>
+      <span style="font-size:12px;color:var(--muted);white-space:nowrap;">2026.03.25</span>
+    </div>
+    <div style="font-size:13px;color:var(--muted);line-height:1.8;">
+      🎉 아이온2 도태 레기온 관리 시스템 오픈!<br>
+      ✦ 멤버 스펙 관리 · 대시보드 · 파티 모집 · 슈고 타이머 · Firebase 실시간 동기화
+    </div>
+  </div>`;
   list.innerHTML = dbItems + initNote;
 }
 
