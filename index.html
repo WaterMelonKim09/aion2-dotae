@@ -702,8 +702,17 @@ function initFirebase() {
         // 어비스 랭킹 순서 계산 (정렬용)
         const abyssR = (data.ranking||[]).find(r => r.rankingContentsName?.includes('어비스') || r.rankingType === 'Abyss');
         const ABYSS_ORDER = {
-          '오천인대장':1,'천인대장':2,'백인대장':3,'오십인대장':4,'십인대장':5,
-          '일인대장':6,'장교':7,'하급장교':8,'병사':9,'신병':10,
+          // 고위급 (높을수록 낮은 숫자)
+          '총사령관':1,
+          '신장 5성':2,'신장 4성':3,'신장 3성':4,'신장 2성':5,'신장 1성':6,'신장':7,
+          '장교 5성':8,'장교 4성':9,'장교 3성':10,'장교 2성':11,'장교 1성':12,'장교':13,
+          '하급장교 5성':14,'하급장교 4성':15,'하급장교 3성':16,'하급장교 2성':17,'하급장교 1성':18,'하급장교':19,
+          // 급수
+          '1급':20,'2급':21,'3급':22,'4급':23,'5급':24,'6급':25,'7급':26,'8급':27,'9급':28,
+          '신병':29,
+          // API 혹시 다른 이름으로 올 경우 대비
+          '오천인대장':2,'천인대장':7,'백인대장':13,'오십인대장':19,
+          '십인대장':20,'일인대장':22,
         };
         const rankOrder = abyssR ? (ABYSS_ORDER[abyssR.gradeName] ?? 99) : 999;
         return { id: d.id, ...data, abyss_rank_order: rankOrder };
@@ -754,6 +763,8 @@ function sortMembers(arr) {
     } else if(sortBy === 'abyss_rank') {
       av = a.abyss_rank_order ?? 999;
       bv = b.abyss_rank_order ?? 999;
+      if(av !== bv) return sortAsc ? bv - av : av - bv; // 낮은 숫자 = 높은 급수
+      return (a.combat_power||0) > (b.combat_power||0) ? -1 : 1;
     } else {
       av = a[sortBy]||0; bv = b[sortBy]||0;
     }
