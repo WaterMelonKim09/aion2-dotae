@@ -299,9 +299,7 @@ window.onerror = function(msg, src, line, col, err) {
   .modal-detail-content [style*="grid-template-columns:repeat(3,1fr)"] {
     grid-template-columns:repeat(3,1fr) !important;
   }
-  /* 테이블 갱신/시간 컬럼 숨김 */
-  .table-wrap th:nth-child(7),
-  .table-wrap td:nth-child(7) { display:none; }
+  /* 테이블 - 가로 스크롤로 처리 */
 }
   @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
   @-webkit-keyframes spin { from{-webkit-transform:rotate(0deg)} to{-webkit-transform:rotate(360deg)} }
@@ -1139,6 +1137,7 @@ async function fetchAndRegister() {
       ranking:      data.ranking      || [],
       stigma:       data.stigma       || [],
       arcana:       data.arcana       || [],
+      titles:       data.titles       || [],
       pet:          data.pet          || null,
       wing:         data.wing         || null,
       server_name:  data.server_name  || '',
@@ -1181,6 +1180,7 @@ async function syncMember(id, nickname, serverId) {
       ranking:      data.ranking      || [],
       stigma:       data.stigma       || [],
       arcana:       data.arcana       || [],
+      titles:       data.titles       || [],
       pet:          data.pet          || null,
       wing:         data.wing         || null,
       server_name:  data.server_name  || '',
@@ -1388,6 +1388,23 @@ function openDetail(m) {
   const wingHTML = equipMap['Wing'] ? equipHTML('Wing') : (m.wing ? `<div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;">
     <img src="${m.wing.icon||''}" style="width:40px;height:40px;border-radius:8px;" onerror="this.style.display='none'">
     <div><div style="font-size:13px;font-weight:600;">${m.wing.name||'날개'}</div></div></div>` : '<div style="font-size:12px;color:var(--muted);padding:8px;">날개 정보 없음</div>');
+
+  // 타이틀
+  const titles = m.titles || m.title || [];
+  const activeTitles = Array.isArray(titles) ? titles.filter(t => t && (t.isEquip || t.equipped || t.active)) : [];
+  const titleHTML = activeTitles.length ? activeTitles.map(t => {
+    const effects = t.statList || t.effects || t.stats || [];
+    return '<div style="padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;">' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:' + (effects.length?'6px':'0') + ';">' +
+      '<span style="font-size:11px;padding:1px 6px;border-radius:10px;background:rgba(232,192,48,.15);color:#e8c030;border:1px solid #604010;">타이틀</span>' +
+      '<span style="font-size:13px;font-weight:600;color:#e8c030;">' + (t.name||t.titleName||'') + '</span>' +
+      '</div>' +
+      (effects.length ? '<div style="display:flex;flex-wrap:wrap;gap:4px;">' + effects.map(s =>
+        '<span style="font-size:11px;padding:2px 6px;background:var(--card);border:1px solid var(--border);border-radius:4px;color:var(--muted);">' +
+        (s.typeName||s.name||s.type||'') + ' ' + (s.value||'') + '</span>'
+      ).join('') + '</div>' : '') +
+      '</div>';
+  }).join('') : '<div style="font-size:12px;color:var(--muted);padding:8px;">장착 중인 타이틀 없음</div>';
 
   // 슬롯 그룹
   const equip1 = ['MainHand','SubHand','Helmet','Shoulder','Torso','Gloves','Pants','Boots','Cape','Belt'];
@@ -1653,7 +1670,16 @@ function renderMembers() {
 
   // 본캐 먼저, 본캐 아래 부캐 그룹핑
   const mains = filtered.filter(m => m.is_main !== false);
-  const subs  = members.filter(m => m.is_main === false); // 검색 필터 무관하게 전체 부캐
+  // 검색어 있으면 해당 본캐의 부캐만, 없으면 전체 부캐
+  const subs = members.filter(m => {
+    if(m.is_main !== false) return false;
+    if(mFilter !== 'all' && (CLASS_MAP[m.class]||m.class) !== mFilter) return false;
+    // 검색어가 있을 때: 해당 본캐(filtered)의 부캐만 표시
+    if(search) {
+      return filtered.some(main => main.nickname === m.player_id);
+    }
+    return true;
+  });
   let rows = '';
 
   mains.forEach(main => {
