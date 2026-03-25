@@ -181,6 +181,9 @@
   #toast.show { opacity:1; transform:translateY(0); }
 
 /* ── 모바일 반응형 ─────────────────── */
+.main { padding:16px 24px; }
+.tab-content { width:100%; }
+
 @media (max-width: 768px) {
   .header { padding:10px 14px; }
   .header-title { font-size:16px; }
@@ -382,7 +385,7 @@
       <div class="logo-sub">레기온 관리 시스템</div>
     </div>
   </div>
-  <div id="header-user" style="display:none;align-items:center;gap:8px;">
+  <div id="header-user" style="display:flex;align-items:center;gap:8px;visibility:hidden;">
     <div style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 10px;border:1px solid var(--border);border-radius:20px;background:var(--card);" onclick="openMyProfile()">
       <div id="header-avatar" style="width:26px;height:26px;border-radius:50%;background:var(--surface);border:1px solid var(--gold-d);overflow:hidden;flex-shrink:0;"></div>
       <span id="header-username" style="font-size:13px;font-weight:600;color:var(--gold-l);"></span>
@@ -472,14 +475,19 @@
 
   <!-- 파티 모집 -->
   <div id="tab-recruit" class="tab-content">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-      <div class="filter-row" style="margin:0">
+    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px;">
+      <div class="filter-row" style="margin:0;flex:1;min-width:300px;">
         <button class="chip active" onclick="setRFilter('all',this)">전체</button>
         <button class="chip" onclick="setRFilter('레이드',this)">레이드</button>
         <button class="chip" onclick="setRFilter('던전',this)">던전</button>
         <button class="chip" onclick="setRFilter('PvP',this)">PvP</button>
       </div>
-      <button class="btn btn-primary" onclick="openModal('recruit')">+ 모집 등록</button>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <input class="search-box" id="recruit-search" placeholder="제목 검색..." style="width:160px;" oninput="renderRecruit()">
+        <input type="date" id="recruit-date" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px 10px;font-size:12px;" onchange="renderRecruit()">
+        <button class="btn btn-sm" onclick="document.getElementById('recruit-date').value='';renderRecruit()">날짜 초기화</button>
+        <button class="btn btn-primary" onclick="openModal('modal-recruit')">+ 모집 등록</button>
+      </div>
     </div>
     <div class="recruit-grid" id="recruit-grid"></div>
   </div>
@@ -1500,7 +1508,19 @@ function renderMembers() {
 
 
 function renderRecruit() {
-  const filtered = recruits.filter(r => rFilter==='all'||r.type===rFilter);
+  const searchQ = (document.getElementById('recruit-search')||{value:''}).value.toLowerCase();
+  const dateQ = (document.getElementById('recruit-date')||{value:''}).value;
+  const filtered = recruits.filter(r => {
+    if(rFilter!=='all' && r.type!==rFilter) return false;
+    if(searchQ && !(r.title||'').toLowerCase().includes(searchQ)) return false;
+    if(dateQ) {
+      if(!r.created_at) return false;
+      const d = r.created_at.toDate ? r.created_at.toDate() : new Date(r.created_at.seconds*1000);
+      const rDate = d.toISOString().slice(0,10);
+      if(rDate !== dateQ) return false;
+    }
+    return true;
+  });
   document.getElementById('recruit-grid').innerHTML = filtered.length
     ? filtered.map(r=>`
         <div class="rc">
@@ -1526,7 +1546,11 @@ function renderRecruit() {
             }).join('');
           })()}</div>
           <div class="rc-foot">
-            <span class="rc-author">by ${r.author}</span>
+            <span class="rc-author">by ${r.author} · ${(() => {
+              if(!r.created_at) return '';
+              const d = r.created_at.toDate ? r.created_at.toDate() : new Date(r.created_at.seconds*1000);
+              return String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+            })()}</span>
             <div style="display:flex;align-items:center;gap:8px">
               <span class="${r.slots>0?'slots-open':'slots-full'}">${r.slots>0?'모집중 '+r.slots+'자리':'마감'}</span>
               <button class="btn btn-sm" onclick="openRecruit('${r.id}')">상세보기</button>
@@ -2281,7 +2305,7 @@ function applyLogin() {
 
   // 헤더 유저 표시
   const userEl = document.getElementById('header-user');
-  userEl.style.display = 'flex';
+  userEl.style.visibility = 'visible';
   document.getElementById('header-username').textContent = currentUser.nickname;
   document.getElementById('header-user-rank').textContent = currentUser.rank ? `(${currentUser.rank})` : '';
   const avatar = document.getElementById('header-avatar');
@@ -2296,7 +2320,12 @@ function applyLogin() {
 function searchLoginMember(query) {
   const suggest = document.getElementById('login-suggest');
   const preview = document.getElementById('login-preview');
-  if(!query.trim()) { suggest.style.display='none'; preview.style.display='none'; return; }
+  if(!query.trim()) { suggest.style.display='none'; if(preview) preview.style.display='none'; return; }
+  // members가 아직 로딩 안됐으면 잠시 후 재시도
+  if(!members.length) {
+    setTimeout(() => searchLoginMember(query), 300);
+    return;
+  }
   const matched = members.filter(m =>
     (m.nickname||'').toLowerCase().includes(query.toLowerCase())
   ).slice(0, 8);
@@ -2357,7 +2386,7 @@ function loginWithNickname() {
 function logoutUser() {
   currentUser = null;
   localStorage.removeItem('dotae_user');
-  document.getElementById('header-user').style.display = 'none';
+  document.getElementById('header-user').style.visibility = 'hidden';
   document.getElementById('login-screen').style.display = 'flex';
   document.querySelector('.header').style.display = 'none';
   document.querySelector('.nav').style.display = 'none';
@@ -2716,7 +2745,7 @@ function applyLogin() {
 
   // 헤더 유저 표시
   const userEl = document.getElementById('header-user');
-  userEl.style.display = 'flex';
+  userEl.style.visibility = 'visible';
   document.getElementById('header-username').textContent = currentUser.nickname;
   document.getElementById('header-user-rank').textContent = currentUser.rank ? `(${currentUser.rank})` : '';
   const avatar = document.getElementById('header-avatar');
@@ -2731,7 +2760,12 @@ function applyLogin() {
 function searchLoginMember(query) {
   const suggest = document.getElementById('login-suggest');
   const preview = document.getElementById('login-preview');
-  if(!query.trim()) { suggest.style.display='none'; preview.style.display='none'; return; }
+  if(!query.trim()) { suggest.style.display='none'; if(preview) preview.style.display='none'; return; }
+  // members가 아직 로딩 안됐으면 잠시 후 재시도
+  if(!members.length) {
+    setTimeout(() => searchLoginMember(query), 300);
+    return;
+  }
   const matched = members.filter(m =>
     (m.nickname||'').toLowerCase().includes(query.toLowerCase())
   ).slice(0, 8);
@@ -2792,7 +2826,7 @@ function loginWithNickname() {
 function logoutUser() {
   currentUser = null;
   localStorage.removeItem('dotae_user');
-  document.getElementById('header-user').style.display = 'none';
+  document.getElementById('header-user').style.visibility = 'hidden';
   document.getElementById('login-screen').style.display = 'flex';
   document.querySelector('.header').style.display = 'none';
   document.querySelector('.nav').style.display = 'none';
@@ -3026,7 +3060,7 @@ function applyLogin() {
 
   // 헤더 유저 표시
   const userEl = document.getElementById('header-user');
-  userEl.style.display = 'flex';
+  userEl.style.visibility = 'visible';
   document.getElementById('header-username').textContent = currentUser.nickname;
   document.getElementById('header-user-rank').textContent = currentUser.rank ? `(${currentUser.rank})` : '';
   const avatar = document.getElementById('header-avatar');
@@ -3041,7 +3075,12 @@ function applyLogin() {
 function searchLoginMember(query) {
   const suggest = document.getElementById('login-suggest');
   const preview = document.getElementById('login-preview');
-  if(!query.trim()) { suggest.style.display='none'; preview.style.display='none'; return; }
+  if(!query.trim()) { suggest.style.display='none'; if(preview) preview.style.display='none'; return; }
+  // members가 아직 로딩 안됐으면 잠시 후 재시도
+  if(!members.length) {
+    setTimeout(() => searchLoginMember(query), 300);
+    return;
+  }
   const matched = members.filter(m =>
     (m.nickname||'').toLowerCase().includes(query.toLowerCase())
   ).slice(0, 8);
@@ -3102,7 +3141,7 @@ function loginWithNickname() {
 function logoutUser() {
   currentUser = null;
   localStorage.removeItem('dotae_user');
-  document.getElementById('header-user').style.display = 'none';
+  document.getElementById('header-user').style.visibility = 'hidden';
   document.getElementById('login-screen').style.display = 'flex';
   document.querySelector('.header').style.display = 'none';
   document.querySelector('.nav').style.display = 'none';
