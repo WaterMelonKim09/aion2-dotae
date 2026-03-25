@@ -996,7 +996,7 @@ function initFirebase() {
           '훈련병':19,
         };
         const rankOrder = abyssR ? ((ABYSS_ORDER[abyssR.gradeName] !== undefined ? ABYSS_ORDER[abyssR.gradeName] : 99)) : 999;
-        return { id: d.id, ...data, abyss_rank_order: rankOrder };
+        return { id: d.id, ...data, abyss_rank_order: rankOrder, sync_failed: data.sync_failed || false };
       });
       renderAll();
       // 로딩 화면 숨기기
@@ -1082,19 +1082,19 @@ function renderAll() {
 }
 
 // ─── NC 공홈 API 호출 ──────────────────
-async function fetchCharacterData(nickname, serverId) {
-  // 1단계: 닉네임으로 characterId 검색
-  const searchRes = await fetch(`/api/search?keyword=${encodeURIComponent(nickname)}&serverId=${serverId}`);
-  const searchData = await searchRes.json();
-  const found = (searchData.list||[]).find(c => c.name === nickname);
-  if (!found) throw new Error(`"${nickname}" 캐릭터를 찾을 수 없어요`);
-
-  // 2단계: characterId로 상세 정보 조회
-  const charRes = await fetch(`/api/character?characterId=${encodeURIComponent(found.characterId)}&serverId=${serverId}`);
+async function fetchCharacterData(nickname, serverId, characterId) {
+  let url;
+  if (characterId) {
+    // characterId 있으면 바로 조회 (닉변 대응)
+    url = `/api/character?characterId=${encodeURIComponent(characterId)}&serverId=${serverId}`;
+  } else {
+    // 없으면 닉네임으로 검색 후 조회
+    url = `/api/character?nickname=${encodeURIComponent(nickname)}&serverId=${serverId}`;
+  }
+  const charRes = await fetch(url);
   const charData = await charRes.json();
   if (charData.error) throw new Error(charData.error);
-
-  return { ...charData, characterId: found.characterId };
+  return charData;
 }
 
 // ─── 자동 불러오기 + 등록 ──────────────
@@ -1113,7 +1113,9 @@ async function fetchAndRegister() {
   resultEl.textContent = '';
 
   try {
-    const data = await fetchCharacterData(nickname, serverId);
+    const m = members.find(x => x.id === id);
+    const storedCharId = m && m.character_id ? m.character_id : null;
+    const data = await fetchCharacterData(nickname, serverId, storedCharId);
     const cls  = CLASS_MAP[data.class] || data.class || '';
 
     const isMainEl = document.getElementById('reg-is-main');
@@ -1168,7 +1170,9 @@ async function syncMember(id, nickname, serverId) {
   renderMembers();
 
   try {
-    const data = await fetchCharacterData(nickname, serverId);
+    const m = members.find(x => x.id === id);
+    const storedCharId = m && m.character_id ? m.character_id : null;
+    const data = await fetchCharacterData(nickname, serverId, storedCharId);
     const cls  = CLASS_MAP[data.class] || data.class || '';
     await db.collection('members').doc(id).update({
       class:        cls,
@@ -1189,11 +1193,26 @@ async function syncMember(id, nickname, serverId) {
       guild_name:   data.guild_name   || '',
       race:         data.race         || '',
       profile_img:  data.profile_img  || '',
-      last_synced:  new Date().toISOString(),
+      last_synced:   new Date().toISOString(),
+      sync_failed:   false,
+      character_id:  data.characterId || '',
+      // 닉변 감지 - API에서 반환된 닉네임이 다르면 업데이트
+      nickname:      data.nickname || nickname,
     });
-    toast(`${nickname} 갱신 완료! ✓`);
+    const newNick = data.nickname || nickname;
+    if(newNick !== nickname) {
+      toast(`⚡ ${nickname} → ${newNick} 닉네임 변경 감지! 자동 업데이트했어요.`);
+    } else {
+      toast(`${nickname} 갱신 완료! ✓`);
+    }
   } catch(err) {
-    toast('갱신 실패: ' + err.message);
+    const notFound = err.message && (err.message.includes('찾을 수 없') || err.message.includes('404') || err.message.includes('없어요') || err.message.includes('검색'));
+    if(notFound) {
+      await db.collection('members').doc(id).update({ sync_failed: true, sync_failed_at: new Date().toISOString() });
+      toast('⚠ ' + nickname + ' — 캐릭터를 찾을 수 없어요. 탈퇴/닉네임 변경 가능성 있어요.');
+    } else {
+      toast('갱신 실패: ' + err.message);
+    }
   } finally {
     syncingIds.delete(id);
     renderMembers();
@@ -1213,7 +1232,7 @@ async function syncAllMembers() {
   for (const m of members) {
     status.textContent = `갱신 중... ${done+fail+1}/${total} (${m.nickname})`;
     try {
-      const data = await fetchCharacterData(m.nickname, m.server||'2001');
+      const data = await fetchCharacterData(m.nickname, m.server||'2001', m.character_id||null);
       const cls = CLASS_MAP[data.class] || data.class || '';
       await db.collection('members').doc(m.id).update({
         class: cls, level: data.level||0,
@@ -1233,7 +1252,10 @@ async function syncAllMembers() {
         guild_name:   data.guild_name||'',
         race:         data.race||'',
         profile_img:  data.profile_img||'',
-        last_synced:  new Date().toISOString(),
+        last_synced:   new Date().toISOString(),
+        sync_failed:   false,
+        character_id:  data.characterId || m.character_id || '',
+        nickname:      data.nickname || m.nickname,
       });
       done++;
     } catch(e) {
@@ -2750,7 +2772,9 @@ async function loginFetchAndRegister() {
   btn.innerHTML = '<span class="spinner"></span> 불러오는 중...';
 
   try {
-    const data = await fetchCharacterData(nickname, serverId);
+    const m = members.find(x => x.id === id);
+    const storedCharId = m && m.character_id ? m.character_id : null;
+    const data = await fetchCharacterData(nickname, serverId, storedCharId);
     const cls = CLASS_MAP[data.class] || data.class || '';
     const finalRank = isMain ? rank : '';
     await db.collection('members').doc(nickname+'_'+serverId).set({
