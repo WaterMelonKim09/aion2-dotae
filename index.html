@@ -1035,11 +1035,15 @@ function renderDashboard() {
   const total = mains.length;
   const el = n => document.getElementById(n);
   if(el('stat-total')) el('stat-total').textContent = total + '명';
-  if(el('stat-avg-cp')) el('stat-avg-cp').textContent = total ? Math.round(mains.reduce((s,m)=>s+(m.combat_power||0),0)/total).toLocaleString() : '0';
-  if(el('stat-avg-il')) el('stat-avg-il').textContent = total ? Math.round(mains.reduce((s,m)=>s+(m.item_level||0),0)/total) : '0';
+  if(el('stat-avgcp')) el('stat-avgcp').textContent = total ? Math.round(mains.reduce((s,m)=>s+(m.combat_power||0),0)/total).toLocaleString() : '0';
+  
 
   const top = mains.sort((a,b)=>(b.combat_power||0)-(a.combat_power||0)).slice(0,10);
   const fmtTime = iso => { if(!iso) return '—'; const d=new Date(iso); return String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); };
+  // 모집 공고 진행중
+  const recruitCount = recruits.filter(r => r.slots > 0).length;
+  if(el('stat-recruit')) el('stat-recruit').textContent = recruitCount;
+
   if(el('top10-body')) el('top10-body').innerHTML = top.map((m,i) =>
     '<tr><td style="color:var(--muted);font-weight:600;">'+(i+1)+'</td>'
     +'<td style="font-weight:600;white-space:nowrap;">'+m.nickname+'</td>'
@@ -1058,7 +1062,8 @@ function renderDashboard() {
 function drawPie(counts, total) {
   const canvas = document.getElementById('pie-chart');
   if(!canvas) return;
-  const labels = Object.keys(counts), data = Object.values(counts);
+  const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]);
+  const labels = sorted.map(e => e[0]), data = sorted.map(e => e[1]);
   const colors = labels.map(c => CLS_COLOR[c]||'#888');
   const colorsAlpha = colors.map(c => c+'cc'); // 약간 투명
   if(pieChart) pieChart.destroy();
@@ -1073,8 +1078,7 @@ function drawPie(counts, total) {
     +(CLS_ICON[l]||'')
     +'<span style="font-size:12px;">'+l+'</span>'
     +'<span style="color:'+(CLS_COLOR[l]||'var(--muted)')+';margin-left:4px;font-size:11px;font-weight:600;">'+data[i]+'명 '+Math.round(data[i]/total*100)+'%</span></div>'
-  ).join('');
-  const pt = document.getElementById('pie-total');
+  ).join('');  const pt = document.getElementById('pie-total');
   if(pt) pt.textContent = total+'명';
 }
 
@@ -1200,7 +1204,12 @@ function renderMembers() {
     const subMark = isSub ? '<span style="font-size:10px;color:var(--muted);margin-left:4px;border:1px solid var(--border);border-radius:3px;padding:1px 4px;">부캐</span>' : '';
     const failMark = m.sync_failed ? '<span title="캐릭터를 찾을 수 없음" style="color:#ff6060;margin-right:4px;cursor:help;">⚠</span>' : '';
     const abyssR = (m.ranking||[]).find(r => r.rankingContentsName && r.rankingContentsName.includes('어비스'));
-    const abyssGrade = abyssR ? ('<span style="font-size:11px;color:var(--muted);">◇</span> <span style="font-size:12px;font-weight:600;">'+abyssR.gradeName+'</span>') : '—';
+    const abyssGrade = abyssR
+      ? (abyssR.gradeIcon
+          ? '<img src=' + JSON.stringify(abyssR.gradeIcon) + ' style="width:22px;height:22px;vertical-align:middle;margin-right:3px;">'
+          + '<span style="font-size:12px;font-weight:600;">' + abyssR.gradeName + '</span>'
+          : '<span style="font-size:12px;font-weight:600;">' + abyssR.gradeName + '</span>')
+      : '—';
     return '<tr style="'+subStyle+'">'
       +'<td style="vertical-align:middle;"><div style="font-weight:600;font-size:14px;">'+failMark+(isSub?'└ ':'')+m.nickname+subMark+'</div>'+(extraHTML||'')+'</td>'
       +'<td style="white-space:nowrap;"><span class="cls cls-'+(CLASS_MAP[m.class]||m.class||'')+'">'+(CLS_ICON[CLASS_MAP[m.class]||m.class]||'')+' '+(CLASS_MAP[m.class]||m.class||'?')+'</span></td>'
@@ -1774,8 +1783,19 @@ function openRecruit(id) {
   document.getElementById('rd-title').textContent = r.title;
   const editBtn = document.getElementById('rd-edit-btn');
   const delBtn = document.getElementById('rd-delete-btn');
+  const closeBtn = document.getElementById('rd-close-btn');
   if(editBtn) editBtn.style.display = canDelete(r.author)?'':'none';
   if(delBtn) delBtn.style.display = canDelete(r.author)?'':'none';
+  if(closeBtn) {
+    closeBtn.style.display = canDelete(r.author) ? '' : 'none';
+    closeBtn.textContent = r.slots === 0 ? '✓ 모집 완료' : '모집 완료';
+    closeBtn.style.background = r.slots === 0 ? 'rgba(0,200,138,.15)' : '';
+    closeBtn.style.color = r.slots === 0 ? 'var(--gold-l)' : '';
+    closeBtn.style.borderColor = r.slots === 0 ? 'var(--gold-d)' : '';
+    closeBtn.onclick = r.slots === 0
+      ? function() { reopenRecruit(); }
+      : function() { completeRecruit(); };
+  }
 
   const applies = r.applies||[];
   const filled = [];
@@ -1863,6 +1883,20 @@ async function deleteComment(index) {
   comments.splice(index, 1);
   await db.collection('recruits').doc(currentRecruitId).update({comments});
   toast('댓글이 삭제됐어요');
+}
+
+async function completeRecruit() {
+  if(!confirm('모집을 완료할까요? (슬롯이 0으로 변경돼요)')) return;
+  await db.collection('recruits').doc(currentRecruitId).update({ slots: 0 });
+  toast('모집 완료됐어요 ✓');
+}
+
+async function reopenRecruit() {
+  const r = recruits.find(x => x.id === currentRecruitId);
+  if(!r) return;
+  const slots = parseInt(prompt('모집 인원을 다시 설정해주세요', '4')) || 4;
+  await db.collection('recruits').doc(currentRecruitId).update({ slots });
+  toast('모집 재개됐어요 ✓');
 }
 
 async function deleteCurrentRecruit() {
