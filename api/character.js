@@ -35,7 +35,6 @@ module.exports = async function handler(req, res) {
       'Cleric':'치유성','Chanter':'호법성',
     };
 
-    // 장비 아이템 - 가능한 모든 필드 포함
     const mapEquip = e => ({
       name:        e.name || '',
       slot:        e.slotPosName || '',
@@ -45,30 +44,36 @@ module.exports = async function handler(req, res) {
       icon:        e.icon || '',
       itemLevel:   e.itemLevel || 0,
       setName:     e.setItemName || '',
-      // 아이템 스탯 - 여러 가능한 경로 시도
       itemStats:   e.itemStat?.statList || e.statList || e.stats || [],
-      // 아이템 옵션
       itemOptions: e.itemOption?.optionList || e.optionList || e.options || [],
-      // 소울 크리스탈
       itemSouls:   e.soulCrystal?.crystalList || e.crystalList || [],
-      // 마석 각인
-      souls:       e.soul || [],
-      // 잠재력
       potential:   e.potential || null,
-      // 아이템 레벨 강화 수치
-      upgradeLevel: e.upgradeLevel || 0,
     });
 
-    // 펫/날개 슬롯 (equipmentList 안에 포함될 수 있음)
-    const petSlot  = equip.find(e => e.slotPosName === 'Pet'  || e.slotType === 'Pet');
-    const wingSlot = equip.find(e => e.slotPosName === 'Wing' || e.slotType === 'Wing');
+    // 모든 슬롯 이름 수집 (디버그)
+    const allSlotNames = equip.map(e => e.slotPosName);
+
+    // 펫/날개 - 다양한 슬롯명 시도
+    const petSlot  = equip.find(e =>
+      ['Pet','pet','PET','펫'].includes(e.slotPosName) ||
+      (e.slotType && ['Pet','pet'].includes(e.slotType))
+    );
+    const wingSlot = equip.find(e =>
+      ['Wing','wing','WING','날개'].includes(e.slotPosName) ||
+      (e.slotType && ['Wing','wing'].includes(e.slotType))
+    );
+
+    // 펫/날개가 equipment에 없으면 equipData 최상위에서 찾기
+    const petData  = petSlot  ? mapEquip(petSlot)
+                   : (equipData?.pet  ? { name: equipData.pet.name||'', icon: equipData.pet.icon||'', grade: equipData.pet.grade||'' } : null);
+    const wingData = wingSlot ? mapEquip(wingSlot)
+                   : (equipData?.wing ? { name: equipData.wing.name||'', icon: equipData.wing.icon||'', grade: equipData.wing.grade||'' } : null);
 
     res.status(200).json({
       characterId: rawId,
       serverId,
       nickname:     profile.characterName || '',
       class:        classMap[profile.className] || profile.className || '',
-      class_raw:    profile.className || '',
       level:        profile.characterLevel || 0,
       combat_power: profile.combatPower || 0,
       item_level:   infoData?.stat?.statList?.find(s => s.type === 'ItemLevel')?.value || 0,
@@ -77,30 +82,19 @@ module.exports = async function handler(req, res) {
       race:         profile.raceName   || '',
       profile_img:  profile.profileImage || '',
       equipment:    equip.map(mapEquip),
-      // 스탯 전체 (name, type, value, statSecondList 포함)
       stats:        infoData?.stat?.statList || [],
       daevanion:    infoData?.daevanion?.boardList || [],
       ranking:      infoData?.ranking?.rankingList || [],
       titles:       infoData?.title?.titleList || [],
-      // 스티그마 (장비에 있는 경우 vs info에 있는 경우)
-      stigma:       infoData?.stigma?.stigmaList
-                 || equipData?.stigma?.stigmaList
-                 || equipData?.equipment?.stigmaList
-                 || [],
-      // 아르카나
-      arcana:       infoData?.arcana?.arcanaList
-                 || equipData?.arcana?.arcanaList
-                 || [],
-      // 펫/날개
-      pet:          petSlot ? mapEquip(petSlot) : (infoData?.pet || null),
-      wing:         wingSlot ? mapEquip(wingSlot) : (infoData?.wing || null),
-      // API 응답 최상위 키 (디버깅용)
+      stigma:       infoData?.stigma?.stigmaList || equipData?.stigma?.stigmaList || [],
+      arcana:       infoData?.arcana?.arcanaList || equipData?.arcana?.arcanaList || [],
+      pet:          petData,
+      wing:         wingData,
+      // 디버그
       _debug: {
-        info_keys:  Object.keys(infoData  || {}),
-        equip_keys: Object.keys(equipData || {}),
-        equip_slot_names: equip.map(e => e.slotPosName),
-        stat_types: (infoData?.stat?.statList || []).map(s => s.type),
-        first_equip_keys: equip[0] ? Object.keys(equip[0]) : [],
+        all_slot_names:  allSlotNames,
+        equip_top_keys:  Object.keys(equipData || {}),
+        info_top_keys:   Object.keys(infoData  || {}),
       }
     });
   } catch (err) {
