@@ -18,8 +18,8 @@ window.onerror = function(msg, src, line, col, err) {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><polygon points='50,5 95,27 95,73 50,95 5,73 5,27' fill='%23111318' stroke='%2300c88a' stroke-width='6'/><polygon points='50,20 80,36 80,64 50,80 20,64 20,36' fill='none' stroke='%2300ffa3' stroke-width='3' opacity='0.5'/><polygon points='50,35 65,43 65,57 50,65 35,57 35,43' fill='%2300c88a'/></svg>">
 <title>아이온2 도태 — 레기온 관리</title>
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js" crossorigin="anonymous"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js" crossorigin="anonymous"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 <style>
   :root {
     --bg:#0d0f14; --surface:#151820; --card:#1a1e28; --border:#2a2f3d;
@@ -1578,7 +1578,7 @@ function renderEquipGrid(equipment, slots) {
         ? '<div style="position:absolute;bottom:-1px;right:-1px;font-size:8px;font-weight:700;color:var(--gold-l);background:rgba(0,0,0,.85);border-radius:2px;padding:0 2px;line-height:1.4;">+'+e.enchant+'</div>'
         : '';
       return '<div style="position:relative;width:26px;height:26px;-webkit-flex-shrink:0;flex-shrink:0;" title="'+(e.name||'')+'">'
-        + '<img src="'+e.icon+'" style="width:26px;height:26px;border-radius:4px;border:2px solid '+gc+';display:block;" onerror="this.style.opacity=0.1">'
+        + '<img src="'+e.icon+'" crossorigin="anonymous" referrerpolicy="no-referrer" style="width:26px;height:26px;border-radius:4px;border:2px solid '+gc+';display:block;" onerror="this.style.opacity=0.1">'
         + badge + '</div>';
     }).join('') + '</div>';
 }
@@ -2517,11 +2517,11 @@ function applyLogin() {
   var unEl = document.getElementById('header-username'); if(unEl) unEl.textContent = currentUser.nickname;
   var urEl = document.getElementById('header-user-rank'); if(urEl) urEl.textContent = currentUser.rank ? '('+currentUser.rank+')' : '';
   const avatar = document.getElementById('header-avatar');
-  if(currentUser.profile_img) {
-    avatar.innerHTML = `<img src="${currentUser.profile_img}" style="width:100%;height:100%;object-fit:cover;">`;
-  } else {
+  if(avatar && currentUser.profile_img) {
+    avatar.innerHTML = '<img src="'+currentUser.profile_img+'" style="width:100%;height:100%;object-fit:cover;">';
+  } else if(avatar) {
     const cls = CLASS_MAP[currentUser.class]||currentUser.class||'';
-    avatar.innerHTML = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:14px;">${CLS_ICON[cls]||'👤'}</div>`;
+    avatar.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:14px;">'+(CLS_ICON[cls]||'👤')+'</div>';
   }
 }
 
