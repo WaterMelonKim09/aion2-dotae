@@ -1418,17 +1418,22 @@ function openDetail(m) {
     : '<div style="color:var(--muted);padding:20px;text-align:center;">스킬 정보 없음 (갱신 필요)</div>';
 
     // 펫/날개
-  const petHTML = m.pet ? `<div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;">
-    <img src="${m.pet.icon||''}" style="width:40px;height:40px;border-radius:8px;" onerror="this.style.display='none'">
-    <div><div style="font-size:13px;font-weight:600;">${m.pet.name||'펫'}</div>
-    ${m.pet.grade?`<div style="font-size:11px;color:var(--muted);">등급: ${m.pet.grade}</div>`:''}
-    </div></div>` : '<div style="font-size:12px;color:var(--muted);padding:8px;">펫 정보 없음</div>';
+  const pet = m.pet && m.pet.name ? m.pet : null;
+  const petHTML = pet
+    ? '<div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;">'
+      + '<img src="'+(pet.icon||'')+'" style="width:40px;height:40px;border-radius:8px;">'
+      + '<div>'
+      + '<div style="font-size:13px;font-weight:600;">'+(pet.name||'펫')+'</div>'
+      + (pet.level ? '<div style="font-size:11px;color:var(--muted);">레벨 '+pet.level+'</div>' : '')
+      + '</div></div>'
+    : '<div style="font-size:12px;color:var(--muted);padding:8px;">펫 정보 없음</div>';
 
-  const wingHTML = equipMap['Wing'] ? equipHTML('Wing') : (m.wing ? '<div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;">'
-    + '<img src="'+(m.wing.icon||'')+'" style="width:40px;height:40px;border-radius:8px;">'
-    + '<div><div style="font-size:13px;font-weight:600;">'+(m.wing.name||'날개')+'</div>'
-    + (m.wing.enchant>0?'<div style="font-size:11px;color:var(--muted);">+'+m.wing.enchant+'</div>':'')
-    + (m.wing.skinName?'<div style="font-size:11px;color:var(--muted);">스킨: '+m.wing.skinName+'</div>':'')
+  const wing = m.wing && m.wing.name ? m.wing : null;
+  const wingHTML = equipMap['Wing'] ? equipHTML('Wing') : (wing ? '<div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;">'
+    + '<img src="'+(wing.icon||'')+'" style="width:40px;height:40px;border-radius:8px;">'
+    + '<div><div style="font-size:13px;font-weight:600;">'+(wing.name||'날개')+'</div>'
+    + (wing.enchant>0?'<div style="font-size:11px;color:var(--muted);">+'+m.wing.enchant+'</div>':'')
+    + (wing.skinName?'<div style="font-size:11px;color:var(--muted);">스킨: '+m.wing.skinName+'</div>':'')
     + '</div></div>'
     : '<div style="font-size:12px;color:var(--muted);padding:8px;">날개 정보 없음</div>');
 
