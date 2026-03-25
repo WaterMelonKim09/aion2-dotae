@@ -1138,6 +1138,7 @@ async function fetchAndRegister() {
       stigma:       data.stigma       || [],
       arcana:       data.arcana       || [],
       titles:       data.titles       || [],
+      skills:       data.skills       || [],
       pet:          data.pet          || null,
       wing:         data.wing         || null,
       server_name:  data.server_name  || '',
@@ -1181,6 +1182,7 @@ async function syncMember(id, nickname, serverId) {
       stigma:       data.stigma       || [],
       arcana:       data.arcana       || [],
       titles:       data.titles       || [],
+      skills:       data.skills       || [],
       pet:          data.pet          || null,
       wing:         data.wing         || null,
       server_name:  data.server_name  || '',
@@ -1369,16 +1371,19 @@ function openDetail(m) {
     </div>`).join('');
 
   // 스티그마 (스킬)
-  const stigmaHTML = (m.stigma||[]).map(s => `
-    <div style="display:flex;align-items:center;gap:8px;padding:6px;background:var(--surface);border:1px solid var(--border);border-radius:8px;">
-      <img src="${s.icon||''}" style="width:32px;height:32px;border-radius:6px;border:1px solid var(--border);" onerror="this.style.display='none'">
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.name||''}</div>
-        <div style="font-size:10px;color:var(--muted);">Lv.${s.level||0}</div>
-      </div>
-    </div>`).join('');
+  const skills = m.skills || [];
+  const skillHTML = skills.length
+    ? skills.map(function(s) {
+        return '<div style="display:flex;align-items:center;gap:8px;padding:6px;background:var(--surface);border:1px solid var(--border);border-radius:8px;">'
+          + '<img src="'+(s.icon||'')+'" style="width:32px;height:32px;border-radius:6px;border:1px solid var(--border);">'
+          + '<div style="flex:1;min-width:0;">'
+          + '<div style="font-size:13px;font-weight:600;">'+(s.name||s.skillName||'')+'</div>'
+          + '<div style="font-size:11px;color:var(--muted);">Lv.'+(s.level||s.skillLevel||0)+'</div>'
+          + '</div></div>';
+      }).join('')
+    : '<div style="color:var(--muted);padding:20px;text-align:center;">스킬 정보 없음 (갱신 필요)</div>';
 
-  // 펫/날개
+    // 펫/날개
   const petHTML = m.pet ? `<div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;">
     <img src="${m.pet.icon||''}" style="width:40px;height:40px;border-radius:8px;" onerror="this.style.display='none'">
     <div><div style="font-size:13px;font-weight:600;">${m.pet.name||'펫'}</div>
@@ -1483,7 +1488,7 @@ function openDetail(m) {
 
     <!-- 스킬 (스티그마) -->
     <div id="detail-skill" style="display:none;">
-      ${stigmaHTML ? `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">${stigmaHTML}</div>` : '<div style="color:var(--muted);padding:20px;text-align:center;">스킬 정보 없음 (갱신 필요)</div>'}
+      ${stigmaHTML ? `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">${skillHTML}</div>` : '<div style="color:var(--muted);padding:20px;text-align:center;">스킬 정보 없음 (갱신 필요)</div>'}
     </div>
 
     <!-- 데바니온 -->
