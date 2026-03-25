@@ -979,13 +979,12 @@ function renderEquipGrid(equipment, slots) {
       const e = eqMap[slot];
       if(!e) return '<div style="width:26px;height:26px;border-radius:4px;background:var(--surface);border:1px solid var(--border);opacity:.3;"></div>';
       const gc = _GC[e.grade]||'#555';
-      const enchBadge = e.enchant > 0
+      // 돌파>0이면 마름모, 없으면 강화+숫자 — 둘 다 우측하단
+      const badge = e.exceed > 0
+        ? '<div style="position:absolute;bottom:-1px;right:-1px;width:16px;height:16px;display:flex;align-items:center;justify-content:center;"><svg viewBox=\"0 0 16 16\" width=\"16\" height=\"16\" style=\"position:absolute;\"><polygon points=\"8,1 15,8 8,15 1,8\" fill=\"#003850\" stroke=\"#60c8ff\" stroke-width=\"1.5\"/></svg><span style=\"position:relative;font-size:8px;font-weight:700;color:#60c8ff;line-height:1;\">'+e.exceed+'</span></div>'
+        : e.enchant > 0
         ? '<div style="position:absolute;bottom:-1px;right:-1px;font-size:8px;font-weight:700;color:var(--gold-l);background:rgba(0,0,0,.9);border-radius:2px;padding:0 2px;line-height:1.5;">+'+e.enchant+'</div>'
         : '';
-      const excBadge = e.exceed > 0
-        ? '<div style="position:absolute;top:-5px;left:50%;transform:translateX(-50%);width:16px;height:16px;display:flex;align-items:center;justify-content:center;"><svg viewBox=\"0 0 16 16\" width=\"16\" height=\"16\" style=\"position:absolute;\"><polygon points=\"8,1 15,8 8,15 1,8\" fill=\"#003850\" stroke=\"#60c8ff\" stroke-width=\"1.5\"/></svg><span style=\"position:relative;font-size:8px;font-weight:700;color:#60c8ff;line-height:1;\">'+e.exceed+'</span></div>'
-        : '';
-      const badge = excBadge + enchBadge;
       return '<div style="position:relative;width:26px;height:26px;" title="'+(e.name||'')+'">'
         + '<img src="'+e.icon+'" crossorigin="anonymous" style="width:26px;height:26px;border-radius:4px;border:2px solid '+gc+';display:block;" onerror="this.style.opacity=0.1">'
         + badge + '</div>';
@@ -1327,11 +1326,12 @@ function openDetail(m) {
     const e = equipMap[slot];
     if(!e) return '<div style="padding:10px;text-align:center;color:var(--muted);font-size:12px;">장착 없음</div>';
     const gc = GC[e.grade]||'#888';
-    const eEnchBadge = e.enchant > 0
-      ? '<div style="position:absolute;bottom:-1px;right:-1px;font-size:8px;font-weight:700;color:var(--gold-l);background:rgba(0,0,0,.9);border-radius:2px;padding:0 2px;line-height:1.5;">+'+e.enchant+'</div>'
-      : '';
+    // 돌파>0이면 마름모, 없으면 강화+숫자 — 둘 다 우측하단
+    const eEnchBadge = '';
     const eExcBadge = e.exceed > 0
-      ? '<div style="position:absolute;top:-5px;left:50%;transform:translateX(-50%);width:16px;height:16px;display:flex;align-items:center;justify-content:center;"><svg viewBox=\"0 0 16 16\" width=\"16\" height=\"16\" style=\"position:absolute;\"><polygon points=\"8,1 15,8 8,15 1,8\" fill=\"#003850\" stroke=\"#60c8ff\" stroke-width=\"1.5\"/></svg><span style=\"position:relative;font-size:8px;font-weight:700;color:#60c8ff;line-height:1;\">'+e.exceed+'</span></div>'
+      ? '<div style="position:absolute;bottom:-1px;right:-1px;width:16px;height:16px;display:flex;align-items:center;justify-content:center;"><svg viewBox=\"0 0 16 16\" width=\"16\" height=\"16\" style=\"position:absolute;\"><polygon points=\"8,1 15,8 8,15 1,8\" fill=\"#003850\" stroke=\"#60c8ff\" stroke-width=\"1.5\"/></svg><span style=\"position:relative;font-size:8px;font-weight:700;color:#60c8ff;line-height:1;\">'+e.exceed+'</span></div>'
+      : e.enchant > 0
+      ? '<div style="position:absolute;bottom:-1px;right:-1px;font-size:8px;font-weight:700;color:var(--gold-l);background:rgba(0,0,0,.9);border-radius:2px;padding:0 2px;line-height:1.5;">+'+e.enchant+'</div>'
       : '';
     return '<div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--surface);border:1px solid '+gc+'44;border-radius:8px;margin-bottom:6px;cursor:pointer;" onclick="showItemTooltip(\''+slot+'\')">'      +'<div style="position:relative;width:40px;height:40px;flex-shrink:0;">'      +'<img src="'+e.icon+'" style="width:40px;height:40px;border-radius:6px;border:2px solid '+gc+';display:block;" onerror="this.style.opacity=0.3">'      +eEnchBadge+eExcBadge      +'</div>'      +'<div style="min-width:0;flex:1;">'      +'<div style="font-size:12px;font-weight:600;color:'+gc+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+e.name+'</div>'      +'<div style="font-size:11px;color:var(--muted);margin-top:2px;">'+(SN[slot]||slot)+' · '+(GN[e.grade]||e.grade)+'</div>'      +'</div></div>';
   };
@@ -2678,68 +2678,73 @@ function renderWarSurveys() {
     };
 
     var surveyId = survey.id;
-    var attendStyle = myRes&&myRes.type==='attend' ? 'background:rgba(0,200,138,.2);border-color:var(--gold);color:var(--gold-l);' : '';
-    var absentStyle = myRes&&myRes.type==='absent' ? 'background:rgba(220,50,50,.2);border-color:#e06060;color:#e06060;' : '';
+    var attendStyle = myRes&&myRes.type==='attend';
+    var absentStyle = myRes&&myRes.type==='absent';
 
     return '<div class="card" style="margin-bottom:16px;padding:0;overflow:hidden;">'
 
-      // 헤더
+      // ── 헤더
       +'<div style="padding:14px 16px;background:var(--surface);border-bottom:1px solid var(--border);">'
-      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">'
       +'<div>'
-      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">'
-      +'<span style="font-size:18px;font-weight:700;">⚔ '+survey.title+'</span>'
-      +'</div>'
-      +'<div style="font-size:12px;color:var(--muted);">'
-      +(survey.deadline?'마감: '+survey.deadline+' · ':'')
-      +'생성: '+fmtDate(survey.created_at)
-      +'</div>'
+      +'<div style="font-size:17px;font-weight:700;margin-bottom:3px;">⚔ '+survey.title+'</div>'
+      +'<div style="font-size:11px;color:var(--muted);">'+(survey.deadline?'마감 '+survey.deadline+' · ':'')+fmtDate(survey.created_at)+'</div>'
       +'</div>'
       +(isAdmin()?'<button onclick="deleteWarSurvey('+JSON.stringify(surveyId)+')" style="font-size:11px;padding:4px 8px;background:none;border:1px solid var(--red);border-radius:6px;color:var(--red);cursor:pointer;flex-shrink:0;">삭제</button>':'')
       +'</div>'
       +'</div>'
 
-      // 참가/불참 버튼
+      // ── 참가/불참 버튼 (로그인한 경우)
       +(currentUser
-        ? '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-bottom:1px solid var(--border);">'
-          +'<button data-sid="'+surveyId+'" data-type="attend" onclick="respondWarSurvey(this.dataset.sid,this.dataset.type)" style="padding:14px;font-size:15px;font-weight:700;border:none;border-right:1px solid var(--border);border-radius:0;cursor:pointer;background:'+(myRes&&myRes.type==='attend'?'rgba(0,200,138,.15)':'transparent')+';color:'+(myRes&&myRes.type==='attend'?'var(--green)':'var(--text)') +';transition:background .2s;">✔ 참가 ('+attendList.length+')</button>'
-          +'<button data-sid="'+surveyId+'" data-type="absent" onclick="respondWarSurvey(this.dataset.sid,this.dataset.type)" style="padding:14px;font-size:15px;font-weight:700;border:none;border-radius:0;cursor:pointer;background:'+(myRes&&myRes.type==='absent'?'rgba(220,50,50,.15)':'transparent')+';color:'+(myRes&&myRes.type==='absent'?'#e06060':'var(--text)')+';transition:background .2s;">✘ 불참 ('+absentList.length+')</button>'
+        ? '<div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:2px solid var(--border);">'
+          // 참가 버튼
+          +'<button data-sid="'+surveyId+'" data-type="attend" onclick="respondWarSurvey(this.dataset.sid,this.dataset.type)" '
+          +'style="padding:16px 8px;font-size:16px;font-weight:700;border:none;border-right:1px solid var(--border);border-radius:0;cursor:pointer;'
+          +'background:'+(attendStyle?'rgba(0,200,138,.18)':'transparent')+';'
+          +'color:'+(attendStyle?'#00c88a':'var(--muted)')+';'
+          +'transition:all .15s;">'
+          +'✔ 참가</button>'
+          // 불참 버튼
+          +'<button data-sid="'+surveyId+'" data-type="absent" onclick="respondWarSurvey(this.dataset.sid,this.dataset.type)" '
+          +'style="padding:16px 8px;font-size:16px;font-weight:700;border:none;border-radius:0;cursor:pointer;'
+          +'background:'+(absentStyle?'rgba(220,50,50,.18)':'transparent')+';'
+          +'color:'+(absentStyle?'#e06060':'var(--muted)')+';'
+          +'transition:all .15s;">'
+          +'✘ 불참</button>'
           +'</div>'
-        : '<div style="padding:12px 16px;font-size:13px;color:var(--muted);border-bottom:1px solid var(--border);text-align:center;">로그인 후 참여 가능해요</div>'
+        : '<div style="padding:10px 16px;text-align:center;font-size:12px;color:var(--muted);border-bottom:1px solid var(--border);">로그인 후 참여 가능해요</div>'
       )
 
-      // 명단 (2열)
+      // ── 명단 (2열)
       +'<div style="display:grid;grid-template-columns:1fr 1fr;">'
 
       // 참가 명단
       +'<div style="border-right:1px solid var(--border);">'
-      +'<div style="padding:8px 12px;background:rgba(0,200,138,.06);font-size:12px;font-weight:700;color:var(--green);border-bottom:1px solid var(--border);">✔ 참가 '+attendList.length+'명</div>'
+      +'<div style="padding:8px 12px;background:rgba(0,200,138,.06);font-size:12px;font-weight:700;color:#00c88a;border-bottom:1px solid var(--border);text-align:center;">✔ 참가 '+attendList.length+'명</div>'
       +attendList.map(renderMemberRow).join('')
-      +(attendList.length===0?'<div style="padding:16px;font-size:12px;color:var(--muted);text-align:center;">없음</div>':'')
+      +(attendList.length===0?'<div style="padding:16px 0;font-size:12px;color:var(--muted);text-align:center;">없음</div>':'')
       +'</div>'
 
       // 불참 명단
       +'<div>'
-      +'<div style="padding:8px 12px;background:rgba(220,50,50,.06);font-size:12px;font-weight:700;color:#e06060;border-bottom:1px solid var(--border);">✘ 불참 '+absentList.length+'명</div>'
+      +'<div style="padding:8px 12px;background:rgba(220,50,50,.06);font-size:12px;font-weight:700;color:#e06060;border-bottom:1px solid var(--border);text-align:center;">✘ 불참 '+absentList.length+'명</div>'
       +absentList.map(renderMemberRow).join('')
-      +(absentList.length===0?'<div style="padding:16px;font-size:12px;color:var(--muted);text-align:center;">없음</div>':'')
+      +(absentList.length===0?'<div style="padding:16px 0;font-size:12px;color:var(--muted);text-align:center;">없음</div>':'')
       +'</div>'
       +'</div>'
 
-      // 누적 스탯
+      // ── 누적 스탯
       +(Object.keys(stats).length>0
         ? '<div style="padding:12px 16px;background:var(--surface);border-top:1px solid var(--border);">'
           +'<div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-weight:600;">📊 누적 참여 스탯</div>'
           +'<div style="display:flex;flex-wrap:wrap;gap:6px;">'
           +Object.entries(stats).sort(function(a,b){return (b[1].attend+b[1].absent)-(a[1].attend+a[1].absent);}).map(function(entry){
-            var name=entry[0], st=entry[1];
-            var total=st.attend+st.absent;
-            var rate=total>0?Math.round(st.attend/total*100):0;
-            return '<div style="display:flex;align-items:center;gap:4px;padding:4px 8px;background:var(--card);border:1px solid var(--border);border-radius:20px;font-size:11px;">'
-              +'<span style="font-weight:600;">'+name+'</span>'
-              +'<span style="color:var(--green);">✔'+st.attend+'</span>'
+            var nm=entry[0], st=entry[1], tot=st.attend+st.absent;
+            return '<div style="padding:4px 8px;background:var(--card);border:1px solid var(--border);border-radius:20px;font-size:11px;display:flex;gap:5px;align-items:center;">'
+              +'<span style="font-weight:600;">'+nm+'</span>'
+              +'<span style="color:#00c88a;">✔'+st.attend+'</span>'
               +'<span style="color:#e06060;">✘'+st.absent+'</span>'
-              +'<span style="color:var(--muted);">'+rate+'%</span>'
+              +'<span style="color:var(--muted);">'+(tot>0?Math.round(st.attend/tot*100)+'%':'—')+'</span>'
               +'</div>';
           }).join('')
           +'</div></div>'
