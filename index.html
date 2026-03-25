@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><polygon points='50,5 95,27 95,73 50,95 5,73 5,27' fill='%23111318' stroke='%2300c88a' stroke-width='6'/><polygon points='50,20 80,36 80,64 50,80 20,64 20,36' fill='none' stroke='%2300ffa3' stroke-width='3' opacity='0.5'/><polygon points='50,35 65,43 65,57 50,65 35,57 35,43' fill='%2300c88a'/></svg>">
 <title>아이온2 도태 — 레기온 관리</title>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -206,7 +207,7 @@
 
   /* 멤버 테이블 - 모바일에서 스크롤 */
   .table-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
-  .table-wrap table { min-width:600px; }
+  .table-wrap table { min-width:900px; }
   /* 장비 컬럼 숨김 */
   .table-wrap th:nth-child(6),
   .table-wrap td:nth-child(6) { display:none; }
@@ -322,7 +323,7 @@
       <div class="stat-card"><div class="stat-label">총 길드원</div><div class="stat-value" id="stat-total">—</div><div class="stat-sub">등록된 멤버</div></div>
       <div class="stat-card"><div class="stat-label">평균 전투력</div><div class="stat-value" id="stat-avgcp">—</div><div class="stat-sub">전체 평균</div></div>
       <div class="stat-card"><div class="stat-label">모집 공고</div><div class="stat-value" id="stat-recruit">—</div><div class="stat-sub">진행 중</div></div>
-      <div class="stat-card"><div class="stat-label">레기온 등급</div><div class="stat-value" style="color:var(--gold-l)">S</div><div class="stat-sub">시즌 기준</div></div>
+      <div class="stat-card"><div class="stat-label">레기온 등급</div><div class="stat-value" style="color:var(--gold-l)">SSS+</div><div class="stat-sub">레기온 등급</div></div>
     </div>
     <div style="display:grid;grid-template-columns:2fr 3fr;gap:20px;margin-bottom:20px;align-items:stretch;">
       <div style="display:flex;flex-direction:column;">
@@ -539,7 +540,14 @@
         <div style="display:flex;align-items:center;gap:4px;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:4px 8px;"><span style="font-size:12px;flex:1;">호법성</span><input type="number" id="req-호법성" min="0" max="9" value="0" style="width:36px;background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);text-align:center;font-size:13px;padding:2px;"></div>
       </div>
     </div>
-    <div class="form-group"><label class="form-label">작성자 닉네임 *</label><input class="form-input" id="m-author" placeholder="내 닉네임"></div>
+    <div class="form-group"><label class="form-label">작성자 닉네임 *</label>
+      <div style="position:relative;">
+        <input class="form-input" id="m-author" placeholder="닉네임 검색..." autocomplete="off"
+          oninput="searchAuthorMember(this.value)" style="width:100%;">
+        <div id="author-suggest" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--border);border-radius:8px;z-index:200;max-height:200px;overflow-y:auto;margin-top:4px;box-shadow:0 4px 16px rgba(0,0,0,.5);"></div>
+      </div>
+      <div id="author-preview" style="display:none;margin-top:8px;padding:10px;background:var(--card);border:1px solid var(--border);border-radius:8px;"></div>
+    </div>
     <div class="form-group"><label class="form-label">상세 내용</label><textarea class="form-input" id="m-desc" rows="3" placeholder="모집 조건, 공략 방식 등 자세한 내용을 적어주세요" style="resize:vertical;"></textarea></div>
     <div class="modal-foot">
       <button class="btn" onclick="closeModal('modal-recruit')">취소</button>
@@ -1285,7 +1293,12 @@ function renderMembers() {
           <span style="font-size:12px;color:var(--gold-l);font-weight:600;">${abyssRank.gradeName||''}</span>
         </div>`;
       })()}</td>
-      <td><div class="equip-list">${equips(m.equipment)}</div></td>
+      <td style="white-space:nowrap;">
+        <div style="display:flex;gap:4px;align-items:flex-start;">
+          ${renderEquipGrid(m.equipment, EQUIP1_SLOTS)}
+          ${renderEquipGrid(m.equipment, EQUIP2_SLOTS)}
+        </div>
+      </td>
       <td style="white-space:nowrap;vertical-align:middle;">${syncBtn}${lastSync}</td>
       <td style="white-space:nowrap;vertical-align:middle;">
         <button class="btn btn-sm" onclick="openDetailById('${mId}')" style="font-size:11px;">상세</button>
@@ -1318,7 +1331,12 @@ function renderMembers() {
         <td><span style="font-size:13px;font-weight:600;color:var(--gold-l);">${(s.combat_power||0).toLocaleString()}</span></td>
         <td style="white-space:nowrap;">${s.item_level||'—'}</td>
         <td style="white-space:nowrap;">—</td>
-        <td><div class="equip-list">${(s.equipment||[]).slice(0,3).map(e=>{const gc=({Common:'#aaaaaa',Rare:'#4a90e8',Hero:'#d44040',Epic:'#d44040',Unique:'#e8c030',Legendary:'#ff6a20',Special:'#40d4c0'})[e.grade]||'#555';return`<div class="equip-item grade-${e.grade||''}" style="border-color:${gc}88;"><img src="${e.icon}" onerror="this.style.display='none'" style="width:20px;height:20px;border-radius:3px;border:1px solid ${gc}66;"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px;display:inline-block;vertical-align:middle;color:${gc};">${e.name||''} ${e.enchant?'+'+e.enchant:''}</span></div>`;}).join('')}</div></td>
+        <td style="white-space:nowrap;">
+          <div style="display:flex;gap:4px;align-items:flex-start;">
+            ${renderEquipGrid(s.equipment, EQUIP1_SLOTS)}
+            ${renderEquipGrid(s.equipment, EQUIP2_SLOTS)}
+          </div>
+        </td>
         <td style="white-space:nowrap;vertical-align:middle;"><button class="btn btn-sm" onclick="syncMember('${s.id}','${s.nickname}','${s.server||'2001'}')">갱신</button></td>
         <td style="white-space:nowrap;vertical-align:middle;">
           <button class="btn btn-sm" onclick="openDetailById('${s.id}')" style="font-size:11px;">상세</button>
@@ -1475,11 +1493,35 @@ function renderApplyList(recruitId) {
   const applies = r?.applies || [];
   document.getElementById('apply-list').innerHTML = applies.length
     ? `<div style="font-size:12px;color:var(--muted);margin-bottom:6px;">신청자 ${applies.length}명</div>` +
-      applies.map(a=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;background:var(--card);border-radius:6px;margin-bottom:4px;font-size:13px;">
-        <span>${a.nickname}</span>
-        <span style="font-size:11px;color:var(--muted);">${a.time||''}</span>
-      </div>`).join('')
+      applies.map((a,i)=>{
+        const m = members.find(x=>x.nickname===a.nickname);
+        const cls = m ? (CLASS_MAP[m.class]||m.class||'') : '';
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:var(--card);border-radius:6px;margin-bottom:4px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            ${m?.profile_img?`<img src="${m.profile_img}" style="width:24px;height:24px;border-radius:50%;">`:''}
+            <div>
+              <span style="font-size:13px;font-weight:600;">${a.nickname}</span>
+              ${cls?`<span style="font-size:11px;color:var(--muted);margin-left:6px;">${CLS_ICON[cls]||''} ${cls}</span>`:''}
+              ${m?`<span style="font-size:11px;color:var(--muted);margin-left:6px;">전투력 ${(m.combat_power||0).toLocaleString()}</span>`:''}
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="font-size:11px;color:var(--muted);">${a.time||''}</span>
+            <button onclick="cancelApply(${i})" style="font-size:10px;padding:2px 7px;background:none;border:1px solid var(--red);border-radius:4px;color:var(--red);cursor:pointer;">취소</button>
+          </div>
+        </div>`;
+      }).join('')
     : '<div style="font-size:12px;color:var(--muted);">신청자가 없어요</div>';
+}
+
+async function cancelApply(index) {
+  if(!confirm('신청을 취소할까요?')) return;
+  const r = recruits.find(x => x.id === currentRecruitId);
+  if(!r) return;
+  const applies = [...(r.applies||[])];
+  applies.splice(index, 1);
+  await db.collection('recruits').doc(currentRecruitId).update({applies});
+  toast('신청이 취소되었어요');
 }
 
 function renderCommentList(recruitId) {
@@ -1495,6 +1537,51 @@ function renderCommentList(recruitId) {
     </div>`).join('') || '<div style="font-size:12px;color:var(--muted);">댓글이 없어요</div>';
 }
 
+function searchAuthorMember(query) {
+  const suggest = document.getElementById('author-suggest');
+  const preview = document.getElementById('author-preview');
+  if(!suggest) return;
+  if(!query.trim()) { suggest.style.display='none'; if(preview) preview.style.display='none'; return; }
+  // 부캐 포함 전체 멤버 검색
+  const matched = members.filter(m =>
+    (m.nickname||'').toLowerCase().includes(query.toLowerCase())
+  ).slice(0, 6);
+  if(!matched.length) { suggest.style.display='none'; return; }
+  suggest.innerHTML = matched.map(m => {
+    const cls = CLASS_MAP[m.class]||m.class||'?';
+    const clsColor = CLS_COLOR[cls]||'var(--muted)';
+    const isSub = m.is_main === false;
+    return `<div onclick="selectAuthorMember('${m.id}')"
+      style="display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border);"
+      onmouseover="this.style.background='rgba(255,255,255,.05)'" onmouseout="this.style.background='transparent'">
+      ${m.profile_img?`<img src="${m.profile_img}" style="width:28px;height:28px;border-radius:50%;flex-shrink:0;">`:`<div style="width:28px;height:28px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;">${CLS_ICON[cls]||'?'}</div>`}
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:700;">${m.nickname}${isSub?'<span style="font-size:10px;color:var(--muted);margin-left:4px;">[부캐]</span>':''}</div>
+        <div style="font-size:11px;color:${clsColor};">${cls} · 전투력 ${(m.combat_power||0).toLocaleString()} · IL ${m.item_level||'—'}</div>
+      </div>
+    </div>`;
+  }).join('');
+  suggest.style.display = 'block';
+}
+
+function selectAuthorMember(memberId) {
+  const m = members.find(x => x.id === memberId);
+  if(!m) return;
+  document.getElementById('m-author').value = m.nickname;
+  document.getElementById('author-suggest').style.display = 'none';
+  const preview = document.getElementById('author-preview');
+  const cls = CLASS_MAP[m.class]||m.class||'?';
+  preview.style.display = 'flex';
+  preview.style.alignItems = 'center';
+  preview.style.gap = '10px';
+  preview.innerHTML = `
+    ${m.profile_img?`<img src="${m.profile_img}" style="width:36px;height:36px;border-radius:50%;border:2px solid var(--gold-d);">`:''}
+    <div>
+      <div style="font-size:13px;font-weight:700;">${m.nickname}</div>
+      <div style="font-size:11px;color:var(--muted);">${CLS_ICON[cls]||''} ${cls} · 전투력 ${(m.combat_power||0).toLocaleString()} · IL ${m.item_level||'—'}</div>
+    </div>`;
+}
+
 function searchApplyMember(query) {
   const suggest = document.getElementById('apply-suggest');
   const preview = document.getElementById('apply-preview');
@@ -1507,8 +1594,8 @@ function searchApplyMember(query) {
   }
 
   // members에서 검색 (본캐만)
+  // 부캐 포함 전체 검색
   const matched = members.filter(m =>
-    m.is_main !== false &&
     (m.nickname||'').toLowerCase().includes(query.toLowerCase())
   ).slice(0, 6);
 
@@ -1655,11 +1742,14 @@ if(regIsMainEl) {
 
 // 자동완성 드롭다운 바깥 클릭 닫기
 document.addEventListener('click', function(e) {
-  const suggest = document.getElementById('apply-suggest');
-  const input = document.getElementById('apply-nickname');
-  if(suggest && input && !suggest.contains(e.target) && e.target !== input) {
-    suggest.style.display = 'none';
-  }
+  ['apply-suggest','author-suggest'].forEach(id => {
+    const suggest = document.getElementById(id);
+    const inputId = id === 'apply-suggest' ? 'apply-nickname' : 'm-author';
+    const input = document.getElementById(inputId);
+    if(suggest && !suggest.contains(e.target) && e.target !== input) {
+      suggest.style.display = 'none';
+    }
+  });
 });
 
 // 상세 모달 닫기
