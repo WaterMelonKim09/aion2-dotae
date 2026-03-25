@@ -291,6 +291,84 @@
 </head>
 <body>
 
+<!-- 로그인 화면 -->
+<div id="login-screen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;align-items:center;justify-content:center;">
+  <div style="width:100%;max-width:420px;padding:24px;">
+    <!-- 로고 -->
+    <div style="text-align:center;margin-bottom:32px;">
+      <div style="display:inline-flex;align-items:center;justify-content:center;width:64px;height:64px;margin-bottom:12px;">
+        <svg viewBox="0 0 100 100" width="64" height="64"><polygon points="50,5 95,27 95,73 50,95 5,73 5,27" fill="#111318" stroke="#00c88a" stroke-width="6"/><polygon points="50,20 80,36 80,64 50,80 20,64 20,36" fill="none" stroke="#00ffa3" stroke-width="3" opacity="0.5"/><polygon points="50,35 65,43 65,57 50,65 35,57 35,43" fill="#00c88a"/></svg>
+      </div>
+      <div style="font-size:24px;font-weight:700;color:var(--gold-l);">아이온2 도태</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:4px;">레기온 관리 시스템</div>
+    </div>
+
+    <!-- 닉네임 입력 카드 -->
+    <div class="card" style="padding:24px;">
+      <div style="font-size:14px;font-weight:600;color:var(--gold);margin-bottom:16px;">✦ 닉네임으로 입장하기</div>
+
+      <!-- 검색 입력 -->
+      <div style="position:relative;margin-bottom:12px;">
+        <input class="form-input" id="login-nickname" placeholder="닉네임 검색 또는 직접 입력..."
+          autocomplete="off" oninput="searchLoginMember(this.value)"
+          style="width:100%;" onkeydown="if(event.key==='Enter')loginWithNickname()">
+        <div id="login-suggest" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--border);border-radius:8px;z-index:100;max-height:220px;overflow-y:auto;margin-top:4px;box-shadow:0 4px 16px rgba(0,0,0,.5);"></div>
+      </div>
+
+      <!-- 선택된 멤버 미리보기 -->
+      <div id="login-preview" style="display:none;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:12px;"></div>
+
+      <button class="btn btn-primary" style="width:100%;padding:12px;" onclick="loginWithNickname()">입장하기</button>
+
+      <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">처음 오셨나요? 바로 등록하실 수 있어요</div>
+        <button class="btn" style="width:100%;padding:10px;" onclick="showLoginRegister()">신규 멤버 등록하기</button>
+      </div>
+    </div>
+
+    <!-- 신규 등록 폼 (숨김) -->
+    <div id="login-register-form" style="display:none;margin-top:16px;" class="card" >
+      <div style="padding:20px;">
+        <div style="font-size:14px;font-weight:600;color:var(--gold);margin-bottom:16px;">✦ 신규 멤버 등록</div>
+        <div class="form-group">
+          <label class="form-label">닉네임 *</label>
+          <input class="form-input" id="login-reg-name" placeholder="인게임 닉네임">
+        </div>
+        <input type="hidden" id="login-reg-server" value="2001">
+        <div class="form-row">
+          <div class="form-group" id="login-rank-group">
+            <label class="form-label">계급</label>
+            <select class="form-select" id="login-reg-rank">
+              <option>군단병</option><option>엘리트장교</option><option>군단장</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">구분</label>
+            <select class="form-select" id="login-reg-is-main" onchange="toggleLoginSubFields(this)">
+              <option value="true">본캐</option>
+              <option value="false">부캐</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group" id="login-player-id-group" style="display:none;">
+          <label class="form-label">본캐 닉네임 *</label>
+          <input class="form-input" id="login-reg-player-id" placeholder="묶을 본캐의 닉네임 입력">
+        </div>
+        <div class="form-group">
+          <label class="form-label">한 줄 소개</label>
+          <input class="form-input" id="login-reg-intro" placeholder="예: 레이드 경험 다수">
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:12px;">
+          <div style="font-size:12px;color:var(--gold);font-weight:600;margin-bottom:8px;">✦ NC 공홈에서 스펙 자동 불러오기</div>
+          <button class="btn btn-primary" style="width:100%;" id="login-fetch-btn" onclick="loginFetchAndRegister()">닉네임으로 스펙 불러와서 등록</button>
+          <div id="login-fetch-result" style="margin-top:8px;font-size:12px;color:var(--muted);"></div>
+        </div>
+        <button class="btn" style="width:100%;" onclick="document.getElementById('login-register-form').style.display='none'">취소</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="header">
   <div class="logo">
     <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
@@ -558,6 +636,17 @@
 </div>
 
 <!-- 멤버 관리 모달 -->
+<!-- 내 정보 모달 -->
+<div class="overlay" id="modal-myprofile" onclick="closeOverlay(event,'modal-myprofile')">
+  <div class="modal" style="max-width:680px;max-height:88vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div class="modal-title" style="margin:0;">내 정보</div>
+      <button class="btn btn-sm" onclick="closeModal('modal-myprofile')">닫기</button>
+    </div>
+    <div id="myprofile-body"></div>
+  </div>
+</div>
+
 <!-- 상세 스펙 모달 -->
 <div class="overlay" id="modal-detail" style="align-items:flex-start;padding-top:40px;">
   <div class="modal" style="max-width:800px;max-height:85vh;overflow-y:auto;position:relative;">
@@ -600,13 +689,13 @@
     <div style="margin-top:16px;">
       <div style="font-size:12px;font-weight:600;color:var(--gold);margin-bottom:10px;">💬 댓글</div>
       <div id="comment-list" style="margin-bottom:10px;display:flex;flex-direction:column;gap:8px;"></div>
-      <div style="position:relative;margin-bottom:8px;">
-        <input class="form-input" id="comment-nickname" placeholder="닉네임 검색..." autocomplete="off"
-          oninput="searchCommentMember(this.value)" style="width:100%;">
-        <div id="comment-suggest" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--border);border-radius:8px;z-index:100;max-height:200px;overflow-y:auto;margin-top:4px;box-shadow:0 4px 16px rgba(0,0,0,.4);"></div>
-      </div>
       <div id="comment-preview" style="display:none;margin-bottom:8px;padding:8px 10px;background:var(--card);border:1px solid var(--border);border-radius:8px;"></div>
-      <div style="display:flex;gap:8px;">
+      <div style="display:flex;gap:8px;position:relative;">
+        <div style="position:relative;width:140px;flex-shrink:0;">
+          <input class="form-input" id="comment-nickname" placeholder="닉네임 검색..." autocomplete="off"
+            oninput="searchCommentMember(this.value)" style="width:100%;">
+          <div id="comment-suggest" style="display:none;position:absolute;top:100%;left:0;width:260px;background:var(--card);border:1px solid var(--border);border-radius:8px;z-index:100;max-height:200px;overflow-y:auto;margin-top:4px;box-shadow:0 4px 16px rgba(0,0,0,.4);"></div>
+        </div>
         <input class="form-input" id="comment-text" placeholder="댓글 내용..." style="flex:1;" onkeydown="if(event.key==='Enter')addComment()">
         <button class="btn btn-primary btn-sm" onclick="addComment()">등록</button>
       </div>
@@ -784,7 +873,7 @@ function renderAll() {
   const mainMembers = members.filter(m => m.is_main !== false);
   const total = mainMembers.length;
   document.getElementById('stat-total').textContent = total;
-  document.getElementById('online-badge').textContent = `● 멤버 ${total}명`;
+  // online-badge removed
   const avgCp = total ? Math.round(mainMembers.reduce((s,m)=>s+(m.combat_power||0),0)/total) : 0;
   document.getElementById('stat-avgcp').textContent = avgCp ? Math.round(avgCp/1000)+'K' : '—';
   renderTop5(); renderRecentRecruit(); renderMembers();
@@ -1410,7 +1499,7 @@ function renderRecruit() {
             <div style="display:flex;align-items:center;gap:8px">
               <span class="${r.slots>0?'slots-open':'slots-full'}">${r.slots>0?'모집중 '+r.slots+'자리':'마감'}</span>
               <button class="btn btn-sm" onclick="openRecruit('${r.id}')">상세보기</button>
-              <button class="btn btn-sm btn-danger" onclick="deleteRecruit('${r.id}')">삭제</button>
+              ${canDelete(r.author)?`<button class="btn btn-sm btn-danger" onclick="deleteRecruit('${r.id}')">삭제</button>`:''}
             </div>
           </div>
         </div>`).join('')
@@ -1565,7 +1654,7 @@ function renderApplyList(recruitId) {
           </div>
           <div style="display:flex;align-items:center;gap:6px;">
             <span style="font-size:11px;color:var(--muted);">${a.time||''}</span>
-            <button onclick="cancelApply(${i})" style="font-size:10px;padding:2px 7px;background:none;border:1px solid var(--red);border-radius:4px;color:var(--red);cursor:pointer;">취소</button>
+            ${canDelete(a.nickname)?`<button onclick="cancelApply(${i})" style="font-size:10px;padding:2px 7px;background:none;border:1px solid var(--red);border-radius:4px;color:var(--red);cursor:pointer;">취소</button>`:''}
           </div>
         </div>`;
       }).join('')
@@ -1601,7 +1690,7 @@ function renderCommentList(recruitId) {
         </div>
         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
           <span style="font-size:11px;color:var(--muted);">${c.time||''}</span>
-          <button onclick="deleteComment(${i})" style="font-size:10px;padding:2px 7px;background:none;border:1px solid var(--red);border-radius:4px;color:var(--red);cursor:pointer;">삭제</button>
+          ${canDelete(c.nickname)?`<button onclick="deleteComment(${i})" style="font-size:10px;padding:2px 7px;background:none;border:1px solid var(--red);border-radius:4px;color:var(--red);cursor:pointer;">삭제</button>`:''}
         </div>
       </div>
       <div style="font-size:13px;line-height:1.5;padding-left:32px;">${c.text}</div>
@@ -2038,6 +2127,299 @@ function initBossTimers() {
   }
 }
 
+// ─── 로그인/세션 ────────────────────────────
+let currentUser = null; // { nickname, rank, is_main, combat_power, item_level, class, profile_img }
+
+function initLoginScreen() {
+  const saved = localStorage.getItem('dotae_user');
+  if(saved) {
+    try {
+      currentUser = JSON.parse(saved);
+      applyLogin();
+      return;
+    } catch(e) {}
+  }
+  // 로그인 화면 표시
+  document.getElementById('login-screen').style.display = 'flex';
+  document.querySelector('.header').style.display = 'none';
+  document.querySelector('.nav').style.display = 'none';
+  document.querySelector('.main').style.display = 'none';
+}
+
+function applyLogin() {
+  // 화면 복원
+  document.getElementById('login-screen').style.display = 'none';
+  document.querySelector('.header').style.display = '';
+  document.querySelector('.nav').style.display = '';
+  document.querySelector('.main').style.display = '';
+
+  // 헤더 유저 표시
+  const userEl = document.getElementById('header-user');
+  userEl.style.display = 'flex';
+  document.getElementById('header-username').textContent = currentUser.nickname;
+  document.getElementById('header-user-rank').textContent = currentUser.rank ? `(${currentUser.rank})` : '';
+  const avatar = document.getElementById('header-avatar');
+  if(currentUser.profile_img) {
+    avatar.innerHTML = `<img src="${currentUser.profile_img}" style="width:100%;height:100%;object-fit:cover;">`;
+  } else {
+    const cls = CLASS_MAP[currentUser.class]||currentUser.class||'';
+    avatar.innerHTML = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:14px;">${CLS_ICON[cls]||'👤'}</div>`;
+  }
+}
+
+function searchLoginMember(query) {
+  const suggest = document.getElementById('login-suggest');
+  const preview = document.getElementById('login-preview');
+  if(!query.trim()) { suggest.style.display='none'; preview.style.display='none'; return; }
+  const matched = members.filter(m =>
+    (m.nickname||'').toLowerCase().includes(query.toLowerCase())
+  ).slice(0, 8);
+  if(!matched.length) { suggest.style.display='none'; return; }
+  suggest.innerHTML = matched.map(m => {
+    const cls = CLASS_MAP[m.class]||m.class||'?';
+    const clsColor = CLS_COLOR[cls]||'var(--muted)';
+    const isSub = m.is_main === false;
+    return `<div onclick="selectLoginMember('${m.id}')"
+      style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);"
+      onmouseover="this.style.background='rgba(255,255,255,.05)'" onmouseout="this.style.background='transparent'">
+      ${m.profile_img?`<img src="${m.profile_img}" style="width:36px;height:36px;border-radius:50%;border:2px solid var(--gold-d);flex-shrink:0;">`:`<div style="width:36px;height:36px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">${CLS_ICON[cls]||'?'}</div>`}
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:14px;font-weight:700;">${m.nickname}${isSub?'<span style="font-size:10px;color:var(--muted);margin-left:4px;">[부캐]</span>':''}</div>
+        <div style="font-size:12px;color:${clsColor};margin-top:2px;">${CLS_ICON[cls]||''} ${cls} · 전투력 ${(m.combat_power||0).toLocaleString()}</div>
+        ${m.rank?`<div style="font-size:11px;color:var(--muted);">${m.rank}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+  suggest.style.display = 'block';
+}
+
+function selectLoginMember(memberId) {
+  const m = members.find(x => x.id === memberId);
+  if(!m) return;
+  document.getElementById('login-nickname').value = m.nickname;
+  document.getElementById('login-suggest').style.display = 'none';
+  const cls = CLASS_MAP[m.class]||m.class||'?';
+  const clsColor = CLS_COLOR[cls]||'var(--muted)';
+  const preview = document.getElementById('login-preview');
+  preview.style.display = 'block';
+  preview.innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;">
+      ${m.profile_img?`<img src="${m.profile_img}" style="width:44px;height:44px;border-radius:50%;border:2px solid var(--gold-d);">`:`<div style="width:44px;height:44px;border-radius:50%;background:var(--surface);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:20px;">${CLS_ICON[cls]||'?'}</div>`}
+      <div>
+        <div style="font-size:16px;font-weight:700;">${m.nickname}</div>
+        <div style="font-size:12px;color:${clsColor};">${CLS_ICON[cls]||''} ${cls} · ${m.rank||'군단병'}</div>
+        <div style="font-size:12px;color:var(--muted);">전투력 ${(m.combat_power||0).toLocaleString()} · 아이템레벨 ${m.item_level||'—'}</div>
+      </div>
+    </div>`;
+}
+
+function loginWithNickname() {
+  const nickname = document.getElementById('login-nickname').value.trim();
+  if(!nickname) { toast('닉네임을 입력해주세요'); return; }
+  // 등록된 멤버인지 확인
+  const m = members.find(x => x.nickname === nickname);
+  currentUser = m ? {
+    nickname: m.nickname, rank: m.rank||'', is_main: m.is_main,
+    combat_power: m.combat_power, item_level: m.item_level,
+    class: m.class, profile_img: m.profile_img||''
+  } : { nickname, rank: '', is_main: true, combat_power: 0, item_level: 0, class: '', profile_img: '' };
+  localStorage.setItem('dotae_user', JSON.stringify(currentUser));
+  applyLogin();
+  toast(`${nickname}으로 입장했어요! 😊`);
+}
+
+function logoutUser() {
+  currentUser = null;
+  localStorage.removeItem('dotae_user');
+  document.getElementById('header-user').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.querySelector('.header').style.display = 'none';
+  document.querySelector('.nav').style.display = 'none';
+  document.querySelector('.main').style.display = 'none';
+  document.getElementById('login-nickname').value = '';
+  document.getElementById('login-preview').style.display = 'none';
+  document.getElementById('login-register-form').style.display = 'none';
+}
+
+function showLoginRegister() {
+  const form = document.getElementById('login-register-form');
+  form.style.display = form.style.display === 'none' ? 'block' : 'none';
+  // 닉네임 자동 채우기
+  const nick = document.getElementById('login-nickname').value.trim();
+  if(nick) document.getElementById('login-reg-name').value = nick;
+}
+
+function toggleLoginSubFields(sel) {
+  const isSub = sel.value === 'false';
+  document.getElementById('login-player-id-group').style.display = isSub ? '' : 'none';
+  document.getElementById('login-rank-group').style.display = isSub ? 'none' : '';
+}
+
+async function loginFetchAndRegister() {
+  const nickname = document.getElementById('login-reg-name').value.trim();
+  const serverId = '2001';
+  const rank = document.getElementById('login-reg-rank').value;
+  const intro = document.getElementById('login-reg-intro').value.trim();
+  const isMainEl = document.getElementById('login-reg-is-main');
+  const isMain = isMainEl.value === 'true';
+  const playerIdEl = document.getElementById('login-reg-player-id');
+  const playerId = isMain ? nickname : (playerIdEl.value.trim() || nickname);
+
+  if(!nickname) { toast('닉네임을 입력해주세요'); return; }
+  if(!isMain && !playerIdEl.value.trim()) { toast('본캐 닉네임을 입력해주세요'); return; }
+
+  const btn = document.getElementById('login-fetch-btn');
+  const resultEl = document.getElementById('login-fetch-result');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> 불러오는 중...';
+
+  try {
+    const data = await fetchCharacterData(nickname, serverId);
+    const cls = CLASS_MAP[data.class] || data.class || '';
+    const finalRank = isMain ? rank : '';
+    await db.collection('members').doc(nickname+'_'+serverId).set({
+      nickname, server: serverId, rank: finalRank, intro,
+      is_main: isMain, player_id: playerId,
+      class: cls, level: data.level||0,
+      combat_power: data.combat_power||0, item_level: data.item_level||0,
+      equipment: data.equipment||[], stats: data.stats||[],
+      daevanion: data.daevanion||[], ranking: data.ranking||[],
+      server_name: data.server_name||'', guild_name: data.guild_name||'',
+      race: data.race||'', profile_img: data.profile_img||'',
+      character_id: data.characterId||'',
+      last_synced: new Date().toISOString(),
+      updated_at: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    // 자동 로그인
+    currentUser = { nickname, rank: finalRank, is_main: isMain, combat_power: data.combat_power||0, item_level: data.item_level||0, class: cls, profile_img: data.profile_img||'' };
+    localStorage.setItem('dotae_user', JSON.stringify(currentUser));
+    resultEl.innerHTML = `<span style="color:var(--green)">✓ 등록 완료! 입장합니다...</span>`;
+    setTimeout(() => applyLogin(), 800);
+  } catch(err) {
+    resultEl.innerHTML = `<span style="color:var(--red)">✗ ${err.message}</span>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '닉네임으로 스펙 불러와서 등록';
+  }
+}
+
+// ─── 내 정보 모달 ────────────────────────────
+function openMyProfile() {
+  if(!currentUser) return;
+  const m = members.find(x => x.nickname === currentUser.nickname);
+  const cls = m ? (CLASS_MAP[m.class]||m.class||'') : '';
+  const clsColor = cls ? (CLS_COLOR[cls]||'var(--muted)') : 'var(--muted)';
+
+  // 내가 쓴 모집글
+  const myRecruits = recruits.filter(r => r.author === currentUser.nickname);
+  // 내가 단 댓글
+  const myComments = [];
+  recruits.forEach(r => {
+    (r.comments||[]).forEach(c => {
+      if(c.nickname === currentUser.nickname) myComments.push({...c, recruitTitle: r.title, recruitId: r.id});
+    });
+  });
+  // 내가 신청한 모집
+  const myApplies = [];
+  recruits.forEach(r => {
+    (r.applies||[]).forEach(a => {
+      if(a.nickname === currentUser.nickname) myApplies.push({...a, recruitTitle: r.title, recruitId: r.id, recruitType: r.type});
+    });
+  });
+
+  const body = document.getElementById('myprofile-body');
+  body.innerHTML = `
+    <!-- 프로필 헤더 -->
+    <div style="display:flex;align-items:center;gap:14px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;">
+      ${m?.profile_img?`<img src="${m.profile_img}" style="width:64px;height:64px;border-radius:50%;border:2px solid var(--gold-d);flex-shrink:0;">`:`<div style="width:64px;height:64px;border-radius:50%;background:var(--card);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;">${CLS_ICON[cls]||'👤'}</div>`}
+      <div style="flex:1;">
+        <div style="font-size:20px;font-weight:700;">${currentUser.nickname}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:3px;">${cls?`${CLS_ICON[cls]||''} ${cls} · `:''}${currentUser.rank||'계급 없음'}</div>
+        ${m?.intro?`<div style="font-size:13px;color:var(--text);margin-top:6px;padding:8px;background:var(--card);border-radius:6px;">${m.intro}</div>`:''}
+      </div>
+      ${m?`<div style="display:flex;gap:10px;flex-shrink:0;">
+        <div style="text-align:center;padding:8px 14px;background:var(--card);border:1px solid var(--border);border-radius:8px;">
+          <div style="font-size:10px;color:var(--muted);">전투력</div>
+          <div style="font-size:17px;font-weight:700;color:var(--gold-l);">${(m.combat_power||0).toLocaleString()}</div>
+        </div>
+        <div style="text-align:center;padding:8px 14px;background:var(--card);border:1px solid var(--border);border-radius:8px;">
+          <div style="font-size:10px;color:var(--muted);">아이템레벨</div>
+          <div style="font-size:17px;font-weight:700;color:var(--gold-l);">${m.item_level||'—'}</div>
+        </div>
+      </div>`:''}
+    </div>
+
+    ${m?`<button class="btn btn-primary btn-sm" style="margin-bottom:16px;" onclick="closeModal('modal-myprofile');openDetailById('${m.id}')">상세 스펙 보기 →</button>`:''}
+
+    <!-- 탭 -->
+    <div style="display:flex;gap:0;margin-bottom:14px;border-bottom:2px solid var(--border);">
+      <button onclick="switchMyTab('recruits')" id="mytab-recruits" style="background:none;border:none;color:var(--gold-l);padding:8px 16px;font-size:13px;cursor:pointer;border-bottom:2px solid var(--gold);margin-bottom:-2px;font-weight:600;">모집글 (${myRecruits.length})</button>
+      <button onclick="switchMyTab('applies')" id="mytab-applies" style="background:none;border:none;color:var(--muted);padding:8px 16px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;">신청 (${myApplies.length})</button>
+      <button onclick="switchMyTab('comments')" id="mytab-comments" style="background:none;border:none;color:var(--muted);padding:8px 16px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;">댓글 (${myComments.length})</button>
+    </div>
+
+    <!-- 모집글 탭 -->
+    <div id="my-recruits">
+      ${myRecruits.length ? myRecruits.map(r=>`
+        <div style="padding:12px;background:var(--card);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;cursor:pointer;" onclick="closeModal('modal-myprofile');showTab('recruit');setTimeout(()=>openRecruit('${r.id}'),300)">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div style="font-size:14px;font-weight:600;">${r.title}</div>
+            <span class="rc-tag tag-${r.type}" style="font-size:11px;">${r.type}</span>
+          </div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px;">신청 ${(r.applies||[]).length}명 · 댓글 ${(r.comments||[]).length}개</div>
+        </div>`).join('') : '<div style="color:var(--muted);font-size:13px;padding:16px;text-align:center;">작성한 모집글이 없어요</div>'}
+    </div>
+
+    <!-- 신청 탭 -->
+    <div id="my-applies" style="display:none;">
+      ${myApplies.length ? myApplies.map(a=>`
+        <div style="padding:12px;background:var(--card);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;cursor:pointer;" onclick="closeModal('modal-myprofile');showTab('recruit');setTimeout(()=>openRecruit('${a.recruitId}'),300)">
+          <div style="font-size:14px;font-weight:600;">${a.recruitTitle}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">${a.time||''}</div>
+        </div>`).join('') : '<div style="color:var(--muted);font-size:13px;padding:16px;text-align:center;">신청한 모집이 없어요</div>'}
+    </div>
+
+    <!-- 댓글 탭 -->
+    <div id="my-comments" style="display:none;">
+      ${myComments.length ? myComments.map(c=>`
+        <div style="padding:12px;background:var(--card);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;cursor:pointer;" onclick="closeModal('modal-myprofile');showTab('recruit');setTimeout(()=>openRecruit('${c.recruitId}'),300)">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">${c.recruitTitle}</div>
+          <div style="font-size:13px;">${c.text}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">${c.time||''}</div>
+        </div>`).join('') : '<div style="color:var(--muted);font-size:13px;padding:16px;text-align:center;">작성한 댓글이 없어요</div>'}
+    </div>
+  `;
+
+  openModal('modal-myprofile');
+}
+
+function switchMyTab(tab) {
+  ['recruits','applies','comments'].forEach(t => {
+    const el = document.getElementById('my-'+t);
+    if(el) el.style.display = t===tab ? '' : 'none';
+    const btn = document.getElementById('mytab-'+t);
+    if(btn) {
+      btn.style.color = t===tab ? 'var(--gold-l)' : 'var(--muted)';
+      btn.style.borderBottom = t===tab ? '2px solid var(--gold)' : '2px solid transparent';
+      btn.style.fontWeight = t===tab ? '600' : '400';
+    }
+  });
+}
+
+// 현재 유저가 관리자 권한인지 확인
+function isAdmin() {
+  if(!currentUser) return false;
+  const m = members.find(x => x.nickname === currentUser.nickname);
+  const rank = m?.rank || currentUser.rank || '';
+  return rank === '군단장' || rank === '엘리트장교';
+}
+
+// 삭제 버튼 표시 여부 (본인 또는 관리자)
+function canDelete(authorNickname) {
+  if(!currentUser) return false;
+  return currentUser.nickname === authorNickname || isAdmin();
+}
+
 // 마지막 탭 복원
 // 초기 정렬 아이콘
 setTimeout(() => {
@@ -2048,6 +2430,8 @@ const savedTab = localStorage.getItem('activeTab');
 if(savedTab) showTab(savedTab);
 
 initFirebase();
+// members 로드 후 로그인 화면 초기화
+setTimeout(initLoginScreen, 800);
 
 // ─── 슈고 타이머 ────────────────────────────
 let shugoRunning = false;
@@ -2163,7 +2547,593 @@ function toggleShugoTimer() {
   }
 }
 
-// 마지막 탭 복원// 마지막 탭 복원
+// ─── 로그인/세션 ────────────────────────────
+
+
+function initLoginScreen() {
+  const saved = localStorage.getItem('dotae_user');
+  if(saved) {
+    try {
+      currentUser = JSON.parse(saved);
+      applyLogin();
+      return;
+    } catch(e) {}
+  }
+  // 로그인 화면 표시
+  document.getElementById('login-screen').style.display = 'flex';
+  document.querySelector('.header').style.display = 'none';
+  document.querySelector('.nav').style.display = 'none';
+  document.querySelector('.main').style.display = 'none';
+}
+
+function applyLogin() {
+  // 화면 복원
+  document.getElementById('login-screen').style.display = 'none';
+  document.querySelector('.header').style.display = '';
+  document.querySelector('.nav').style.display = '';
+  document.querySelector('.main').style.display = '';
+
+  // 헤더 유저 표시
+  const userEl = document.getElementById('header-user');
+  userEl.style.display = 'flex';
+  document.getElementById('header-username').textContent = currentUser.nickname;
+  document.getElementById('header-user-rank').textContent = currentUser.rank ? `(${currentUser.rank})` : '';
+  const avatar = document.getElementById('header-avatar');
+  if(currentUser.profile_img) {
+    avatar.innerHTML = `<img src="${currentUser.profile_img}" style="width:100%;height:100%;object-fit:cover;">`;
+  } else {
+    const cls = CLASS_MAP[currentUser.class]||currentUser.class||'';
+    avatar.innerHTML = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:14px;">${CLS_ICON[cls]||'👤'}</div>`;
+  }
+}
+
+function searchLoginMember(query) {
+  const suggest = document.getElementById('login-suggest');
+  const preview = document.getElementById('login-preview');
+  if(!query.trim()) { suggest.style.display='none'; preview.style.display='none'; return; }
+  const matched = members.filter(m =>
+    (m.nickname||'').toLowerCase().includes(query.toLowerCase())
+  ).slice(0, 8);
+  if(!matched.length) { suggest.style.display='none'; return; }
+  suggest.innerHTML = matched.map(m => {
+    const cls = CLASS_MAP[m.class]||m.class||'?';
+    const clsColor = CLS_COLOR[cls]||'var(--muted)';
+    const isSub = m.is_main === false;
+    return `<div onclick="selectLoginMember('${m.id}')"
+      style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);"
+      onmouseover="this.style.background='rgba(255,255,255,.05)'" onmouseout="this.style.background='transparent'">
+      ${m.profile_img?`<img src="${m.profile_img}" style="width:36px;height:36px;border-radius:50%;border:2px solid var(--gold-d);flex-shrink:0;">`:`<div style="width:36px;height:36px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">${CLS_ICON[cls]||'?'}</div>`}
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:14px;font-weight:700;">${m.nickname}${isSub?'<span style="font-size:10px;color:var(--muted);margin-left:4px;">[부캐]</span>':''}</div>
+        <div style="font-size:12px;color:${clsColor};margin-top:2px;">${CLS_ICON[cls]||''} ${cls} · 전투력 ${(m.combat_power||0).toLocaleString()}</div>
+        ${m.rank?`<div style="font-size:11px;color:var(--muted);">${m.rank}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+  suggest.style.display = 'block';
+}
+
+function selectLoginMember(memberId) {
+  const m = members.find(x => x.id === memberId);
+  if(!m) return;
+  document.getElementById('login-nickname').value = m.nickname;
+  document.getElementById('login-suggest').style.display = 'none';
+  const cls = CLASS_MAP[m.class]||m.class||'?';
+  const clsColor = CLS_COLOR[cls]||'var(--muted)';
+  const preview = document.getElementById('login-preview');
+  preview.style.display = 'block';
+  preview.innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;">
+      ${m.profile_img?`<img src="${m.profile_img}" style="width:44px;height:44px;border-radius:50%;border:2px solid var(--gold-d);">`:`<div style="width:44px;height:44px;border-radius:50%;background:var(--surface);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:20px;">${CLS_ICON[cls]||'?'}</div>`}
+      <div>
+        <div style="font-size:16px;font-weight:700;">${m.nickname}</div>
+        <div style="font-size:12px;color:${clsColor};">${CLS_ICON[cls]||''} ${cls} · ${m.rank||'군단병'}</div>
+        <div style="font-size:12px;color:var(--muted);">전투력 ${(m.combat_power||0).toLocaleString()} · 아이템레벨 ${m.item_level||'—'}</div>
+      </div>
+    </div>`;
+}
+
+function loginWithNickname() {
+  const nickname = document.getElementById('login-nickname').value.trim();
+  if(!nickname) { toast('닉네임을 입력해주세요'); return; }
+  // 등록된 멤버인지 확인
+  const m = members.find(x => x.nickname === nickname);
+  currentUser = m ? {
+    nickname: m.nickname, rank: m.rank||'', is_main: m.is_main,
+    combat_power: m.combat_power, item_level: m.item_level,
+    class: m.class, profile_img: m.profile_img||''
+  } : { nickname, rank: '', is_main: true, combat_power: 0, item_level: 0, class: '', profile_img: '' };
+  localStorage.setItem('dotae_user', JSON.stringify(currentUser));
+  applyLogin();
+  toast(`${nickname}으로 입장했어요! 😊`);
+}
+
+function logoutUser() {
+  currentUser = null;
+  localStorage.removeItem('dotae_user');
+  document.getElementById('header-user').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.querySelector('.header').style.display = 'none';
+  document.querySelector('.nav').style.display = 'none';
+  document.querySelector('.main').style.display = 'none';
+  document.getElementById('login-nickname').value = '';
+  document.getElementById('login-preview').style.display = 'none';
+  document.getElementById('login-register-form').style.display = 'none';
+}
+
+function showLoginRegister() {
+  const form = document.getElementById('login-register-form');
+  form.style.display = form.style.display === 'none' ? 'block' : 'none';
+  // 닉네임 자동 채우기
+  const nick = document.getElementById('login-nickname').value.trim();
+  if(nick) document.getElementById('login-reg-name').value = nick;
+}
+
+function toggleLoginSubFields(sel) {
+  const isSub = sel.value === 'false';
+  document.getElementById('login-player-id-group').style.display = isSub ? '' : 'none';
+  document.getElementById('login-rank-group').style.display = isSub ? 'none' : '';
+}
+
+async function loginFetchAndRegister() {
+  const nickname = document.getElementById('login-reg-name').value.trim();
+  const serverId = '2001';
+  const rank = document.getElementById('login-reg-rank').value;
+  const intro = document.getElementById('login-reg-intro').value.trim();
+  const isMainEl = document.getElementById('login-reg-is-main');
+  const isMain = isMainEl.value === 'true';
+  const playerIdEl = document.getElementById('login-reg-player-id');
+  const playerId = isMain ? nickname : (playerIdEl.value.trim() || nickname);
+
+  if(!nickname) { toast('닉네임을 입력해주세요'); return; }
+  if(!isMain && !playerIdEl.value.trim()) { toast('본캐 닉네임을 입력해주세요'); return; }
+
+  const btn = document.getElementById('login-fetch-btn');
+  const resultEl = document.getElementById('login-fetch-result');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> 불러오는 중...';
+
+  try {
+    const data = await fetchCharacterData(nickname, serverId);
+    const cls = CLASS_MAP[data.class] || data.class || '';
+    const finalRank = isMain ? rank : '';
+    await db.collection('members').doc(nickname+'_'+serverId).set({
+      nickname, server: serverId, rank: finalRank, intro,
+      is_main: isMain, player_id: playerId,
+      class: cls, level: data.level||0,
+      combat_power: data.combat_power||0, item_level: data.item_level||0,
+      equipment: data.equipment||[], stats: data.stats||[],
+      daevanion: data.daevanion||[], ranking: data.ranking||[],
+      server_name: data.server_name||'', guild_name: data.guild_name||'',
+      race: data.race||'', profile_img: data.profile_img||'',
+      character_id: data.characterId||'',
+      last_synced: new Date().toISOString(),
+      updated_at: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    // 자동 로그인
+    currentUser = { nickname, rank: finalRank, is_main: isMain, combat_power: data.combat_power||0, item_level: data.item_level||0, class: cls, profile_img: data.profile_img||'' };
+    localStorage.setItem('dotae_user', JSON.stringify(currentUser));
+    resultEl.innerHTML = `<span style="color:var(--green)">✓ 등록 완료! 입장합니다...</span>`;
+    setTimeout(() => applyLogin(), 800);
+  } catch(err) {
+    resultEl.innerHTML = `<span style="color:var(--red)">✗ ${err.message}</span>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '닉네임으로 스펙 불러와서 등록';
+  }
+}
+
+// ─── 내 정보 모달 ────────────────────────────
+function openMyProfile() {
+  if(!currentUser) return;
+  const m = members.find(x => x.nickname === currentUser.nickname);
+  const cls = m ? (CLASS_MAP[m.class]||m.class||'') : '';
+  const clsColor = cls ? (CLS_COLOR[cls]||'var(--muted)') : 'var(--muted)';
+
+  // 내가 쓴 모집글
+  const myRecruits = recruits.filter(r => r.author === currentUser.nickname);
+  // 내가 단 댓글
+  const myComments = [];
+  recruits.forEach(r => {
+    (r.comments||[]).forEach(c => {
+      if(c.nickname === currentUser.nickname) myComments.push({...c, recruitTitle: r.title, recruitId: r.id});
+    });
+  });
+  // 내가 신청한 모집
+  const myApplies = [];
+  recruits.forEach(r => {
+    (r.applies||[]).forEach(a => {
+      if(a.nickname === currentUser.nickname) myApplies.push({...a, recruitTitle: r.title, recruitId: r.id, recruitType: r.type});
+    });
+  });
+
+  const body = document.getElementById('myprofile-body');
+  body.innerHTML = `
+    <!-- 프로필 헤더 -->
+    <div style="display:flex;align-items:center;gap:14px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;">
+      ${m?.profile_img?`<img src="${m.profile_img}" style="width:64px;height:64px;border-radius:50%;border:2px solid var(--gold-d);flex-shrink:0;">`:`<div style="width:64px;height:64px;border-radius:50%;background:var(--card);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;">${CLS_ICON[cls]||'👤'}</div>`}
+      <div style="flex:1;">
+        <div style="font-size:20px;font-weight:700;">${currentUser.nickname}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:3px;">${cls?`${CLS_ICON[cls]||''} ${cls} · `:''}${currentUser.rank||'계급 없음'}</div>
+        ${m?.intro?`<div style="font-size:13px;color:var(--text);margin-top:6px;padding:8px;background:var(--card);border-radius:6px;">${m.intro}</div>`:''}
+      </div>
+      ${m?`<div style="display:flex;gap:10px;flex-shrink:0;">
+        <div style="text-align:center;padding:8px 14px;background:var(--card);border:1px solid var(--border);border-radius:8px;">
+          <div style="font-size:10px;color:var(--muted);">전투력</div>
+          <div style="font-size:17px;font-weight:700;color:var(--gold-l);">${(m.combat_power||0).toLocaleString()}</div>
+        </div>
+        <div style="text-align:center;padding:8px 14px;background:var(--card);border:1px solid var(--border);border-radius:8px;">
+          <div style="font-size:10px;color:var(--muted);">아이템레벨</div>
+          <div style="font-size:17px;font-weight:700;color:var(--gold-l);">${m.item_level||'—'}</div>
+        </div>
+      </div>`:''}
+    </div>
+
+    ${m?`<button class="btn btn-primary btn-sm" style="margin-bottom:16px;" onclick="closeModal('modal-myprofile');openDetailById('${m.id}')">상세 스펙 보기 →</button>`:''}
+
+    <!-- 탭 -->
+    <div style="display:flex;gap:0;margin-bottom:14px;border-bottom:2px solid var(--border);">
+      <button onclick="switchMyTab('recruits')" id="mytab-recruits" style="background:none;border:none;color:var(--gold-l);padding:8px 16px;font-size:13px;cursor:pointer;border-bottom:2px solid var(--gold);margin-bottom:-2px;font-weight:600;">모집글 (${myRecruits.length})</button>
+      <button onclick="switchMyTab('applies')" id="mytab-applies" style="background:none;border:none;color:var(--muted);padding:8px 16px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;">신청 (${myApplies.length})</button>
+      <button onclick="switchMyTab('comments')" id="mytab-comments" style="background:none;border:none;color:var(--muted);padding:8px 16px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;">댓글 (${myComments.length})</button>
+    </div>
+
+    <!-- 모집글 탭 -->
+    <div id="my-recruits">
+      ${myRecruits.length ? myRecruits.map(r=>`
+        <div style="padding:12px;background:var(--card);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;cursor:pointer;" onclick="closeModal('modal-myprofile');showTab('recruit');setTimeout(()=>openRecruit('${r.id}'),300)">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div style="font-size:14px;font-weight:600;">${r.title}</div>
+            <span class="rc-tag tag-${r.type}" style="font-size:11px;">${r.type}</span>
+          </div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px;">신청 ${(r.applies||[]).length}명 · 댓글 ${(r.comments||[]).length}개</div>
+        </div>`).join('') : '<div style="color:var(--muted);font-size:13px;padding:16px;text-align:center;">작성한 모집글이 없어요</div>'}
+    </div>
+
+    <!-- 신청 탭 -->
+    <div id="my-applies" style="display:none;">
+      ${myApplies.length ? myApplies.map(a=>`
+        <div style="padding:12px;background:var(--card);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;cursor:pointer;" onclick="closeModal('modal-myprofile');showTab('recruit');setTimeout(()=>openRecruit('${a.recruitId}'),300)">
+          <div style="font-size:14px;font-weight:600;">${a.recruitTitle}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">${a.time||''}</div>
+        </div>`).join('') : '<div style="color:var(--muted);font-size:13px;padding:16px;text-align:center;">신청한 모집이 없어요</div>'}
+    </div>
+
+    <!-- 댓글 탭 -->
+    <div id="my-comments" style="display:none;">
+      ${myComments.length ? myComments.map(c=>`
+        <div style="padding:12px;background:var(--card);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;cursor:pointer;" onclick="closeModal('modal-myprofile');showTab('recruit');setTimeout(()=>openRecruit('${c.recruitId}'),300)">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">${c.recruitTitle}</div>
+          <div style="font-size:13px;">${c.text}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">${c.time||''}</div>
+        </div>`).join('') : '<div style="color:var(--muted);font-size:13px;padding:16px;text-align:center;">작성한 댓글이 없어요</div>'}
+    </div>
+  `;
+
+  openModal('modal-myprofile');
+}
+
+function switchMyTab(tab) {
+  ['recruits','applies','comments'].forEach(t => {
+    const el = document.getElementById('my-'+t);
+    if(el) el.style.display = t===tab ? '' : 'none';
+    const btn = document.getElementById('mytab-'+t);
+    if(btn) {
+      btn.style.color = t===tab ? 'var(--gold-l)' : 'var(--muted)';
+      btn.style.borderBottom = t===tab ? '2px solid var(--gold)' : '2px solid transparent';
+      btn.style.fontWeight = t===tab ? '600' : '400';
+    }
+  });
+}
+
+// 현재 유저가 관리자 권한인지 확인
+function isAdmin() {
+  if(!currentUser) return false;
+  const m = members.find(x => x.nickname === currentUser.nickname);
+  const rank = m?.rank || currentUser.rank || '';
+  return rank === '군단장' || rank === '엘리트장교';
+}
+
+// 삭제 버튼 표시 여부 (본인 또는 관리자)
+function canDelete(authorNickname) {
+  if(!currentUser) return false;
+  return currentUser.nickname === authorNickname || isAdmin();
+}
+
+// 마지막 탭 복원// ─── 로그인/세션 ────────────────────────────
+
+
+function initLoginScreen() {
+  const saved = localStorage.getItem('dotae_user');
+  if(saved) {
+    try {
+      currentUser = JSON.parse(saved);
+      applyLogin();
+      return;
+    } catch(e) {}
+  }
+  // 로그인 화면 표시
+  document.getElementById('login-screen').style.display = 'flex';
+  document.querySelector('.header').style.display = 'none';
+  document.querySelector('.nav').style.display = 'none';
+  document.querySelector('.main').style.display = 'none';
+}
+
+function applyLogin() {
+  // 화면 복원
+  document.getElementById('login-screen').style.display = 'none';
+  document.querySelector('.header').style.display = '';
+  document.querySelector('.nav').style.display = '';
+  document.querySelector('.main').style.display = '';
+
+  // 헤더 유저 표시
+  const userEl = document.getElementById('header-user');
+  userEl.style.display = 'flex';
+  document.getElementById('header-username').textContent = currentUser.nickname;
+  document.getElementById('header-user-rank').textContent = currentUser.rank ? `(${currentUser.rank})` : '';
+  const avatar = document.getElementById('header-avatar');
+  if(currentUser.profile_img) {
+    avatar.innerHTML = `<img src="${currentUser.profile_img}" style="width:100%;height:100%;object-fit:cover;">`;
+  } else {
+    const cls = CLASS_MAP[currentUser.class]||currentUser.class||'';
+    avatar.innerHTML = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:14px;">${CLS_ICON[cls]||'👤'}</div>`;
+  }
+}
+
+function searchLoginMember(query) {
+  const suggest = document.getElementById('login-suggest');
+  const preview = document.getElementById('login-preview');
+  if(!query.trim()) { suggest.style.display='none'; preview.style.display='none'; return; }
+  const matched = members.filter(m =>
+    (m.nickname||'').toLowerCase().includes(query.toLowerCase())
+  ).slice(0, 8);
+  if(!matched.length) { suggest.style.display='none'; return; }
+  suggest.innerHTML = matched.map(m => {
+    const cls = CLASS_MAP[m.class]||m.class||'?';
+    const clsColor = CLS_COLOR[cls]||'var(--muted)';
+    const isSub = m.is_main === false;
+    return `<div onclick="selectLoginMember('${m.id}')"
+      style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);"
+      onmouseover="this.style.background='rgba(255,255,255,.05)'" onmouseout="this.style.background='transparent'">
+      ${m.profile_img?`<img src="${m.profile_img}" style="width:36px;height:36px;border-radius:50%;border:2px solid var(--gold-d);flex-shrink:0;">`:`<div style="width:36px;height:36px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">${CLS_ICON[cls]||'?'}</div>`}
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:14px;font-weight:700;">${m.nickname}${isSub?'<span style="font-size:10px;color:var(--muted);margin-left:4px;">[부캐]</span>':''}</div>
+        <div style="font-size:12px;color:${clsColor};margin-top:2px;">${CLS_ICON[cls]||''} ${cls} · 전투력 ${(m.combat_power||0).toLocaleString()}</div>
+        ${m.rank?`<div style="font-size:11px;color:var(--muted);">${m.rank}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+  suggest.style.display = 'block';
+}
+
+function selectLoginMember(memberId) {
+  const m = members.find(x => x.id === memberId);
+  if(!m) return;
+  document.getElementById('login-nickname').value = m.nickname;
+  document.getElementById('login-suggest').style.display = 'none';
+  const cls = CLASS_MAP[m.class]||m.class||'?';
+  const clsColor = CLS_COLOR[cls]||'var(--muted)';
+  const preview = document.getElementById('login-preview');
+  preview.style.display = 'block';
+  preview.innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;">
+      ${m.profile_img?`<img src="${m.profile_img}" style="width:44px;height:44px;border-radius:50%;border:2px solid var(--gold-d);">`:`<div style="width:44px;height:44px;border-radius:50%;background:var(--surface);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:20px;">${CLS_ICON[cls]||'?'}</div>`}
+      <div>
+        <div style="font-size:16px;font-weight:700;">${m.nickname}</div>
+        <div style="font-size:12px;color:${clsColor};">${CLS_ICON[cls]||''} ${cls} · ${m.rank||'군단병'}</div>
+        <div style="font-size:12px;color:var(--muted);">전투력 ${(m.combat_power||0).toLocaleString()} · 아이템레벨 ${m.item_level||'—'}</div>
+      </div>
+    </div>`;
+}
+
+function loginWithNickname() {
+  const nickname = document.getElementById('login-nickname').value.trim();
+  if(!nickname) { toast('닉네임을 입력해주세요'); return; }
+  // 등록된 멤버인지 확인
+  const m = members.find(x => x.nickname === nickname);
+  currentUser = m ? {
+    nickname: m.nickname, rank: m.rank||'', is_main: m.is_main,
+    combat_power: m.combat_power, item_level: m.item_level,
+    class: m.class, profile_img: m.profile_img||''
+  } : { nickname, rank: '', is_main: true, combat_power: 0, item_level: 0, class: '', profile_img: '' };
+  localStorage.setItem('dotae_user', JSON.stringify(currentUser));
+  applyLogin();
+  toast(`${nickname}으로 입장했어요! 😊`);
+}
+
+function logoutUser() {
+  currentUser = null;
+  localStorage.removeItem('dotae_user');
+  document.getElementById('header-user').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.querySelector('.header').style.display = 'none';
+  document.querySelector('.nav').style.display = 'none';
+  document.querySelector('.main').style.display = 'none';
+  document.getElementById('login-nickname').value = '';
+  document.getElementById('login-preview').style.display = 'none';
+  document.getElementById('login-register-form').style.display = 'none';
+}
+
+function showLoginRegister() {
+  const form = document.getElementById('login-register-form');
+  form.style.display = form.style.display === 'none' ? 'block' : 'none';
+  // 닉네임 자동 채우기
+  const nick = document.getElementById('login-nickname').value.trim();
+  if(nick) document.getElementById('login-reg-name').value = nick;
+}
+
+function toggleLoginSubFields(sel) {
+  const isSub = sel.value === 'false';
+  document.getElementById('login-player-id-group').style.display = isSub ? '' : 'none';
+  document.getElementById('login-rank-group').style.display = isSub ? 'none' : '';
+}
+
+async function loginFetchAndRegister() {
+  const nickname = document.getElementById('login-reg-name').value.trim();
+  const serverId = '2001';
+  const rank = document.getElementById('login-reg-rank').value;
+  const intro = document.getElementById('login-reg-intro').value.trim();
+  const isMainEl = document.getElementById('login-reg-is-main');
+  const isMain = isMainEl.value === 'true';
+  const playerIdEl = document.getElementById('login-reg-player-id');
+  const playerId = isMain ? nickname : (playerIdEl.value.trim() || nickname);
+
+  if(!nickname) { toast('닉네임을 입력해주세요'); return; }
+  if(!isMain && !playerIdEl.value.trim()) { toast('본캐 닉네임을 입력해주세요'); return; }
+
+  const btn = document.getElementById('login-fetch-btn');
+  const resultEl = document.getElementById('login-fetch-result');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> 불러오는 중...';
+
+  try {
+    const data = await fetchCharacterData(nickname, serverId);
+    const cls = CLASS_MAP[data.class] || data.class || '';
+    const finalRank = isMain ? rank : '';
+    await db.collection('members').doc(nickname+'_'+serverId).set({
+      nickname, server: serverId, rank: finalRank, intro,
+      is_main: isMain, player_id: playerId,
+      class: cls, level: data.level||0,
+      combat_power: data.combat_power||0, item_level: data.item_level||0,
+      equipment: data.equipment||[], stats: data.stats||[],
+      daevanion: data.daevanion||[], ranking: data.ranking||[],
+      server_name: data.server_name||'', guild_name: data.guild_name||'',
+      race: data.race||'', profile_img: data.profile_img||'',
+      character_id: data.characterId||'',
+      last_synced: new Date().toISOString(),
+      updated_at: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    // 자동 로그인
+    currentUser = { nickname, rank: finalRank, is_main: isMain, combat_power: data.combat_power||0, item_level: data.item_level||0, class: cls, profile_img: data.profile_img||'' };
+    localStorage.setItem('dotae_user', JSON.stringify(currentUser));
+    resultEl.innerHTML = `<span style="color:var(--green)">✓ 등록 완료! 입장합니다...</span>`;
+    setTimeout(() => applyLogin(), 800);
+  } catch(err) {
+    resultEl.innerHTML = `<span style="color:var(--red)">✗ ${err.message}</span>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '닉네임으로 스펙 불러와서 등록';
+  }
+}
+
+// ─── 내 정보 모달 ────────────────────────────
+function openMyProfile() {
+  if(!currentUser) return;
+  const m = members.find(x => x.nickname === currentUser.nickname);
+  const cls = m ? (CLASS_MAP[m.class]||m.class||'') : '';
+  const clsColor = cls ? (CLS_COLOR[cls]||'var(--muted)') : 'var(--muted)';
+
+  // 내가 쓴 모집글
+  const myRecruits = recruits.filter(r => r.author === currentUser.nickname);
+  // 내가 단 댓글
+  const myComments = [];
+  recruits.forEach(r => {
+    (r.comments||[]).forEach(c => {
+      if(c.nickname === currentUser.nickname) myComments.push({...c, recruitTitle: r.title, recruitId: r.id});
+    });
+  });
+  // 내가 신청한 모집
+  const myApplies = [];
+  recruits.forEach(r => {
+    (r.applies||[]).forEach(a => {
+      if(a.nickname === currentUser.nickname) myApplies.push({...a, recruitTitle: r.title, recruitId: r.id, recruitType: r.type});
+    });
+  });
+
+  const body = document.getElementById('myprofile-body');
+  body.innerHTML = `
+    <!-- 프로필 헤더 -->
+    <div style="display:flex;align-items:center;gap:14px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;">
+      ${m?.profile_img?`<img src="${m.profile_img}" style="width:64px;height:64px;border-radius:50%;border:2px solid var(--gold-d);flex-shrink:0;">`:`<div style="width:64px;height:64px;border-radius:50%;background:var(--card);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;">${CLS_ICON[cls]||'👤'}</div>`}
+      <div style="flex:1;">
+        <div style="font-size:20px;font-weight:700;">${currentUser.nickname}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:3px;">${cls?`${CLS_ICON[cls]||''} ${cls} · `:''}${currentUser.rank||'계급 없음'}</div>
+        ${m?.intro?`<div style="font-size:13px;color:var(--text);margin-top:6px;padding:8px;background:var(--card);border-radius:6px;">${m.intro}</div>`:''}
+      </div>
+      ${m?`<div style="display:flex;gap:10px;flex-shrink:0;">
+        <div style="text-align:center;padding:8px 14px;background:var(--card);border:1px solid var(--border);border-radius:8px;">
+          <div style="font-size:10px;color:var(--muted);">전투력</div>
+          <div style="font-size:17px;font-weight:700;color:var(--gold-l);">${(m.combat_power||0).toLocaleString()}</div>
+        </div>
+        <div style="text-align:center;padding:8px 14px;background:var(--card);border:1px solid var(--border);border-radius:8px;">
+          <div style="font-size:10px;color:var(--muted);">아이템레벨</div>
+          <div style="font-size:17px;font-weight:700;color:var(--gold-l);">${m.item_level||'—'}</div>
+        </div>
+      </div>`:''}
+    </div>
+
+    ${m?`<button class="btn btn-primary btn-sm" style="margin-bottom:16px;" onclick="closeModal('modal-myprofile');openDetailById('${m.id}')">상세 스펙 보기 →</button>`:''}
+
+    <!-- 탭 -->
+    <div style="display:flex;gap:0;margin-bottom:14px;border-bottom:2px solid var(--border);">
+      <button onclick="switchMyTab('recruits')" id="mytab-recruits" style="background:none;border:none;color:var(--gold-l);padding:8px 16px;font-size:13px;cursor:pointer;border-bottom:2px solid var(--gold);margin-bottom:-2px;font-weight:600;">모집글 (${myRecruits.length})</button>
+      <button onclick="switchMyTab('applies')" id="mytab-applies" style="background:none;border:none;color:var(--muted);padding:8px 16px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;">신청 (${myApplies.length})</button>
+      <button onclick="switchMyTab('comments')" id="mytab-comments" style="background:none;border:none;color:var(--muted);padding:8px 16px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;">댓글 (${myComments.length})</button>
+    </div>
+
+    <!-- 모집글 탭 -->
+    <div id="my-recruits">
+      ${myRecruits.length ? myRecruits.map(r=>`
+        <div style="padding:12px;background:var(--card);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;cursor:pointer;" onclick="closeModal('modal-myprofile');showTab('recruit');setTimeout(()=>openRecruit('${r.id}'),300)">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div style="font-size:14px;font-weight:600;">${r.title}</div>
+            <span class="rc-tag tag-${r.type}" style="font-size:11px;">${r.type}</span>
+          </div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px;">신청 ${(r.applies||[]).length}명 · 댓글 ${(r.comments||[]).length}개</div>
+        </div>`).join('') : '<div style="color:var(--muted);font-size:13px;padding:16px;text-align:center;">작성한 모집글이 없어요</div>'}
+    </div>
+
+    <!-- 신청 탭 -->
+    <div id="my-applies" style="display:none;">
+      ${myApplies.length ? myApplies.map(a=>`
+        <div style="padding:12px;background:var(--card);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;cursor:pointer;" onclick="closeModal('modal-myprofile');showTab('recruit');setTimeout(()=>openRecruit('${a.recruitId}'),300)">
+          <div style="font-size:14px;font-weight:600;">${a.recruitTitle}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">${a.time||''}</div>
+        </div>`).join('') : '<div style="color:var(--muted);font-size:13px;padding:16px;text-align:center;">신청한 모집이 없어요</div>'}
+    </div>
+
+    <!-- 댓글 탭 -->
+    <div id="my-comments" style="display:none;">
+      ${myComments.length ? myComments.map(c=>`
+        <div style="padding:12px;background:var(--card);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;cursor:pointer;" onclick="closeModal('modal-myprofile');showTab('recruit');setTimeout(()=>openRecruit('${c.recruitId}'),300)">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">${c.recruitTitle}</div>
+          <div style="font-size:13px;">${c.text}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">${c.time||''}</div>
+        </div>`).join('') : '<div style="color:var(--muted);font-size:13px;padding:16px;text-align:center;">작성한 댓글이 없어요</div>'}
+    </div>
+  `;
+
+  openModal('modal-myprofile');
+}
+
+function switchMyTab(tab) {
+  ['recruits','applies','comments'].forEach(t => {
+    const el = document.getElementById('my-'+t);
+    if(el) el.style.display = t===tab ? '' : 'none';
+    const btn = document.getElementById('mytab-'+t);
+    if(btn) {
+      btn.style.color = t===tab ? 'var(--gold-l)' : 'var(--muted)';
+      btn.style.borderBottom = t===tab ? '2px solid var(--gold)' : '2px solid transparent';
+      btn.style.fontWeight = t===tab ? '600' : '400';
+    }
+  });
+}
+
+// 현재 유저가 관리자 권한인지 확인
+function isAdmin() {
+  if(!currentUser) return false;
+  const m = members.find(x => x.nickname === currentUser.nickname);
+  const rank = m?.rank || currentUser.rank || '';
+  return rank === '군단장' || rank === '엘리트장교';
+}
+
+// 삭제 버튼 표시 여부 (본인 또는 관리자)
+function canDelete(authorNickname) {
+  if(!currentUser) return false;
+  return currentUser.nickname === authorNickname || isAdmin();
+}
+
+// 마지막 탭 복원
 // 초기 정렬 아이콘
 setTimeout(() => {
   const el = document.getElementById('sort-rank');
