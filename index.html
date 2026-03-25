@@ -98,7 +98,7 @@
   .search-box:focus { border-color:var(--gold-d); }
 
   /* 모집 카드 */
-  .recruit-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:14px; }
+  .#recruit-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(480px,1fr)); gap:14px; }
   .rc { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:16px; transition:border-color .15s; }
   .rc:hover { border-color:var(--gold-d); }
   .rc-head { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; }
@@ -108,10 +108,10 @@
   .tag-던전   { background:#1a1a2a; color:#7a9ae0; border:1px solid #2a2a4a; }
   .tag-PvP    { background:#2a1a1a; color:#e07070; border:1px solid #4a2a2a; }
   .rc-meta { font-size:12px; color:var(--muted); margin-bottom:10px; }
-  .rc-reqs { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+  .rc-reqs { display:flex; flex-wrap:nowrap; gap:6px; margin-bottom:12px; overflow-x:auto; }
   .req-item { font-size:11px; background:var(--surface); border:1px solid var(--border); padding:3px 8px; border-radius:4px; }
-  .rc-foot { display:flex; justify-content:space-between; align-items:center; }
-  .rc-author { font-size:12px; color:var(--muted); }
+  .rc-foot { display:flex; justify-content:space-between; align-items:center; flex-wrap:nowrap; gap:8px; }
+  .rc-author { font-size:12px; color:var(--muted); white-space:nowrap; }
   .slots-open { color:var(--green); font-size:12px; font-weight:600; }
   .slots-full { color:var(--red);   font-size:12px; }
 
@@ -1553,9 +1553,9 @@ function renderRecruit() {
               return String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
             })()}</span>
             <div style="display:flex;align-items:center;gap:8px">
-              <span class="${r.slots>0?'slots-open':'slots-full'}">${r.slots>0?'모집중 '+r.slots+'자리':'마감'}</span>
-              <button class="btn btn-sm" onclick="openRecruit('${r.id}')">상세보기</button>
-              ${canDelete(r.author)?`<button class="btn btn-sm btn-danger" onclick="deleteRecruit('${r.id}')">삭제</button>`:''}
+              <span class="${r.slots>0?'slots-open':'slots-full'}" style="white-space:nowrap;">${r.slots>0?'모집중 '+r.slots+'자리':'마감'}</span>
+              <button class="btn btn-sm" style="white-space:nowrap;" onclick="openRecruit('${r.id}')">상세보기</button>
+              ${canDelete(r.author)?`<button class="btn btn-sm btn-danger" style="white-space:nowrap;" onclick="deleteRecruit('${r.id}')">삭제</button>`:''}
             </div>
           </div>
         </div>`).join('')
