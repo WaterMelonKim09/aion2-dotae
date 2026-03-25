@@ -382,7 +382,14 @@
       <div class="logo-sub">레기온 관리 시스템</div>
     </div>
   </div>
-  <span class="online-badge" id="online-badge">● 로딩 중...</span>
+  <div id="header-user" style="display:none;align-items:center;gap:8px;">
+    <div style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 10px;border:1px solid var(--border);border-radius:20px;background:var(--card);" onclick="openMyProfile()">
+      <div id="header-avatar" style="width:26px;height:26px;border-radius:50%;background:var(--surface);border:1px solid var(--gold-d);overflow:hidden;flex-shrink:0;"></div>
+      <span id="header-username" style="font-size:13px;font-weight:600;color:var(--gold-l);"></span>
+      <span id="header-user-rank" style="font-size:11px;color:var(--muted);"></span>
+    </div>
+    <button onclick="logoutUser()" style="font-size:11px;padding:4px 10px;background:none;border:1px solid var(--border);border-radius:16px;color:var(--muted);cursor:pointer;">변경</button>
+  </div>
 </div>
 
 <div class="nav">
@@ -661,7 +668,11 @@
   <div class="modal" style="max-width:600px;max-height:85vh;overflow-y:auto;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
       <div class="modal-title" style="margin:0" id="rd-title">파티 모집 상세</div>
-      <button class="btn btn-sm" onclick="closeModal('modal-recruit-detail')">닫기</button>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <span id="rd-edit-btn" style="display:none;"><button class="btn btn-sm" onclick="openRecruitEdit()">수정</button></span>
+        <span id="rd-delete-btn" style="display:none;"><button class="btn btn-sm btn-danger" onclick="deleteCurrentRecruit()">삭제</button></span>
+        <button class="btn btn-sm" onclick="closeModal('modal-recruit-detail')">닫기</button>
+      </div>
     </div>
     <div id="rd-body"></div>
 
@@ -1632,6 +1643,12 @@ async function openRecruit(id) {
   // 댓글 목록
   renderCommentList(id);
 
+  // 수정/삭제 버튼 표시
+  const editBtn = document.getElementById('rd-edit-btn');
+  const deleteBtn = document.getElementById('rd-delete-btn');
+  if(editBtn) editBtn.style.display = canDelete(r.author) ? '' : 'none';
+  if(deleteBtn) deleteBtn.style.display = canDelete(r.author) ? '' : 'none';
+
   openModal('modal-recruit-detail');
 }
 
@@ -1654,11 +1671,83 @@ function renderApplyList(recruitId) {
           </div>
           <div style="display:flex;align-items:center;gap:6px;">
             <span style="font-size:11px;color:var(--muted);">${a.time||''}</span>
-            ${canDelete(a.nickname)?`<button onclick="cancelApply(${i})" style="font-size:10px;padding:2px 7px;background:none;border:1px solid var(--red);border-radius:4px;color:var(--red);cursor:pointer;">취소</button>`:''}
+            ${(canDelete(a.nickname) || canDeleteAsAuthor())?`<button onclick="cancelApply(${i})" style="font-size:10px;padding:2px 7px;background:none;border:1px solid var(--red);border-radius:4px;color:var(--red);cursor:pointer;">취소</button>`:''}
           </div>
         </div>`;
       }).join('')
     : '<div style="font-size:12px;color:var(--muted);">신청자가 없어요</div>';
+}
+
+function canDeleteAsAuthor() {
+  if(!currentUser || !currentRecruitId) return false;
+  const r = recruits.find(x => x.id === currentRecruitId);
+  return r && r.author === currentUser.nickname;
+}
+
+async function deleteCurrentRecruit() {
+  if(!confirm('모집글을 삭제할까요?')) return;
+  await db.collection('recruits').doc(currentRecruitId).delete();
+  closeModal('modal-recruit-detail');
+  toast('모집글이 삭제되었어요');
+}
+
+function openRecruitEdit() {
+  const r = recruits.find(x => x.id === currentRecruitId);
+  if(!r) return;
+
+  // 수정 폼을 rd-body에 렌더링
+  document.getElementById('rd-body').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div class="form-group">
+        <label class="form-label">제목 *</label>
+        <input class="form-input" id="edit-title" value="${r.title||''}">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">유형</label>
+          <select class="form-select" id="edit-type">
+            ${['레이드','던전','어비스','기타'].map(t=>`<option value="${t}" ${r.type===t?'selected':''}>${t}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">모집 인원</label>
+          <input class="form-input" type="number" id="edit-slots" value="${r.slots||4}" min="1" max="24">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">일정</label>
+        <input class="form-input" id="edit-schedule" value="${r.schedule||''}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">최소 전투력</label>
+        <input class="form-input" id="edit-cp" value="${r.min_cp||''}" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,',')">
+      </div>
+      <div class="form-group">
+        <label class="form-label">상세 내용</label>
+        <textarea class="form-input" id="edit-desc" rows="4" style="resize:vertical;">${r.desc||''}</textarea>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <button class="btn btn-primary" style="flex:1;" onclick="saveRecruitEdit()">저장</button>
+        <button class="btn" onclick="openRecruit('${r.id}')">취소</button>
+      </div>
+    </div>`;
+}
+
+async function saveRecruitEdit() {
+  const r = recruits.find(x => x.id === currentRecruitId);
+  if(!r) return;
+  const title = document.getElementById('edit-title').value.trim();
+  if(!title) { toast('제목을 입력해주세요'); return; }
+  await db.collection('recruits').doc(currentRecruitId).update({
+    title,
+    type:     document.getElementById('edit-type').value,
+    slots:    parseInt(document.getElementById('edit-slots').value)||4,
+    schedule: document.getElementById('edit-schedule').value.trim(),
+    min_cp:   document.getElementById('edit-cp').value.trim(),
+    desc:     document.getElementById('edit-desc').value.trim(),
+  });
+  toast('수정되었어요 ✓');
+  openRecruit(currentRecruitId);
 }
 
 async function cancelApply(index) {
@@ -2134,7 +2223,24 @@ function initLoginScreen() {
   const saved = localStorage.getItem('dotae_user');
   if(saved) {
     try {
-      currentUser = JSON.parse(saved);
+      const savedUser = JSON.parse(saved);
+      // Firebase에서 최신 멤버 정보로 갱신
+      const m = members.find(x => x.nickname === savedUser.nickname);
+      if(m) {
+        currentUser = {
+          nickname: m.nickname,
+          rank: m.rank || '',
+          is_main: m.is_main,
+          combat_power: m.combat_power || 0,
+          item_level: m.item_level || 0,
+          class: m.class || '',
+          profile_img: m.profile_img || '',
+        };
+        localStorage.setItem('dotae_user', JSON.stringify(currentUser));
+      } else {
+        // 등록 안 된 유저는 저장된 값 그대로 사용
+        currentUser = savedUser;
+      }
       applyLogin();
       return;
     } catch(e) {}
@@ -2554,7 +2660,24 @@ function initLoginScreen() {
   const saved = localStorage.getItem('dotae_user');
   if(saved) {
     try {
-      currentUser = JSON.parse(saved);
+      const savedUser = JSON.parse(saved);
+      // Firebase에서 최신 멤버 정보로 갱신
+      const m = members.find(x => x.nickname === savedUser.nickname);
+      if(m) {
+        currentUser = {
+          nickname: m.nickname,
+          rank: m.rank || '',
+          is_main: m.is_main,
+          combat_power: m.combat_power || 0,
+          item_level: m.item_level || 0,
+          class: m.class || '',
+          profile_img: m.profile_img || '',
+        };
+        localStorage.setItem('dotae_user', JSON.stringify(currentUser));
+      } else {
+        // 등록 안 된 유저는 저장된 값 그대로 사용
+        currentUser = savedUser;
+      }
       applyLogin();
       return;
     } catch(e) {}
@@ -2847,7 +2970,24 @@ function initLoginScreen() {
   const saved = localStorage.getItem('dotae_user');
   if(saved) {
     try {
-      currentUser = JSON.parse(saved);
+      const savedUser = JSON.parse(saved);
+      // Firebase에서 최신 멤버 정보로 갱신
+      const m = members.find(x => x.nickname === savedUser.nickname);
+      if(m) {
+        currentUser = {
+          nickname: m.nickname,
+          rank: m.rank || '',
+          is_main: m.is_main,
+          combat_power: m.combat_power || 0,
+          item_level: m.item_level || 0,
+          class: m.class || '',
+          profile_img: m.profile_img || '',
+        };
+        localStorage.setItem('dotae_user', JSON.stringify(currentUser));
+      } else {
+        // 등록 안 된 유저는 저장된 값 그대로 사용
+        currentUser = savedUser;
+      }
       applyLogin();
       return;
     } catch(e) {}
