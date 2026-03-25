@@ -636,8 +636,7 @@ window.onerror = function(msg, src, line, col, err) {
           <input type="date" id="recruit-date-from" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px 8px;font-size:12px;" onchange="renderRecruit()">
           <span style="color:var(--muted);font-size:12px;">~</span>
           <input type="date" id="recruit-date-to" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px 8px;font-size:12px;" onchange="renderRecruit()">
-          <button class="btn btn-sm" onclick="document.getElementById('recruit-date-from').value='';document.getElementById('recruit-date-to').value='';renderRecruit()">초기화</button>
-        </div>
+          </div>
         <button class="btn btn-primary" onclick="openModal('modal-recruit')">+ 모집 등록</button>
       </div>
     </div>
@@ -829,6 +828,7 @@ window.onerror = function(msg, src, line, col, err) {
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
       <div class="modal-title" style="margin:0" id="rd-title">파티 모집 상세</div>
       <div style="display:flex;gap:6px;align-items:center;">
+        <span id="rd-close-btn" style="display:none;"><button class="btn btn-sm" id="rd-close-btn-inner" onclick="completeRecruit()">모집 완료</button></span>
         <span id="rd-edit-btn" style="display:none;"><button class="btn btn-sm" onclick="openRecruitEdit()">수정</button></span>
         <span id="rd-delete-btn" style="display:none;"><button class="btn btn-sm btn-danger" onclick="deleteCurrentRecruit()">삭제</button></span>
         <button class="btn btn-sm" onclick="closeModal('modal-recruit-detail')">닫기</button>
@@ -1786,15 +1786,24 @@ function openRecruit(id) {
   const closeBtn = document.getElementById('rd-close-btn');
   if(editBtn) editBtn.style.display = canDelete(r.author)?'':'none';
   if(delBtn) delBtn.style.display = canDelete(r.author)?'':'none';
-  if(closeBtn) {
-    closeBtn.style.display = canDelete(r.author) ? '' : 'none';
-    closeBtn.textContent = r.slots === 0 ? '✓ 모집 완료' : '모집 완료';
-    closeBtn.style.background = r.slots === 0 ? 'rgba(0,200,138,.15)' : '';
-    closeBtn.style.color = r.slots === 0 ? 'var(--gold-l)' : '';
-    closeBtn.style.borderColor = r.slots === 0 ? 'var(--gold-d)' : '';
-    closeBtn.onclick = r.slots === 0
-      ? function() { reopenRecruit(); }
-      : function() { completeRecruit(); };
+  // rd-close-btn span + inner button 처리
+  const closeSpan = document.getElementById('rd-close-btn');
+  const closeInner = document.getElementById('rd-close-btn-inner');
+  if(closeSpan) closeSpan.style.display = canDelete(r.author) ? '' : 'none';
+  if(closeInner) {
+    if(r.slots === 0) {
+      closeInner.textContent = '✓ 모집 완료';
+      closeInner.style.background = 'rgba(0,200,138,.15)';
+      closeInner.style.color = 'var(--gold-l)';
+      closeInner.style.borderColor = 'var(--gold-d)';
+      closeInner.onclick = function() { reopenRecruit(); };
+    } else {
+      closeInner.textContent = '모집 완료';
+      closeInner.style.background = '';
+      closeInner.style.color = '';
+      closeInner.style.borderColor = '';
+      closeInner.onclick = function() { completeRecruit(); };
+    }
   }
 
   const applies = r.applies||[];
