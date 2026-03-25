@@ -60,6 +60,7 @@ module.exports = async function handler(req, res) {
         exceed:      e.exceedLevel || 0,
         grade:       e.grade || '',
         icon:        e.icon || '',
+        itemId:      e.itemId || e.id || 0,
         itemLevel:   e.itemLevel || 0,
         setName:     e.setItemName || '',
         itemStats:   (e.itemStat && e.itemStat.statList) ? e.itemStat.statList : [],
@@ -129,3 +130,5 @@ module.exports = async function handler(req, res) {
     res.status(500).json({ error: '조회 실패', detail: err.message });
   }
 }
+
+// 아이템 상세 조회 핸들러는 별도 파일로 분리
