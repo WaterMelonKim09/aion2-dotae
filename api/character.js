@@ -54,25 +54,34 @@ module.exports = async function handler(req, res) {
       };
     };
 
-    // 펫/날개 - petwing 키에서 추출
+    // 펫/날개 - petwing.pet / petwing.wing 직접 접근
     var petData  = null;
     var wingData = null;
-    if (petwing) {
-      var pwList = petwing.petwingList || petwing.equipmentList || (Array.isArray(petwing) ? petwing : []);
-      pwList.forEach(function(e) {
-        var slot = (e.slotPosName || e.slot || '').toLowerCase();
-        if (slot === 'pet' || slot.indexOf('pet') !== -1) petData = mapEquip(e);
-        else if (slot === 'wing' || slot.indexOf('wing') !== -1) wingData = mapEquip(e);
-      });
-      // 리스트 없이 직접 pet/wing 키가 있는 경우
-      if (!petData  && petwing.pet)  petData  = { name: petwing.pet.name||'', icon: petwing.pet.icon||'', grade: petwing.pet.grade||'', slot:'Pet', enchant:0, exceed:0 };
-      if (!wingData && petwing.wing) wingData = { name: petwing.wing.name||'', icon: petwing.wing.icon||'', grade: petwing.wing.grade||'', slot:'Wing', enchant:0, exceed:0 };
+    if (petwing && petwing.pet) {
+      petData = {
+        name: petwing.pet.name || '',
+        icon: petwing.pet.icon || '',
+        grade: petwing.pet.grade || '',
+        level: petwing.pet.level || 0,
+        slot: 'Pet', enchant: 0, exceed: 0
+      };
+    }
+    if (petwing && petwing.wing) {
+      var w = petwing.wingSkin || petwing.wing; // 스킨 있으면 스킨 아이콘 사용
+      wingData = {
+        name: petwing.wing.name || '',
+        icon: w.icon || petwing.wing.icon || '',
+        grade: petwing.wing.grade || '',
+        enchant: petwing.wing.enchantLevel || 0,
+        slot: 'Wing', exceed: 0,
+        skinName: petwing.wingSkin ? petwing.wingSkin.name : ''
+      };
     }
 
-    // 스킬 데이터
+    // 스킬 데이터 - equip:1인 것만 (장착된 스킬)
     var skillList = [];
-    if (skillData) {
-      skillList = skillData.skillList || skillData.skills || skillData.list || (Array.isArray(skillData) ? skillData : []);
+    if (skillData && skillData.skillList) {
+      skillList = skillData.skillList; // 전체 스킬 (equip 여부 포함)
     }
 
     var statList = (infoData && infoData.stat && infoData.stat.statList) ? infoData.stat.statList : [];
