@@ -678,9 +678,9 @@ window.onerror = function(msg, src, line, col, err) {
 
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
           <span style="font-size:13px;">볼륨</span>
-          <span id="vol-label" style="font-size:13px;color:var(--gold-l);font-weight:600;">100%</span>
+          <span id="vol-label" style="font-size:13px;color:var(--gold-l);font-weight:600;">150%</span>
         </div>
-        <input type="range" id="vol-slider" min="0" max="100" value="80"
+        <input type="range" id="vol-slider" min="0" max="200" value="150"
           oninput="updateVolume(this.value)"
           style="width:100%;accent-color:var(--gold);cursor:pointer;margin-bottom:16px;">
 
@@ -2499,21 +2499,21 @@ function initLoginScreen() {
   }
   // 로그인 화면 표시
   document.getElementById('login-screen').style.display = 'flex';
-  document.querySelector('.header').style.visibility = 'hidden';
-  document.querySelector('.nav').style.visibility = 'hidden';
-  var mainEl2 = document.querySelector('.main') || document.querySelector('.content'); if(mainEl2) mainEl2.style.visibility = 'hidden';
+  document.querySelector('.header').style.display = 'none';
+  document.querySelector('.nav').style.display = 'none';
+  var mainEl2 = document.querySelector('.content'); if(mainEl2) mainEl2.style.display = 'none';
 }
 
 function applyLogin() {
   // 화면 복원
   document.getElementById('login-screen').style.display = 'none';
-  document.querySelector('.header').style.visibility = 'visible';
-  document.querySelector('.nav').style.visibility = 'visible';
-  var mainEl = document.querySelector('.main') || document.querySelector('.content'); if(mainEl) mainEl.style.visibility = 'visible';
+  document.querySelector('.header').style.display = '';
+  document.querySelector('.nav').style.display = '';
+  var mainEl = document.querySelector('.content'); if(mainEl) mainEl.style.display = '';
 
   // 헤더 유저 표시
   const userEl = document.getElementById('header-user');
-  if(userEl) userEl.style.visibility = 'visible';
+  if(userEl) userEl.style.display = 'flex';
   var unEl = document.getElementById('header-username'); if(unEl) unEl.textContent = currentUser.nickname;
   var urEl = document.getElementById('header-user-rank'); if(urEl) urEl.textContent = currentUser.rank ? '('+currentUser.rank+')' : '';
   const avatar = document.getElementById('header-avatar');
@@ -2596,9 +2596,9 @@ function logoutUser() {
   localStorage.removeItem('dotae_user');
   document.getElementById('header-user').style.visibility = 'hidden';
   document.getElementById('login-screen').style.display = 'flex';
-  document.querySelector('.header').style.visibility = 'hidden';
-  document.querySelector('.nav').style.visibility = 'hidden';
-  var mainEl2 = document.querySelector('.main') || document.querySelector('.content'); if(mainEl2) mainEl2.style.visibility = 'hidden';
+  document.querySelector('.header').style.display = 'none';
+  document.querySelector('.nav').style.display = 'none';
+  var mainEl2 = document.querySelector('.content'); if(mainEl2) mainEl2.style.display = 'none';
   document.getElementById('login-nickname').value = '';
   document.getElementById('login-preview').style.display = 'none';
   document.getElementById('login-register-form').style.display = 'none';
