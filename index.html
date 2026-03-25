@@ -1286,6 +1286,8 @@ function renderMembers() {
   const rankLabel = r => rankMigrate(r) || '군단병';
   const fmtTime = iso => { if(!iso) return '—'; const d=new Date(iso); return `${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
   const gradeColors = {Common:'#aaaaaa',Rare:'#4a90e8',Hero:'#d44040',Epic:'#d44040',Unique:'#e8c030',Legendary:'#ff6a20',Special:'#40d4c0'};
+  const EQUIP1_SLOTS = _EQ1;
+  const EQUIP2_SLOTS = _EQ2;
   const equips = eq => (eq||[]).slice(0,3).map(e=>
     `<div class="equip-item grade-${e.grade||''}" style="border-color:${gradeColors[e.grade]||'#555'}88;">
       ${e.icon?`<img src="${e.icon}" onerror="this.style.display='none'">`:''}
