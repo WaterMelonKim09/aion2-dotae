@@ -460,13 +460,15 @@
     <div class="table-wrap">
       <table>
         <thead><tr>
-  <th><span onclick="setSortBy('nickname')" style="cursor:pointer;user-select:none;white-space:nowrap;">닉네임 <span id="sort-nickname"></span></span></th>
-  <th><span onclick="setSortBy('class')" style="cursor:pointer;user-select:none;white-space:nowrap;">직업 <span id="sort-class"></span></span></th>
-  <th><span onclick="setSortBy('rank')" style="cursor:pointer;user-select:none;white-space:nowrap;">계급 <span id="sort-rank"></span></span></th>
-  <th style="white-space:nowrap;min-width:90px;"><span onclick="setSortBy('combat_power')" style="cursor:pointer;user-select:none;white-space:nowrap;">전투력&nbsp;<span id="sort-combat_power"></span></span></th>
-  <th style="white-space:nowrap;"><span onclick="setSortBy('item_level')" style="cursor:pointer;user-select:none;white-space:nowrap;">아이템레벨 <span id="sort-item_level"></span></span></th>
-  <th style="white-space:nowrap;"><span onclick="setSortBy('abyss_rank')" style="cursor:pointer;user-select:none;white-space:nowrap;">어비스 <span id="sort-abyss_rank"></span></span></th>
-  <th>장비</th><th>갱신</th><th>관리</th>
+  <th style="white-space:nowrap;width:100px;"><span onclick="setSortBy('nickname')" style="cursor:pointer;user-select:none;">닉네임 <span id="sort-nickname"></span></span></th>
+  <th style="white-space:nowrap;width:110px;"><span onclick="setSortBy('class')" style="cursor:pointer;user-select:none;">직업 <span id="sort-class"></span></span></th>
+  <th style="white-space:nowrap;width:90px;"><span onclick="setSortBy('rank')" style="cursor:pointer;user-select:none;">계급 <span id="sort-rank"></span></span></th>
+  <th style="white-space:nowrap;width:100px;"><span onclick="setSortBy('combat_power')" style="cursor:pointer;user-select:none;">전투력 <span id="sort-combat_power"></span></span></th>
+  <th style="white-space:nowrap;width:80px;"><span onclick="setSortBy('item_level')" style="cursor:pointer;user-select:none;">아이템레벨 <span id="sort-item_level"></span></span></th>
+  <th style="white-space:nowrap;width:80px;"><span onclick="setSortBy('abyss_rank')" style="cursor:pointer;user-select:none;">어비스 <span id="sort-abyss_rank"></span></span></th>
+  <th>장비</th>
+  <th style="white-space:nowrap;width:100px;">갱신</th>
+  <th style="white-space:nowrap;width:80px;">관리</th>
 </tr></thead>
         <tbody id="member-body"></tbody>
       </table>
@@ -2297,17 +2299,17 @@ function initLoginScreen() {
   }
   // 로그인 화면 표시
   document.getElementById('login-screen').style.display = 'flex';
-  document.querySelector('.header').style.display = 'none';
-  document.querySelector('.nav').style.display = 'none';
-  document.querySelector('.main').style.display = 'none';
+  document.querySelector('.header').style.visibility = 'hidden';
+  document.querySelector('.nav').style.visibility = 'hidden';
+  document.querySelector('.main').style.visibility = 'hidden';
 }
 
 function applyLogin() {
   // 화면 복원
   document.getElementById('login-screen').style.display = 'none';
-  document.querySelector('.header').style.display = '';
-  document.querySelector('.nav').style.display = '';
-  document.querySelector('.main').style.display = '';
+  document.querySelector('.header').style.visibility = 'visible';
+  document.querySelector('.nav').style.visibility = 'visible';
+  document.querySelector('.main').style.visibility = 'visible';
 
   // 헤더 유저 표시
   const userEl = document.getElementById('header-user');
@@ -2394,9 +2396,9 @@ function logoutUser() {
   localStorage.removeItem('dotae_user');
   document.getElementById('header-user').style.visibility = 'hidden';
   document.getElementById('login-screen').style.display = 'flex';
-  document.querySelector('.header').style.display = 'none';
-  document.querySelector('.nav').style.display = 'none';
-  document.querySelector('.main').style.display = 'none';
+  document.querySelector('.header').style.visibility = 'hidden';
+  document.querySelector('.nav').style.visibility = 'hidden';
+  document.querySelector('.main').style.visibility = 'hidden';
   document.getElementById('login-nickname').value = '';
   document.getElementById('login-preview').style.display = 'none';
   document.getElementById('login-register-form').style.display = 'none';
