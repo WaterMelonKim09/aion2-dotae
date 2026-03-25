@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><polygon points='50,5 95,27 95,73 50,95 5,73 5,27' fill='%23111318' stroke='%2300c88a' stroke-width='6'/><polygon points='50,20 80,36 80,64 50,80 20,64 20,36' fill='none' stroke='%2300ffa3' stroke-width='3' opacity='0.5'/><polygon points='50,35 65,43 65,57 50,65 35,57 35,43' fill='%2300c88a'/></svg>">
 <title>아이온2 도태 — 레기온 관리</title>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js" crossorigin="anonymous"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js" crossorigin="anonymous"></script>
 <style>
   :root {
     --bg:#0d0f14; --surface:#151820; --card:#1a1e28; --border:#2a2f3d;
@@ -402,11 +402,11 @@
 
 <div class="nav">
   <button class="nav-btn" onclick="showTab('notice')">📢 공지/패치</button>
-  <button class="nav-btn active" onclick="showTab('dashboard')">대시보드</button>
-  <button class="nav-btn" onclick="showTab('members')">멤버 스펙</button>
-  <button class="nav-btn" onclick="showTab('recruit')">파티 모집</button>
-  <button class="nav-btn" onclick="showTab('timer')">슈고 타이머</button>
-  <button class="nav-btn" onclick="showTab('register')">멤버 등록</button>
+  <button class="nav-btn active" onclick="showTab('dashboard')">🏠 대시보드</button>
+  <button class="nav-btn" onclick="showTab('members')">⚔ 멤버 스펙</button>
+  <button class="nav-btn" onclick="showTab('recruit')">🛡 파티 모집</button>
+  <button class="nav-btn" onclick="showTab('timer')">🐹 슈고 타이머</button>
+  <button class="nav-btn" onclick="showTab('register')">✚ 멤버 등록</button>
 </div>
 
 <div class="content">
@@ -950,8 +950,9 @@ function initFirebase() {
     if(loadingEl && loadingEl.style.display !== 'none') {
       loadingEl.style.display = 'none';
       initLoginScreen();
+      toast('데이터 로딩 실패. 새로고침을 시도해주세요.');
     }
-  }, 5000);
+  }, 8000);
   migrateRanks(); // 구버전 계급 자동 변환
   initBossTimers(); // 슈고 타이머 구독
   db.collection('members').orderBy('combat_power','desc')
@@ -2933,7 +2934,7 @@ function speakShugo() {
     st.style.color = 'var(--gold-l)';
     setTimeout(() => {
       if(st) { st.textContent = '다음 슈고 대기 중'; st.style.background='var(--surface)'; st.style.borderColor='var(--border)'; st.style.color='var(--muted)'; }
-    }, 5000);
+    }, 3000);
   }
 }
 
