@@ -2457,13 +2457,13 @@ function initBossTimers() {
       // 리젠 알림
       if(remaining > 0 && remaining < 1100 && Notification.permission === 'granted') {
         const boss = BOSSES.find(x => x.id === b.id);
-        new Notification(`🔔 ${(boss && boss.name ? boss.name : '')} 리젠 임박!`, { body: '곧 스폰됩니다!' });
+        if(typeof Notification !== 'undefined') new Notification('🔔 리젠 임박!', { body: '곧 스폰됩니다!' });
       }
     });
   }, 1000);
 
   // 알림 권한 요청
-  if(Notification.permission === 'default') {
+  if(typeof Notification !== 'undefined' && Notification.permission === 'default') {
     Notification.requestPermission();
   }
 }
@@ -2501,7 +2501,7 @@ function initLoginScreen() {
   document.getElementById('login-screen').style.display = 'flex';
   document.querySelector('.header').style.visibility = 'hidden';
   document.querySelector('.nav').style.visibility = 'hidden';
-  document.querySelector('.main').style.visibility = 'hidden';
+  var mainEl2 = document.querySelector('.main') || document.querySelector('.content'); if(mainEl2) mainEl2.style.visibility = 'hidden';
 }
 
 function applyLogin() {
@@ -2509,7 +2509,7 @@ function applyLogin() {
   document.getElementById('login-screen').style.display = 'none';
   document.querySelector('.header').style.visibility = 'visible';
   document.querySelector('.nav').style.visibility = 'visible';
-  document.querySelector('.main').style.visibility = 'visible';
+  var mainEl = document.querySelector('.main') || document.querySelector('.content'); if(mainEl) mainEl.style.visibility = 'visible';
 
   // 헤더 유저 표시
   const userEl = document.getElementById('header-user');
@@ -2598,7 +2598,7 @@ function logoutUser() {
   document.getElementById('login-screen').style.display = 'flex';
   document.querySelector('.header').style.visibility = 'hidden';
   document.querySelector('.nav').style.visibility = 'hidden';
-  document.querySelector('.main').style.visibility = 'hidden';
+  var mainEl2 = document.querySelector('.main') || document.querySelector('.content'); if(mainEl2) mainEl2.style.visibility = 'hidden';
   document.getElementById('login-nickname').value = '';
   document.getElementById('login-preview').style.display = 'none';
   document.getElementById('login-register-form').style.display = 'none';
@@ -2944,8 +2944,8 @@ function updateVolume(val) {
 }
 
 function requestNotifPermission() {
-  Notification.requestPermission().then(p => {
-    const btn = document.getElementById('notif-btn');
+  if(typeof Notification !== 'undefined') Notification.requestPermission().then(function(p) {
+    var btn = document.getElementById('notif-btn');
     if(btn) btn.textContent = p === 'granted' ? '✓ 허용됨' : '✗ 거부됨';
     if(p === 'granted') toast('브라우저 알림 허용됨 ✓');
   });
@@ -2960,8 +2960,8 @@ function speakShugo() {
   speechSynthesis.cancel();
   speechSynthesis.speak(utter);
 
-  if(Notification.permission === 'granted') {
-    new Notification('🐹 슈고 시간입니다!', { body: '찬란한 오드가 나오길 기도할게요!' });
+  if(typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+    if(typeof Notification !== 'undefined') new Notification('🐹 슈고 시간입니다!', { body: '찬란한 오드가 나오길 기도할게요!' });
   }
   // 상태 표시
   const st = document.getElementById('shugo-status');
@@ -3027,7 +3027,7 @@ function toggleShugoTimer() {
     const st = document.getElementById('shugo-status');
     if(st) { st.textContent = '타이머 실행 중'; st.style.background='rgba(0,200,138,.1)'; st.style.borderColor='var(--gold-d)'; st.style.color='var(--gold-l)'; }
     // 알림 권한 자동 요청
-    if(Notification.permission === 'default') Notification.requestPermission();
+    if(typeof Notification !== 'undefined' && Notification.permission === 'default') Notification.requestPermission();
   } else {
     shugoRunning = false;
     clearInterval(shugoInterval);
@@ -3055,8 +3055,6 @@ function toggleShugoTimer() {
 
 
 
-
-async 
 
 // ─── 내 정보 모달 ────────────────────────────
 
@@ -3202,8 +3200,6 @@ async function deleteNotice(id) {
 
 
 
-
-async 
 
 // ─── 내 정보 모달 ────────────────────────────
 
