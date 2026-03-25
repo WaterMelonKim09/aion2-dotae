@@ -407,6 +407,7 @@ window.onerror = function(msg, src, line, col, err) {
     <button onclick="location.reload()" class="btn btn-sm" style="font-size:12px;padding:6px 10px;white-space:nowrap;">⟳ 새로고침</button>
     <div id="header-avatar" style="width:32px;height:32px;border-radius:50%;background:var(--surface);border:2px solid var(--gold-d);overflow:hidden;cursor:pointer;flex-shrink:0;" onclick="openMyProfile()"></div>
     <button class="btn btn-primary btn-sm" onclick="openMyProfile()" style="font-size:12px;padding:6px 10px;white-space:nowrap;">👤 내 정보</button>
+    <button class="btn btn-sm" onclick="logoutUser()" style="font-size:12px;padding:6px 10px;white-space:nowrap;border-color:var(--border);color:var(--muted);">로그아웃</button>
   </div>
 </div>
 
@@ -426,7 +427,7 @@ window.onerror = function(msg, src, line, col, err) {
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
       <div class="section-title" style="margin:0;">📢 공지 / 패치노트</div>
       <div style="display:flex;gap:8px;align-items:center;">
-        <span style="font-size:12px;color:var(--muted);">v1.3.0 · 2026.03.25</span>
+        <span style="font-size:12px;color:var(--muted);">v1.4.0 · 2026.03.25</span>
         <span id="notice-write-btn" style="display:none;"><button class="btn btn-primary btn-sm" onclick="openNoticeWrite()">+ 작성</button></span>
       </div>
     </div>
@@ -1535,14 +1536,14 @@ function _renderItemTooltip2(tooltip, e, d, gc, gradeColor, isAccessory) {
         +'<img src="'+(s.icon||'')+'" style="width:16px;height:16px;border-radius:3px;border:1px solid '+sc+';">'
         +'<span style="color:'+sc+';">'+s.name+' '+s.value+'</span></div>';
     }).join('');
-    if(stoneList) magicStoneHTML = '<div style="border-top:1px solid var(--border);margin:8px 0;padding-top:8px;"><div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:600;">'+stoneLabel+'</div>'+stoneList+'</div>';
+    if(stoneList) magicStoneHTML = '<div style="border-top:1px solid var(--border);margin:8px 0;padding-top:8px;"><div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600;">'+stoneLabel+'</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">'+stoneList+'</div></div>';
     const godList = (d.godStoneStat||[]).map(s => {
       const sc = gradeColor[s.grade]||'#888';
       const descText = s.desc||'';
-      return '<div style="display:flex;gap:8px;font-size:11px;margin-bottom:6px;">'
-        +'<img src="'+(s.icon||'')+'" style="width:22px;height:22px;border-radius:4px;flex-shrink:0;">'
-        +'<div><div style="color:'+sc+';font-weight:600;">'+s.name+'</div>'
-        +(descText?'<div style="font-size:10px;color:var(--muted);line-height:1.5;">'+descText+'</div>':'')+'</div></div>';
+      return '<div style="display:flex;gap:8px;margin-bottom:8px;padding:8px;background:rgba(0,0,0,.2);border:1px solid '+sc+'44;border-radius:8px;border-left:3px solid '+sc+';">'
+        +'<img src="'+(s.icon||'')+'" style="width:28px;height:28px;border-radius:6px;flex-shrink:0;border:1px solid '+sc+'44;">'
+        +'<div style="flex:1;min-width:0;"><div style="font-size:12px;color:'+sc+';font-weight:700;margin-bottom:3px;">'+s.name+'</div>'
+        +(descText?'<div style="font-size:11px;color:var(--muted);line-height:1.5;">'+descText+'</div>':'')+'</div></div>';
     }).join('');
     if(godList) godStoneHTML = '<div style="border-top:1px solid var(--border);margin:8px 0;padding-top:8px;"><div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600;">신석</div>'+godList+'</div>';
   }
@@ -2325,6 +2326,21 @@ function renderNotices(notices) {
       +'<div style="font-size:13px;color:var(--muted);line-height:1.8;white-space:pre-wrap;">'+n.content+'</div></div>';
   }).join('');
   
+    const v140note = '<div class="card" style="padding:20px;border-left:3px solid var(--gold);margin-bottom:12px;">'
+    + '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">'
+    + '<div><span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(0,200,138,.15);color:var(--gold-l);border:1px solid var(--gold-d);margin-right:8px;">패치노트</span>'
+    + '<span style="font-size:16px;font-weight:700;">v1.4.0 — UI 개선 및 기능 추가</span></div>'
+    + '<span style="font-size:12px;color:var(--muted);">2026.03.25</span></div>'
+    + '<div style="font-size:13px;color:var(--muted);line-height:1.8;">'
+    + '🦗 도태 메뚜기 캐릭터 아이콘으로 헤더/파비콘 교체<br>'
+    + '🔐 로그아웃 기능 추가<br>'
+    + '💎 아이템 상세 툴팁 — 마석/영석/신석 NC공홈 스타일로 개선<br>'
+    + '✅ 파티 모집 완료 버튼 추가 (작성자·엘리트장교·군단장)<br>'
+    + '📅 날짜 검색 버튼 추가 (클릭 시 필터 적용/초기화)<br>'
+    + '🎨 대시보드 직업 분포 — 직업 아이콘 추가, 인구 많은 순 정렬<br>'
+    + '🏆 어비스 등급 아이콘 표시 (멤버 스펙 테이블)<br>'
+    + '⚙ 멤버 관리 모달 — 계급/소개/본부캐 필드 추가'
+    + '</div></div>';
   const initNotes = 
     + '  <div class="card" style="padding:20px;border-left:3px solid var(--gold);margin-bottom:12px;">\n'
     + '    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">\n'
@@ -2364,7 +2380,7 @@ function renderNotices(notices) {
     + '      ✦ 멤버 스펙 관리 · 대시보드 · 파티 모집 · 슈고 타이머\n'
     + '    </div>\n'
     + '  </div>\n';
-  list.innerHTML = dbItems + initNotes;
+  list.innerHTML = dbItems + v140note + initNotes;
 }
 
 // ─── 내 정보 ────────────────────────────
