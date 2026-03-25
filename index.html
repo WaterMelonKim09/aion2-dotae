@@ -1253,6 +1253,28 @@ function renderRecentRecruit() {
     : `<div style="color:var(--muted);font-size:13px;padding:12px">모집 공고가 없어요</div>`;
 }
 
+const _GC = {Common:'#aaaaaa',Rare:'#4a90e8',Hero:'#d44040',Epic:'#d44040',Unique:'#e8c030',Legendary:'#ff6a20',Special:'#40d4c0'};
+const _EQ1 = ['MainHand','SubHand','Helmet','Shoulder','Torso','Gloves','Pants','Boots','Cape','Belt'];
+const _EQ2 = ['Necklace','Earring1','Earring2','Ring1','Ring2','Bracelet1','Bracelet2','Amulet','Rune1','Rune2'];
+function renderEquipGrid(equipment, slots) {
+  const eqMap = {};
+  (equipment||[]).forEach(e => { if(e.slot) eqMap[e.slot] = e; });
+  return '<div style="display:grid;grid-template-columns:repeat(5,26px);grid-template-rows:repeat(2,26px);gap:2px;">' +
+    slots.map(slot => {
+      const e = eqMap[slot];
+      if(!e) return '<div style="width:26px;height:26px;border-radius:4px;background:var(--surface);border:1px solid var(--border);opacity:.3;"></div>';
+      const gc = _GC[e.grade]||'#555';
+      const badge = e.exceed > 0
+        ? '<div style="position:absolute;bottom:-1px;right:-1px;font-size:8px;font-weight:700;color:#60c8ff;background:rgba(0,0,0,.85);border-radius:2px;padding:0 2px;line-height:1.4;">돌파'+e.exceed+'</div>'
+        : e.enchant > 0
+        ? '<div style="position:absolute;bottom:-1px;right:-1px;font-size:8px;font-weight:700;color:var(--gold-l);background:rgba(0,0,0,.85);border-radius:2px;padding:0 2px;line-height:1.4;">+'+e.enchant+'</div>'
+        : '';
+      return '<div style="position:relative;width:26px;height:26px;" title="'+(e.name||'')+'">'
+        + '<img src="'+e.icon+'" style="width:26px;height:26px;border-radius:4px;border:2px solid '+gc+';display:block;" onerror="this.style.opacity=0.3">'
+        + badge + '</div>';
+    }).join('') + '</div>';
+}
+
 function renderMembers() {
   const search = (document.getElementById('member-search')||{value:''}).value.toLowerCase();
   const filtered = sortMembers(members.filter(m =>
