@@ -2,10 +2,9 @@ module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const { characterId, serverId = '2001' } = req.query;
-  if (!characterId) return res.status(400).json({ error: 'characterId가 필요해요' });
+  const { characterId, nickname, serverId = '2001' } = req.query;
+  if (!characterId && !nickname) return res.status(400).json({ error: 'characterId 또는 nickname이 필요해요' });
 
-  const rawId = decodeURIComponent(characterId);
   const headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
     'Referer': 'https://aion2.plaync.com/ko-kr/characters/index',
@@ -15,6 +14,22 @@ module.exports = async function handler(req, res) {
   };
 
   try {
+    let rawId = characterId ? decodeURIComponent(characterId) : null;
+
+    // characterId 없으면 닉네임으로 검색
+    if (!rawId) {
+      const nick = decodeURIComponent(nickname);
+      const searchRes = await fetch(
+        `https://aion2.plaync.com/ko-kr/api/search/aion2/search/v2/character?keyword=${encodeURIComponent(nick)}&serverId=${serverId}`,
+        { headers }
+      );
+      const searchData = await searchRes.json();
+      const list = searchData?.result?.character?.list || searchData?.list || [];
+      const found = list.find(c => c.characterName === nick || c.name === nick) || list[0];
+      if (!found) throw new Error(`'${nick}' 캐릭터를 찾을 수 없어요`);
+      rawId = String(found.characterId || found.id || '');
+    }
+
     const [infoRes, equipRes] = await Promise.all([
       fetch(`https://aion2.plaync.com/api/character/info?lang=ko&characterId=${encodeURIComponent(rawId)}&serverId=${serverId}`, { headers }),
       fetch(`https://aion2.plaync.com/api/character/equipment?lang=ko&characterId=${encodeURIComponent(rawId)}&serverId=${serverId}`, { headers }),
@@ -54,7 +69,7 @@ module.exports = async function handler(req, res) {
       };
     };
 
-    // 펫/날개 - petwing.pet / petwing.wing 직접 접근
+    // 펫/날개
     var petData  = null;
     var wingData = null;
     if (petwing && petwing.pet) {
@@ -67,7 +82,7 @@ module.exports = async function handler(req, res) {
       };
     }
     if (petwing && petwing.wing) {
-      var w = petwing.wingSkin || petwing.wing; // 스킨 있으면 스킨 아이콘 사용
+      var w = petwing.wingSkin || petwing.wing;
       wingData = {
         name: petwing.wing.name || '',
         icon: w.icon || petwing.wing.icon || '',
@@ -78,16 +93,10 @@ module.exports = async function handler(req, res) {
       };
     }
 
-    // 스킬 데이터 - equip:1인 것만 (장착된 스킬)
-    var skillList = [];
-    if (skillData && skillData.skillList) {
-      skillList = skillData.skillList; // 전체 스킬 (equip 여부 포함)
-    }
-
+    var skillList = (skillData && skillData.skillList) ? skillData.skillList : [];
     var statList = (infoData && infoData.stat && infoData.stat.statList) ? infoData.stat.statList : [];
     var itemLevelStat = statList.find(function(s) { return s.type === 'ItemLevel'; });
     var itemLevel = itemLevelStat ? (itemLevelStat.value || 0) : 0;
-
     var arcanaList = equip.filter(function(e) { return (e.slotPosName||'').indexOf('Arcana') !== -1; }).map(mapEquip);
     var daevList   = (infoData && infoData.daevanion && infoData.daevanion.boardList) ? infoData.daevanion.boardList : [];
     var rankList   = (infoData && infoData.ranking   && infoData.ranking.rankingList)   ? infoData.ranking.rankingList   : [];
@@ -96,7 +105,7 @@ module.exports = async function handler(req, res) {
     res.status(200).json({
       characterId:  rawId,
       serverId,
-      nickname:     profile.characterName || '',
+      nickname:     profile.characterName || '',  // 최신 닉네임 반환
       class:        classMap[profile.className] || profile.className || '',
       level:        profile.characterLevel || 0,
       combat_power: profile.combatPower || 0,
@@ -115,12 +124,6 @@ module.exports = async function handler(req, res) {
       skills:       skillList,
       pet:          petData,
       wing:         wingData,
-      _debug: {
-        all_slot_names:  equip.map(function(e){ return e.slotPosName; }),
-        petwing_raw:     petwing,
-        skill_raw:       skillData,
-        equip_top_keys:  Object.keys(equipData || {}),
-      }
     });
   } catch (err) {
     res.status(500).json({ error: '조회 실패', detail: err.message });
