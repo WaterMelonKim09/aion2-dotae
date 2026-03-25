@@ -116,7 +116,7 @@
   .slots-full { color:var(--red);   font-size:12px; }
 
   /* 모달 */
-  .overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.75); z-index:200; align-items:center; justify-content:center; }
+  .overlay { display:none; position:fixed; top:0;left:0;right:0;bottom:0; background:rgba(0,0,0,.75); z-index:200; align-items:center; justify-content:center; }
   .overlay.open { display:flex; }
   .modal { background:var(--surface); border:1px solid var(--gold-d); border-radius:14px; padding:28px; width:90%; max-width:520px; max-height:90vh; overflow-y:auto; }
   .modal-title { font-size:16px; font-weight:700; color:var(--gold-l); margin-bottom:20px; }
@@ -295,7 +295,7 @@
 <body>
 
 <!-- 로딩 화면 -->
-<div id="loading-screen" style="display:flex;position:fixed;inset:0;background:var(--bg);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:16px;">
+<div id="loading-screen" style="display:flex;position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:16px;">
   <svg viewBox="0 0 100 100" width="56" height="56" style="animation:spin 1.5s linear infinite;">
     <polygon points="50,5 95,27 95,73 50,95 5,73 5,27" fill="#111318" stroke="#00c88a" stroke-width="6"/>
     <polygon points="50,35 65,43 65,57 50,65 35,57 35,43" fill="#00c88a"/>
@@ -305,7 +305,7 @@
 <style>@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }</style>
 
 <!-- 로그인 화면 -->
-<div id="login-screen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:999;align-items:center;justify-content:center;">
+<div id="login-screen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);z-index:999;align-items:center;justify-content:center;">
   <div style="width:100%;max-width:420px;padding:24px;">
     <!-- 로고 -->
     <div style="text-align:center;margin-bottom:32px;">
@@ -415,13 +415,31 @@
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
       <div class="section-title" style="margin:0;">📢 공지 / 패치노트</div>
       <div style="display:flex;gap:8px;align-items:center;">
-        <span style="font-size:12px;color:var(--muted);">v1.2.0 · 2026.03.25</span>
+        <span style="font-size:12px;color:var(--muted);">v1.2.1 · 2026.03.25</span>
         <span id="notice-write-btn" style="display:none;"><button class="btn btn-primary btn-sm" onclick="openNoticeWrite()">+ 작성</button></span>
       </div>
     </div>
     <div id="notice-list" style="display:flex;flex-direction:column;gap:12px;">
       <!-- 패치노트 초기 데이터 -->
       <div class="card" style="padding:20px;border-left:3px solid var(--gold);">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+          <div>
+            <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(0,200,138,.15);color:var(--gold-l);border:1px solid var(--gold-d);margin-right:8px;">패치노트</span>
+            <span style="font-size:16px;font-weight:700;">v1.2.1 — 호환성 개선 및 버그 수정</span>
+          </div>
+          <span style="font-size:12px;color:var(--muted);white-space:nowrap;">2026.03.25</span>
+        </div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.8;">
+          🍎 <b style="color:var(--text)">iOS / 아이폰 호환성 수정</b><br>
+          &nbsp;&nbsp;아이폰 사파리에서 무한 로딩되던 문제를 해결했어요. CSS inset 속성과 JavaScript optional chaining(?.) 문법을 구버전 브라우저에서도 동작하도록 변환했어요.<br><br>
+          🔧 <b style="color:var(--text)">기타 버그 수정</b><br>
+          &nbsp;&nbsp;공지/패치노트 탭에서 작성 버튼이 텍스트로 노출되던 문제를 수정했어요.<br>
+          &nbsp;&nbsp;직업 필터 선택 시 해당 직업의 부캐도 함께 표시되며, 구분선으로 본캐/부캐를 구분해서 보여줘요.<br>
+          &nbsp;&nbsp;파티 모집 종류를 원정/초월/성역/어비스(하층)/어비스(중층)/투기장/토벌전으로 세분화했어요.
+        </div>
+      </div>
+
+      <div class="card" style="padding:20px;border-left:3px solid var(--gold);opacity:.9;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
           <div>
             <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(0,200,138,.15);color:var(--gold-l);border:1px solid var(--gold-d);margin-right:8px;">패치노트</span>
@@ -632,7 +650,7 @@
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
           <span style="font-size:13px;">TTS 음성 알림</span>
           <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;" onclick="toggleTTS()">
-            <span id="tts-track" style="position:absolute;inset:0;background:var(--gold);border-radius:24px;transition:.3s;">
+            <span id="tts-track" style="position:absolute;top:0;left:0;right:0;bottom:0;background:var(--gold);border-radius:24px;transition:.3s;">
               <span id="tts-knob" style="position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s;transform:translateX(20px);display:block;"></span>
             </span>
           </label>
@@ -933,7 +951,7 @@ function initFirebase() {
       members = snap.docs.map(d => {
         const data = d.data();
         // 어비스 랭킹 순서 계산 (정렬용)
-        const abyssR = (data.ranking||[]).find(r => r.rankingContentsName?.includes('어비스') || r.rankingType === 'Abyss');
+        const abyssR = (data.ranking||[]).find(r => (r.rankingContentsName && r.rankingContentsName.includes('어비스')) || r.rankingType === 'Abyss');
         const ABYSS_ORDER = {
           // 게임 내 실제 계급 (높음=낮은 숫자)
           '총사령관':1,
@@ -1005,8 +1023,8 @@ function sortMembers(arr) {
       av = (CLASS_MAP[a.class]||a.class||'').localeCompare(CLASS_MAP[b.class]||b.class||'', 'ko');
       return sortAsc ? av : -av;
     } else if(sortBy === 'abyss_rank') {
-      av = a.abyss_rank_order ?? 999;
-      bv = b.abyss_rank_order ?? 999;
+      av = a.abyss_rank_order || 999;
+      bv = b.abyss_rank_order || 999;
       if(av !== bv) return sortAsc ? bv - av : av - bv; // 낮은 숫자 = 높은 급수
       return (a.combat_power||0) > (b.combat_power||0) ? -1 : 1;
     } else {
@@ -1573,7 +1591,7 @@ function renderMembers() {
       <td>${cpBar(m.combat_power)}</td>
       <td style="white-space:nowrap;">${m.item_level||'—'}</td>
       <td style="white-space:nowrap;">${(() => {
-        const abyssRank = (m.ranking||[]).find(r => r.rankingContentsName?.includes('어비스') || r.rankingType === 'Abyss');
+        const abyssRank = (m.ranking||[]).find(r => (r.rankingContentsName && r.rankingContentsName.includes('어비스')) || r.rankingType === 'Abyss');
         if(!abyssRank) return '<span style="color:var(--muted);font-size:12px;">—</span>';
         return `<div style="display:flex;align-items:center;gap:5px;">
           ${abyssRank.gradeIcon ? `<img src="${abyssRank.gradeIcon}" style="width:18px;height:18px;" onerror="this.style.display='none'">` : ''}
@@ -1780,7 +1798,7 @@ async function saveRecruit() {
   if(!author){ toast('작성자를 입력해주세요'); return; }
   const reqs=[];
   ['검성','수호성','살성','궁성','마도성','정령성','치유성','호법성','상관없음'].forEach(cls=>{
-    const cnt = parseInt(document.getElementById('req-'+cls)?.value)||0;
+    const cnt = parseInt((document.getElementById('req-'+cls)||{value:'0'}).value)||0;
     for(let i=0;i<cnt;i++) reqs.push(cls);
   });
   await db.collection('recruits').add({
@@ -1850,7 +1868,7 @@ async function openRecruit(id) {
 
 function renderApplyList(recruitId) {
   const r = recruits.find(x => x.id === recruitId);
-  const applies = r?.applies || [];
+  const applies = (r && r.applies) || [];
   document.getElementById('apply-list').innerHTML = applies.length
     ? `<div style="font-size:12px;color:var(--muted);margin-bottom:6px;">신청자 ${applies.length}명</div>` +
       applies.map((a,i)=>{
@@ -1858,7 +1876,7 @@ function renderApplyList(recruitId) {
         const cls = m ? (CLASS_MAP[m.class]||m.class||'') : '';
         return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:var(--card);border-radius:6px;margin-bottom:4px;">
           <div style="display:flex;align-items:center;gap:8px;">
-            ${m?.profile_img?`<img src="${m.profile_img}" style="width:24px;height:24px;border-radius:50%;">`:''}
+            ${(m && m.profile_img)?`<img src="${m.profile_img}" style="width:24px;height:24px;border-radius:50%;">`:''}
             <div>
               <span style="font-size:13px;font-weight:600;">${a.nickname}</span>
               ${cls?`<span style="font-size:11px;color:var(--muted);margin-left:6px;">${CLS_ICON[cls]||''} ${cls}</span>`:''}
@@ -1958,7 +1976,7 @@ async function cancelApply(index) {
 
 function renderCommentList(recruitId) {
   const r = recruits.find(x => x.id === recruitId);
-  const comments = r?.comments || [];
+  const comments = (r && r.comments) || [];
   document.getElementById('comment-list').innerHTML = comments.map((c,i)=>{
     const m = members.find(x=>x.nickname===c.nickname);
     const cls = m ? (CLASS_MAP[m.class]||m.class||'') : '';
@@ -1966,7 +1984,7 @@ function renderCommentList(recruitId) {
     return `<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
         <div style="display:flex;align-items:center;gap:8px;">
-          ${m?.profile_img?`<img src="${m.profile_img}" style="width:24px;height:24px;border-radius:50%;">`:''}
+          ${(m && m.profile_img)?`<img src="${m.profile_img}" style="width:24px;height:24px;border-radius:50%;">`:''}
           <div>
             <span style="font-size:13px;font-weight:700;color:var(--gold-l);">${c.nickname}</span>
             ${cls?`<span style="font-size:11px;color:${clsColor};margin-left:6px;">${CLS_ICON[cls]||''} ${cls}</span>`:''}
@@ -2089,7 +2107,7 @@ function selectApplyMember(memberId) {
   const preview = document.getElementById('apply-preview');
   const cls = CLASS_MAP[m.class]||m.class||'?';
   const clsColor = CLS_COLOR[cls]||'var(--muted)';
-  const abyssRank = (m.ranking||[]).find(r => r.rankingContentsName?.includes('어비스'));
+  const abyssRank = (m.ranking||[]).find(r => (r.rankingContentsName && r.rankingContentsName.includes('어비스')));
 
   preview.style.display = 'flex';
   preview.innerHTML = `
@@ -2405,7 +2423,7 @@ function initBossTimers() {
       // 리젠 알림
       if(remaining > 0 && remaining < 1100 && Notification.permission === 'granted') {
         const boss = BOSSES.find(x => x.id === b.id);
-        new Notification(`🔔 ${boss?.name} 리젠 임박!`, { body: '곧 스폰됩니다!' });
+        new Notification(`🔔 ${(boss && boss.name ? boss.name : '')} 리젠 임박!`, { body: '곧 스폰됩니다!' });
       }
     });
   }, 1000);
@@ -2642,11 +2660,11 @@ function openMyProfile() {
   body.innerHTML = `
     <!-- 프로필 헤더 -->
     <div style="display:flex;align-items:center;gap:14px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;">
-      ${m?.profile_img?`<img src="${m.profile_img}" style="width:64px;height:64px;border-radius:50%;border:2px solid var(--gold-d);flex-shrink:0;">`:`<div style="width:64px;height:64px;border-radius:50%;background:var(--card);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;">${CLS_ICON[cls]||'👤'}</div>`}
+      ${(m && m.profile_img)?`<img src="${m.profile_img}" style="width:64px;height:64px;border-radius:50%;border:2px solid var(--gold-d);flex-shrink:0;">`:`<div style="width:64px;height:64px;border-radius:50%;background:var(--card);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;">${CLS_ICON[cls]||'👤'}</div>`}
       <div style="flex:1;">
         <div style="font-size:20px;font-weight:700;">${currentUser.nickname}</div>
         <div style="font-size:12px;color:var(--muted);margin-top:3px;">${cls?`${CLS_ICON[cls]||''} ${cls} · `:''}${currentUser.rank||'계급 없음'}</div>
-        ${m?.intro?`<div style="font-size:13px;color:var(--text);margin-top:6px;padding:8px;background:var(--card);border-radius:6px;">${m.intro}</div>`:''}
+        ${(m && m.intro)?`<div style="font-size:13px;color:var(--text);margin-top:6px;padding:8px;background:var(--card);border-radius:6px;">${m.intro}</div>`:''}
       </div>
       ${m?`<div style="display:flex;gap:10px;flex-shrink:0;">
         <div style="text-align:center;padding:8px 14px;background:var(--card);border:1px solid var(--border);border-radius:8px;">
@@ -2731,7 +2749,7 @@ async function saveNotice() {
   const version = document.getElementById('notice-version').value.trim();
   await db.collection('notices').add({
     type, title, content, version,
-    author: currentUser?.nickname || '',
+    author: (currentUser && currentUser.nickname ? currentUser.nickname : '') || '',
     created_at: firebase.firestore.FieldValue.serverTimestamp(),
   });
   document.getElementById('notice-title').value = '';
@@ -2749,7 +2767,7 @@ function renderNotices(notices) {
   const borderLeft = t => t==='공지사항' ? '#e8c030' : 'var(--gold)';
 
   const dbItems = notices.map(n => {
-    const d = n.created_at?.toDate ? n.created_at.toDate() : new Date();
+    const d = (n.created_at && n.created_at.toDate ? n.created_at.toDate() : new Date());
     const dateStr = `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
     return `<div class="card" style="padding:20px;border-left:3px solid ${borderLeft(n.type)};">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
@@ -2781,7 +2799,7 @@ async function deleteNotice(id) {
 function isAdmin() {
   if(!currentUser) return false;
   const m = members.find(x => x.nickname === currentUser.nickname);
-  const rank = m?.rank || currentUser.rank || '';
+  const rank = (m && m.rank) || currentUser.rank || '';
   return rank === '군단장' || rank === '엘리트장교';
 }
 
@@ -2811,7 +2829,7 @@ let shugoVolume = 0.8;
 function toggleTTS() {
   ttsEnabled = !ttsEnabled;
   const slider = document.getElementById('tts-slider');
-  const knob = slider?.querySelector('span');
+  const knob = (slider ? slider.querySelector('span') : null);
   if(slider) slider.style.background = ttsEnabled ? 'var(--gold)' : 'var(--border)';
   if(knob) knob.style.transform = ttsEnabled ? 'translateX(20px)' : 'translateX(0)';
 }
@@ -2956,7 +2974,7 @@ async function saveNotice() {
   const version = document.getElementById('notice-version').value.trim();
   await db.collection('notices').add({
     type, title, content, version,
-    author: currentUser?.nickname || '',
+    author: (currentUser && currentUser.nickname ? currentUser.nickname : '') || '',
     created_at: firebase.firestore.FieldValue.serverTimestamp(),
   });
   document.getElementById('notice-title').value = '';
@@ -2974,7 +2992,7 @@ function renderNotices(notices) {
   const borderLeft = t => t==='공지사항' ? '#e8c030' : 'var(--gold)';
 
   const dbItems = notices.map(n => {
-    const d = n.created_at?.toDate ? n.created_at.toDate() : new Date();
+    const d = (n.created_at && n.created_at.toDate ? n.created_at.toDate() : new Date());
     const dateStr = `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
     return `<div class="card" style="padding:20px;border-left:3px solid ${borderLeft(n.type)};">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
@@ -3048,7 +3066,7 @@ async function saveNotice() {
   const version = document.getElementById('notice-version').value.trim();
   await db.collection('notices').add({
     type, title, content, version,
-    author: currentUser?.nickname || '',
+    author: (currentUser && currentUser.nickname ? currentUser.nickname : '') || '',
     created_at: firebase.firestore.FieldValue.serverTimestamp(),
   });
   document.getElementById('notice-title').value = '';
@@ -3066,7 +3084,7 @@ function renderNotices(notices) {
   const borderLeft = t => t==='공지사항' ? '#e8c030' : 'var(--gold)';
 
   const dbItems = notices.map(n => {
-    const d = n.created_at?.toDate ? n.created_at.toDate() : new Date();
+    const d = (n.created_at && n.created_at.toDate ? n.created_at.toDate() : new Date());
     const dateStr = `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
     return `<div class="card" style="padding:20px;border-left:3px solid ${borderLeft(n.type)};">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
