@@ -558,7 +558,7 @@ window.onerror = function(msg, src, line, col, err) {
     <div style="display:grid;grid-template-columns:2fr 3fr;gap:20px;margin-bottom:20px;align-items:stretch;">
       <div style="display:flex;flex-direction:column;">
         <div class="section-title">스펙 TOP 10</div>
-        <div class="table-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;" style="flex:1;"><table><thead><tr><th>#</th><th>닉네임</th><th>직업</th><th>전투력</th><th style="white-space:nowrap;color:var(--muted);font-weight:400;">갱신</th></tr></thead><tbody id="top10-body"></tbody></table></div>
+        <div class="table-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;flex:1;"><table><thead><tr><th>#</th><th>닉네임</th><th>직업</th><th>전투력</th><th style="white-space:nowrap;color:var(--muted);font-weight:400;">갱신</th></tr></thead><tbody id="top10-body"></tbody></table></div>
       </div>
       <div style="display:flex;flex-direction:column;height:100%;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
@@ -922,7 +922,7 @@ const RANK_MIGRATE = { '일반':'군단병', '장교':'엘리트장교', '단장
 
 // 직업 색상
 const CLS_COLOR = {
-  '검성':'#e05050','수호성':'#5080e0','살성':'#9050c0','궁성':'#50c080',
+  '검성':'#7ab8cc','수호성':'#7a90d0','살성':'#b080d0','궁성':'#60c890',
   '마도성':'#c04090','정령성':'#50a0d0','치유성':'#c0a030','호법성':'#c06030'
 };
 
@@ -1067,7 +1067,11 @@ function drawPie(counts, total) {
   });
   const pl = document.getElementById('pie-legend');
   if(pl) pl.innerHTML = labels.map((l,i) =>
-    '<div class="legend-item"><span class="legend-dot" style="background:'+colors[i]+'"></span><span>'+l+'</span><span style="color:var(--muted);margin-left:4px;">('+data[i]+')</span></div>'
+    '<div class="legend-item" style="display:flex;align-items:center;gap:4px;margin-bottom:4px;">'
+    +'<span class="legend-dot" style="background:'+colors[i]+';width:10px;height:10px;border-radius:50%;flex-shrink:0;"></span>'
+    +(CLS_ICON[l]||'')
+    +'<span style="font-size:12px;">'+l+'</span>'
+    +'<span style="color:var(--muted);margin-left:4px;font-size:11px;">('+data[i]+')</span></div>'
   ).join('');
   const pt = document.getElementById('pie-total');
   if(pt) pt.textContent = total+'명';
@@ -1094,8 +1098,8 @@ function renderDistList(counts, total) {
   list.style.flexWrap = 'wrap';
   list.style.gap = '8px';
   list.innerHTML = sorted.map(([cls,cnt]) =>
-    '<div class="card" style="padding:10px 16px;display:flex;align-items:center;gap:8px;flex-shrink:0;">'
-    +'<span class="cls cls-'+cls+'" style="min-width:70px;">'+(CLS_ICON[cls]||'')+' '+cls+'</span>'
+    '<div class="card" style="padding:10px 16px;display:flex;align-items:center;gap:8px;flex-shrink:0;border-left:3px solid '+(CLS_COLOR[cls]||'var(--gold)')+';">'
+    +'<span style="display:flex;align-items:center;gap:4px;min-width:90px;">'+(CLS_ICON[cls]||'')+'<span style="font-size:13px;font-weight:600;">'+cls+'</span></span>'
     +'<span style="font-size:18px;font-weight:700;color:'+(CLS_COLOR[cls]||'var(--gold-l)')+';">'+cnt+'명</span>'
     +'<span style="font-size:12px;color:var(--muted);">'+Math.round(cnt/total*100)+'%</span></div>'
   ).join('');
