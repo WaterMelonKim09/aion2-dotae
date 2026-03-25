@@ -1584,7 +1584,7 @@ const _EQ2 = ['Necklace','Earring1','Earring2','Ring1','Ring2','Bracelet1','Brac
 function renderEquipGrid(equipment, slots) {
   const eqMap = {};
   (equipment||[]).forEach(e => { if(e.slot) eqMap[e.slot] = e; });
-  return '<div style="display:-webkit-flex;display:flex;-webkit-flex-wrap:wrap;flex-wrap:wrap;width:132px;gap:2px;">' +
+  return '<div style="display:grid;grid-template-columns:repeat(5,26px);grid-template-rows:repeat(2,26px);gap:2px;">' +
     slots.map(slot => {
       const e = eqMap[slot];
       if(!e) return '<div style="width:26px;height:26px;border-radius:4px;background:var(--surface);border:1px solid var(--border);opacity:.3;"></div>';
