@@ -570,9 +570,19 @@
     <!-- 신청 -->
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;margin-top:16px;">
       <div style="font-size:12px;font-weight:600;color:var(--gold);margin-bottom:10px;">✦ 참가 신청</div>
-      <div style="display:flex;gap:8px;">
-        <input class="form-input" id="apply-nickname" placeholder="내 닉네임" style="flex:1;">
-        <button class="btn btn-primary btn-sm" onclick="applyRecruit()">신청하기</button>
+      <div style="position:relative;">
+        <div style="display:flex;gap:8px;">
+          <div style="flex:1;position:relative;">
+            <input class="form-input" id="apply-nickname" placeholder="닉네임 검색..." style="width:100%;"
+              oninput="searchApplyMember(this.value)" autocomplete="off">
+            <!-- 자동완성 드롭다운 -->
+            <div id="apply-suggest" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--border);border-radius:8px;z-index:100;max-height:240px;overflow-y:auto;margin-top:4px;box-shadow:0 4px 16px rgba(0,0,0,.4);"></div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="applyRecruit()" style="white-space:nowrap;">신청하기</button>
+        </div>
+        <!-- 선택된 멤버 미리보기 -->
+        <div id="apply-preview" style="display:none;margin-top:8px;padding:10px;background:var(--card);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;gap:10px;">
+        </div>
       </div>
       <div id="apply-list" style="margin-top:10px;"></div>
     </div>
@@ -1485,6 +1495,87 @@ function renderCommentList(recruitId) {
     </div>`).join('') || '<div style="font-size:12px;color:var(--muted);">댓글이 없어요</div>';
 }
 
+function searchApplyMember(query) {
+  const suggest = document.getElementById('apply-suggest');
+  const preview = document.getElementById('apply-preview');
+  if(!suggest) return;
+
+  if(!query.trim()) {
+    suggest.style.display = 'none';
+    preview.style.display = 'none';
+    return;
+  }
+
+  // members에서 검색 (본캐만)
+  const matched = members.filter(m =>
+    m.is_main !== false &&
+    (m.nickname||'').toLowerCase().includes(query.toLowerCase())
+  ).slice(0, 6);
+
+  if(!matched.length) {
+    suggest.style.display = 'none';
+    return;
+  }
+
+  const GC = {Common:'#aaaaaa',Rare:'#4a90e8',Hero:'#d44040',Epic:'#d44040',Unique:'#e8c030',Legendary:'#ff6a20',Special:'#40d4c0'};
+
+  suggest.innerHTML = matched.map(m => {
+    const cls = CLASS_MAP[m.class]||m.class||'?';
+    const clsColor = CLS_COLOR[cls]||'var(--muted)';
+    const topEquip = (m.equipment||[]).slice(0,1)[0];
+    const equipColor = topEquip ? (GC[topEquip.grade]||'#555') : 'var(--border)';
+    return `<div onclick="selectApplyMember('${m.id}')"
+      style="display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s;"
+      onmouseover="this.style.background='rgba(255,255,255,.05)'"
+      onmouseout="this.style.background='transparent'">
+      ${m.profile_img ? `<img src="${m.profile_img}" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--border);flex-shrink:0;">` : `<div style="width:32px;height:32px;border-radius:50%;background:var(--surface);border:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;">${CLS_ICON[cls]||'?'}</div>`}
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.nickname}</div>
+        <div style="display:flex;gap:8px;margin-top:2px;align-items:center;">
+          <span style="font-size:11px;color:${clsColor};">${CLS_ICON[cls]||''} ${cls}</span>
+          <span style="font-size:11px;color:var(--muted);">전투력 <span style="color:var(--gold-l);font-weight:600;">${(m.combat_power||0).toLocaleString()}</span></span>
+          <span style="font-size:11px;color:var(--muted);">IL <span style="color:var(--gold-l);font-weight:600;">${m.item_level||'—'}</span></span>
+        </div>
+      </div>
+      <button onclick="event.stopPropagation();openDetailById('${m.id}')" style="font-size:10px;padding:3px 7px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;white-space:nowrap;">상세</button>
+    </div>`;
+  }).join('');
+
+  suggest.style.display = 'block';
+}
+
+function selectApplyMember(memberId) {
+  const m = members.find(x => x.id === memberId);
+  if(!m) return;
+
+  // 입력창에 닉네임 세팅
+  document.getElementById('apply-nickname').value = m.nickname;
+  document.getElementById('apply-suggest').style.display = 'none';
+
+  // 미리보기 표시
+  const preview = document.getElementById('apply-preview');
+  const cls = CLASS_MAP[m.class]||m.class||'?';
+  const clsColor = CLS_COLOR[cls]||'var(--muted)';
+  const abyssRank = (m.ranking||[]).find(r => r.rankingContentsName?.includes('어비스'));
+
+  preview.style.display = 'flex';
+  preview.innerHTML = `
+    ${m.profile_img ? `<img src="${m.profile_img}" style="width:40px;height:40px;border-radius:50%;border:2px solid var(--gold-d);flex-shrink:0;">` : ''}
+    <div style="flex:1;min-width:0;">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+        <span style="font-size:14px;font-weight:700;">${m.nickname}</span>
+        <span style="font-size:11px;color:${clsColor};">${CLS_ICON[cls]||''} ${cls}</span>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <span style="font-size:12px;color:var(--muted);">전투력 <span style="color:var(--gold-l);font-weight:700;">${(m.combat_power||0).toLocaleString()}</span></span>
+        <span style="font-size:12px;color:var(--muted);">아이템레벨 <span style="color:var(--gold-l);font-weight:700;">${m.item_level||'—'}</span></span>
+        ${abyssRank ? `<span style="font-size:12px;color:var(--muted);">${abyssRank.gradeIcon?`<img src="${abyssRank.gradeIcon}" style="width:14px;height:14px;vertical-align:middle;">`:''}어비스 <span style="color:var(--gold-l);font-weight:700;">${abyssRank.gradeName||''}</span></span>` : ''}
+      </div>
+    </div>
+    <button onclick="openDetailById('${m.id}')" style="font-size:11px;padding:5px 10px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--gold);cursor:pointer;flex-shrink:0;">상세 보기</button>
+  `;
+}
+
 async function applyRecruit() {
   const nickname = document.getElementById('apply-nickname').value.trim();
   if(!nickname) { toast('닉네임을 입력해주세요'); return; }
@@ -1561,6 +1652,15 @@ if(regIsMainEl) {
     if(rankGroup) rankGroup.style.display = isSub ? 'none' : '';
   });
 }
+
+// 자동완성 드롭다운 바깥 클릭 닫기
+document.addEventListener('click', function(e) {
+  const suggest = document.getElementById('apply-suggest');
+  const input = document.getElementById('apply-nickname');
+  if(suggest && input && !suggest.contains(e.target) && e.target !== input) {
+    suggest.style.display = 'none';
+  }
+});
 
 // 상세 모달 닫기
 document.getElementById('detail-close-btn').addEventListener('click', function() {
