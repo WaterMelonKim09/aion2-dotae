@@ -646,7 +646,7 @@ window.onerror = function(msg, src, line, col, err) {
         <div class="section-title" style="margin:0;">⚔ 쟁 참여조사</div>
         <div style="font-size:12px;color:var(--muted);margin-top:4px;">레기온 쟁 참여 의사를 남겨주세요</div>
       </div>
-      <button id="war-create-btn" class="btn btn-primary btn-sm" onclick="openWarSurveyCreate()" style="display:none;">+ 조사 생성</button>
+      <button id="war-create-btn" class="btn btn-primary btn-sm" onclick="openWarSurveyCreate()" style="display:none;">+ 쟁 준비 생성</button>
     </div>
 
     <!-- 조사 목록 -->
@@ -1037,6 +1037,7 @@ function showTab(id) {
   if(id==='war') {
     const wb = document.getElementById('war-create-btn');
     if(wb) wb.style.display = isAdmin() ? 'inline-block' : 'none';
+    renderWarSurveys();
     autoInitWarSurvey();
   }
   localStorage.setItem('activeTab', id);
@@ -2626,19 +2627,16 @@ function renderAll() {
 function renderWarSurveys() {
   var el = document.getElementById('war-survey-list');
   if(!el) return;
-  // 쟁 진행중 체크
   var warInfo = typeof getNextWarDate === 'function' ? getNextWarDate() : null;
   if(warInfo && warInfo.inProgress) { showWarInProgress(); return; }
-  if(!warSurveys.length) {
-    el.innerHTML = '<div class="empty" style="padding:40px;"><div class="empty-icon">⚔</div><p>진행 중인 참여조사가 없어요</p></div>';
-    return;
-  }
+  if(!warSurveys.length) return;
 
+  // 전체 누적 스탯 계산
   var stats = {};
   warSurveys.forEach(function(survey) {
     (survey.responses||[]).forEach(function(r) {
       if(!stats[r.nickname]) stats[r.nickname] = {attend:0, absent:0};
-      if(r.type === 'attend') stats[r.nickname].attend++;
+      if(r.type==='attend') stats[r.nickname].attend++;
       else stats[r.nickname].absent++;
     });
   });
@@ -2648,70 +2646,104 @@ function renderWarSurveys() {
     var attendList = responses.filter(function(r){ return r.type==='attend'; });
     var absentList = responses.filter(function(r){ return r.type==='absent'; });
     var myRes = currentUser ? responses.find(function(r){ return r.nickname===currentUser.nickname; }) : null;
+
     var fmtDate = function(ts) {
       if(!ts) return '';
       var d = ts.toDate ? ts.toDate() : new Date(ts.seconds*1000);
-      return String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+      return (d.getMonth()+1)+'월 '+d.getDate()+'일 '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
     };
 
+    // 멤버 행 렌더링
     var renderMemberRow = function(r) {
       var m = members.find(function(x){ return x.nickname===r.nickname; });
       var cls = m ? (CLASS_MAP[m.class]||m.class||'') : '';
+      var clsIcon = cls && CLS_ICON[cls] ? CLS_ICON[cls] : '';
       var clsColor = cls ? (CLS_COLOR[cls]||'var(--muted)') : 'var(--muted)';
       var mStat = stats[r.nickname] || {attend:0, absent:0};
-      return '<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-bottom:1px solid var(--border);">'
-        +(m&&m.profile_img?'<img src="'+m.profile_img+'" style="width:24px;height:24px;border-radius:50%;flex-shrink:0;">':'<div style="width:24px;height:24px;border-radius:50%;background:var(--surface);border:1px solid var(--border);flex-shrink:0;"></div>')
-        +'<div style="flex:1;min-width:0;">'
-        +'<span style="font-size:13px;font-weight:600;cursor:pointer;text-decoration:underline;" onclick="openDetailByNickname('+JSON.stringify(r.nickname)+')">'+r.nickname+'</span>'
-        +(cls?'<span style="font-size:11px;color:'+clsColor+';margin-left:6px;">'+cls+'</span>':'')
+      return '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border);">'
+        +'<div style="width:28px;height:28px;border-radius:50%;background:var(--surface);border:1px solid var(--border);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;">'
+        +(m&&m.profile_img?'<img src="'+m.profile_img+'" style="width:100%;height:100%;object-fit:cover;">':clsIcon||'<span style="font-size:12px;color:var(--muted);">?</span>')
         +'</div>'
-        +'<div style="font-size:10px;color:var(--muted);flex-shrink:0;">'
-        +'<span style="color:var(--green);">참'+mStat.attend+'</span> '
-        +'<span style="color:#e06060;">불'+mStat.absent+'</span>'
-        +'</div></div>';
+        +'<div style="flex:1;min-width:0;">'
+        +'<span style="font-size:13px;font-weight:600;cursor:pointer;" onclick="openDetailByNickname('+JSON.stringify(r.nickname)+')">'+r.nickname+'</span>'
+        +(cls?'<span style="font-size:11px;color:'+clsColor+';margin-left:5px;">'+cls+'</span>':'')
+        +'</div>'
+        +'<div style="font-size:10px;color:var(--muted);flex-shrink:0;text-align:right;">'
+        +'<span style="color:var(--green);">✔'+mStat.attend+'</span> '
+        +'<span style="color:#e06060;">✘'+mStat.absent+'</span>'
+        +'</div>'
+        +'</div>';
     };
 
-    var attendBtn = myRes&&myRes.type==='attend'
-      ? 'background:rgba(0,200,138,.2);border-color:var(--gold);color:var(--gold-l);'
-      : '';
-    var absentBtn = myRes&&myRes.type==='absent'
-      ? 'background:rgba(220,50,50,.2);border-color:#e06060;color:#e06060;'
-      : '';
     var surveyId = survey.id;
+    var attendStyle = myRes&&myRes.type==='attend' ? 'background:rgba(0,200,138,.2);border-color:var(--gold);color:var(--gold-l);' : '';
+    var absentStyle = myRes&&myRes.type==='absent' ? 'background:rgba(220,50,50,.2);border-color:#e06060;color:#e06060;' : '';
 
     return '<div class="card" style="margin-bottom:16px;padding:0;overflow:hidden;">'
-      +'<div style="padding:14px 16px;border-bottom:1px solid var(--border);background:var(--surface);">'
-      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;">'
-      +'<div><div style="font-size:16px;font-weight:700;">'+survey.title+'</div>'
-      +'<div style="font-size:12px;color:var(--muted);margin-top:3px;">'+fmtDate(survey.created_at)+(survey.deadline?' · 마감 '+survey.deadline:'')+'</div></div>'
-      +(isAdmin()?'<button onclick="deleteWarSurvey('+JSON.stringify(surveyId)+')" style="font-size:10px;padding:2px 7px;background:none;border:1px solid var(--red);border-radius:4px;color:var(--red);cursor:pointer;">삭제</button>':'')
-      +'</div>'
-      +(currentUser
-        ?'<div style="display:flex;gap:8px;margin-top:12px;">'
-        +'<button data-sid="'+surveyId+'" data-type="attend" onclick="respondWarSurvey(this.dataset.sid,this.dataset.type)" class="btn" style="flex:1;font-size:14px;font-weight:700;padding:10px;'+attendBtn+'">✔ 참가</button>'
-        +'<button data-sid="'+surveyId+'" data-type="absent" onclick="respondWarSurvey(this.dataset.sid,this.dataset.type)" class="btn" style="flex:1;font-size:14px;font-weight:700;padding:10px;'+absentBtn+'">✘ 불참</button>'
-        +'</div>'
-        :'<div style="font-size:12px;color:var(--muted);margin-top:8px;">로그인 후 참여 가능해요</div>')
-      +'</div>'
-      +'<div style="display:grid;grid-template-columns:1fr 1fr;">'
-      +'<div style="border-right:1px solid var(--border);">'
-      +'<div style="padding:8px 12px;background:rgba(0,200,138,.08);font-size:12px;font-weight:700;color:var(--green);border-bottom:1px solid var(--border);">✔ 참가 ('+attendList.length+'명)</div>'
-      +attendList.map(renderMemberRow).join('')
-      +(attendList.length===0?'<div style="padding:12px;font-size:12px;color:var(--muted);text-align:center;">없음</div>':'')
-      +'</div>'
+
+      // 헤더
+      +'<div style="padding:14px 16px;background:var(--surface);border-bottom:1px solid var(--border);">'
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'
       +'<div>'
-      +'<div style="padding:8px 12px;background:rgba(220,50,50,.08);font-size:12px;font-weight:700;color:#e06060;border-bottom:1px solid var(--border);">✘ 불참 ('+absentList.length+'명)</div>'
-      +absentList.map(renderMemberRow).join('')
-      +(absentList.length===0?'<div style="padding:12px;font-size:12px;color:var(--muted);text-align:center;">없음</div>':'')
-      +'</div></div>'
-      +'<div style="padding:10px 16px;background:var(--surface);border-top:1px solid var(--border);display:flex;gap:10px;flex-wrap:wrap;align-items:center;">'
-      +'<span style="font-size:11px;color:var(--muted);">📊 누적:</span>'
-      +Object.entries(stats).sort(function(a,b){return (b[1].attend+b[1].absent)-(a[1].attend+a[1].absent);}).slice(0,8).map(function(e){
-        return '<span style="font-size:11px;"><b>'+e[0]+'</b>'
-          +' <span style="color:var(--green);">✔'+e[1].attend+'</span>'
-          +' <span style="color:#e06060;">✘'+e[1].absent+'</span></span>';
-      }).join(' · ')
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">'
+      +'<span style="font-size:18px;font-weight:700;">⚔ '+survey.title+'</span>'
       +'</div>'
+      +'<div style="font-size:12px;color:var(--muted);">'
+      +(survey.deadline?'마감: '+survey.deadline+' · ':'')
+      +'생성: '+fmtDate(survey.created_at)
+      +'</div>'
+      +'</div>'
+      +(isAdmin()?'<button onclick="deleteWarSurvey('+JSON.stringify(surveyId)+')" style="font-size:11px;padding:4px 8px;background:none;border:1px solid var(--red);border-radius:6px;color:var(--red);cursor:pointer;flex-shrink:0;">삭제</button>':'')
+      +'</div>'
+      +'</div>'
+
+      // 참가/불참 버튼
+      +(currentUser
+        ? '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-bottom:1px solid var(--border);">'
+          +'<button data-sid="'+surveyId+'" data-type="attend" onclick="respondWarSurvey(this.dataset.sid,this.dataset.type)" style="padding:14px;font-size:15px;font-weight:700;border:none;border-right:1px solid var(--border);border-radius:0;cursor:pointer;background:'+(myRes&&myRes.type==='attend'?'rgba(0,200,138,.15)':'transparent')+';color:'+(myRes&&myRes.type==='attend'?'var(--green)':'var(--text)') +';transition:background .2s;">✔ 참가 ('+attendList.length+')</button>'
+          +'<button data-sid="'+surveyId+'" data-type="absent" onclick="respondWarSurvey(this.dataset.sid,this.dataset.type)" style="padding:14px;font-size:15px;font-weight:700;border:none;border-radius:0;cursor:pointer;background:'+(myRes&&myRes.type==='absent'?'rgba(220,50,50,.15)':'transparent')+';color:'+(myRes&&myRes.type==='absent'?'#e06060':'var(--text)')+';transition:background .2s;">✘ 불참 ('+absentList.length+')</button>'
+          +'</div>'
+        : '<div style="padding:12px 16px;font-size:13px;color:var(--muted);border-bottom:1px solid var(--border);text-align:center;">로그인 후 참여 가능해요</div>'
+      )
+
+      // 명단 (2열)
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;">'
+
+      // 참가 명단
+      +'<div style="border-right:1px solid var(--border);">'
+      +'<div style="padding:8px 12px;background:rgba(0,200,138,.06);font-size:12px;font-weight:700;color:var(--green);border-bottom:1px solid var(--border);">✔ 참가 '+attendList.length+'명</div>'
+      +attendList.map(renderMemberRow).join('')
+      +(attendList.length===0?'<div style="padding:16px;font-size:12px;color:var(--muted);text-align:center;">없음</div>':'')
+      +'</div>'
+
+      // 불참 명단
+      +'<div>'
+      +'<div style="padding:8px 12px;background:rgba(220,50,50,.06);font-size:12px;font-weight:700;color:#e06060;border-bottom:1px solid var(--border);">✘ 불참 '+absentList.length+'명</div>'
+      +absentList.map(renderMemberRow).join('')
+      +(absentList.length===0?'<div style="padding:16px;font-size:12px;color:var(--muted);text-align:center;">없음</div>':'')
+      +'</div>'
+      +'</div>'
+
+      // 누적 스탯
+      +(Object.keys(stats).length>0
+        ? '<div style="padding:12px 16px;background:var(--surface);border-top:1px solid var(--border);">'
+          +'<div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-weight:600;">📊 누적 참여 스탯</div>'
+          +'<div style="display:flex;flex-wrap:wrap;gap:6px;">'
+          +Object.entries(stats).sort(function(a,b){return (b[1].attend+b[1].absent)-(a[1].attend+a[1].absent);}).map(function(entry){
+            var name=entry[0], st=entry[1];
+            var total=st.attend+st.absent;
+            var rate=total>0?Math.round(st.attend/total*100):0;
+            return '<div style="display:flex;align-items:center;gap:4px;padding:4px 8px;background:var(--card);border:1px solid var(--border);border-radius:20px;font-size:11px;">'
+              +'<span style="font-weight:600;">'+name+'</span>'
+              +'<span style="color:var(--green);">✔'+st.attend+'</span>'
+              +'<span style="color:#e06060;">✘'+st.absent+'</span>'
+              +'<span style="color:var(--muted);">'+rate+'%</span>'
+              +'</div>';
+          }).join('')
+          +'</div></div>'
+        : ''
+      )
+
       +'</div>';
   }).join('');
 }
@@ -2796,7 +2828,7 @@ function getNextWarDate() {
   var dn = dayNames[targetDate.getDay()];
   return {
     inProgress: false,
-    title: m+'월 '+d+'일('+dn+') 쟁 참여조사',
+    title: m+'월 '+d+'일('+dn+') 쟁 준비',
     dateStr: m+'.'+String(d).padStart(2,'0'),
     date: targetDate
   };
@@ -2814,7 +2846,7 @@ function autoInitWarSurvey() {
   if(!existing && isAdmin()) {
     // 없으면 자동 생성
     db.collection('war_surveys').add({
-      title: info.title,
+      title: info.title.replace('쟁 참여조사', '쟁 준비'),
       deadline: info.dateStr + ' 21:00',
       responses: [],
       created_at: firebase.firestore.FieldValue.serverTimestamp()
@@ -2822,7 +2854,7 @@ function autoInitWarSurvey() {
   } else if(!existing) {
     // 비관리자인 경우 안내
     document.getElementById('war-survey-list').innerHTML =
-      '<div class="empty" style="padding:40px;"><div class="empty-icon">⚔</div><p style="color:var(--muted);">다음 쟁: '+info.title+'</p><p style="font-size:12px;color:var(--muted);">참여조사가 곧 올라올 거예요</p></div>';
+      '<div class="empty" style="padding:40px;"><div class="empty-icon">⚔</div><p style="color:var(--muted);">쟁 준비: '+info.title+'</p><p style="font-size:12px;color:var(--muted);">참여조사가 곧 올라올 거예요</p></div>';
   }
 }
 
