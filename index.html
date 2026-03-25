@@ -1037,6 +1037,7 @@ function showTab(id) {
   if(id==='war') {
     const wb = document.getElementById('war-create-btn');
     if(wb) wb.style.display = isAdmin() ? 'inline-block' : 'none';
+    autoInitWarSurvey();
   }
   localStorage.setItem('activeTab', id);
 }
@@ -2625,6 +2626,9 @@ function renderAll() {
 function renderWarSurveys() {
   var el = document.getElementById('war-survey-list');
   if(!el) return;
+  // 쟁 진행중 체크
+  var warInfo = typeof getNextWarDate === 'function' ? getNextWarDate() : null;
+  if(warInfo && warInfo.inProgress) { showWarInProgress(); return; }
   if(!warSurveys.length) {
     el.innerHTML = '<div class="empty" style="padding:40px;"><div class="empty-icon">⚔</div><p>진행 중인 참여조사가 없어요</p></div>';
     return;
@@ -2741,11 +2745,105 @@ async function deleteWarSurvey(id) {
   toast('삭제됐어요');
 }
 
+
+// 다음 쟁 날짜 계산 (화=2, 목=4, 토=6, 21시 기준)
+function getNextWarDate() {
+  var now = new Date(new Date().toLocaleString('en-US', {timeZone:'Asia/Seoul'}));
+  var day = now.getDay(); // 0=일 1=월 2=화 3=수 4=목 5=금 6=토
+  var hour = now.getHours();
+  var min = now.getMinutes();
+  var totalMin = hour * 60 + min;
+  var WAR_START = 21 * 60;      // 21:00
+  var WAR_GRACE = 21 * 60 + 10; // 21:10
+
+  // 쟁 진행중 여부 (21:00~21:10 사이, 쟁 당일)
+  var isWarDay = (day===2||day===4||day===6);
+  var isWarInProgress = isWarDay && totalMin >= WAR_START && totalMin < WAR_GRACE;
+
+  // 다음 쟁 날짜 계산
+  // 화(2) 목(4) 토(6) 순서
+  var warDays = [2, 4, 6];
+  var targetDate = new Date(now);
+
+  if(isWarInProgress) return {inProgress: true};
+
+  // 현재 쟁 당일이고 21시 전 → 오늘 날짜
+  if(isWarDay && totalMin < WAR_START) {
+    // 오늘 날짜 그대로
+  } else if(isWarDay && totalMin >= WAR_GRACE) {
+    // 21:10 이후 → 다음 쟁
+    var nextWarDays = {2:4, 4:6, 6:2};
+    var daysToNext = {2:2, 4:2, 6:3}; // 화→목(+2), 목→토(+2), 토→화(+3)
+    targetDate.setDate(targetDate.getDate() + daysToNext[day]);
+  } else {
+    // 쟁 아닌 날 → 다음 쟁 찾기
+    var added = 0;
+    while(true) {
+      added++;
+      var checkDate = new Date(now);
+      checkDate.setDate(checkDate.getDate() + added);
+      if(warDays.indexOf(checkDate.getDay()) !== -1) {
+        targetDate = checkDate;
+        break;
+      }
+      if(added > 7) break;
+    }
+  }
+
+  var dayNames = ['일','월','화','수','목','금','토'];
+  var m = targetDate.getMonth()+1;
+  var d = targetDate.getDate();
+  var dn = dayNames[targetDate.getDay()];
+  return {
+    inProgress: false,
+    title: m+'월 '+d+'일('+dn+') 쟁 참여조사',
+    dateStr: m+'.'+String(d).padStart(2,'0'),
+    date: targetDate
+  };
+}
+
+function autoInitWarSurvey() {
+  var info = getNextWarDate();
+  if(info.inProgress) {
+    showWarInProgress();
+    return;
+  }
+
+  // Firebase에서 같은 날짜 survey 있는지 확인
+  var existing = warSurveys.find(function(s){ return s.title && s.title.indexOf(info.dateStr) !== -1; });
+  if(!existing && isAdmin()) {
+    // 없으면 자동 생성
+    db.collection('war_surveys').add({
+      title: info.title,
+      deadline: info.dateStr + ' 21:00',
+      responses: [],
+      created_at: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function(){ toast('📋 ' + info.title + ' 자동 생성됨'); });
+  } else if(!existing) {
+    // 비관리자인 경우 안내
+    document.getElementById('war-survey-list').innerHTML =
+      '<div class="empty" style="padding:40px;"><div class="empty-icon">⚔</div><p style="color:var(--muted);">다음 쟁: '+info.title+'</p><p style="font-size:12px;color:var(--muted);">참여조사가 곧 올라올 거예요</p></div>';
+  }
+}
+
+function showWarInProgress() {
+  var el = document.getElementById('war-survey-list');
+  if(!el) return;
+  el.innerHTML = '<div style="text-align:center;padding:40px 20px;">'
+    +'<div style="font-size:48px;margin-bottom:12px;">⚔</div>'
+    +'<div style="font-size:20px;font-weight:700;color:var(--gold-l);margin-bottom:8px;">쟁 진행 중!</div>'
+    +'<div style="font-size:14px;color:var(--muted);">현재 쟁이 진행 중이에요<br>21시 10분 이후 다음 쟁 참여조사가 열립니다</div>'
+    +'</div>';
+}
+
 function openWarSurveyCreate() {
-  var title = prompt('참여조사 제목을 입력하세요', '○월 ○일 쟁 참여조사');
+  var info = getNextWarDate();
+  var defaultTitle = info.inProgress ? '쟁 참여조사' : info.title;
+  var title = prompt('참여조사 제목을 입력하세요', defaultTitle);
   if(!title) return;
-  var deadline = prompt('마감일을 입력하세요 (예: 03.28 22:00, 비워두면 없음)', '');
-  createWarSurvey(title, deadline);
+  var defaultDeadline = info.inProgress ? '' : info.dateStr + ' 21:00';
+  var deadline = prompt('마감일을 입력하세요 (예: 03.28 21:00)', defaultDeadline);
+  createWarSurvey(title, deadline||'');
 }
 
 // ─── Firebase 구독 ────────────────────────────
