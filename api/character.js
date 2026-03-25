@@ -27,6 +27,8 @@ module.exports = async function handler(req, res) {
 
     const profile = (infoData && infoData.profile) ? infoData.profile : {};
     const equip   = (equipData && equipData.equipment && equipData.equipment.equipmentList) ? equipData.equipment.equipmentList : [];
+    const petwing = (equipData && equipData.petwing) ? equipData.petwing : {};
+    const skillData = (equipData && equipData.skill) ? equipData.skill : null;
 
     const classMap = {
       'Gladiator':'검성','Templar':'수호성',
@@ -38,7 +40,7 @@ module.exports = async function handler(req, res) {
     const mapEquip = function(e) {
       return {
         name:        e.name || '',
-        slot:        e.slotPosName || '',
+        slot:        e.slotPosName || e.slot || '',
         enchant:     e.enchantLevel || 0,
         exceed:      e.exceedLevel || 0,
         grade:       e.grade || '',
@@ -52,31 +54,35 @@ module.exports = async function handler(req, res) {
       };
     };
 
-    const allSlotNames = equip.map(function(e) { return e.slotPosName; });
+    // 펫/날개 - petwing 키에서 추출
+    var petData  = null;
+    var wingData = null;
+    if (petwing) {
+      var pwList = petwing.petwingList || petwing.equipmentList || (Array.isArray(petwing) ? petwing : []);
+      pwList.forEach(function(e) {
+        var slot = (e.slotPosName || e.slot || '').toLowerCase();
+        if (slot === 'pet' || slot.indexOf('pet') !== -1) petData = mapEquip(e);
+        else if (slot === 'wing' || slot.indexOf('wing') !== -1) wingData = mapEquip(e);
+      });
+      // 리스트 없이 직접 pet/wing 키가 있는 경우
+      if (!petData  && petwing.pet)  petData  = { name: petwing.pet.name||'', icon: petwing.pet.icon||'', grade: petwing.pet.grade||'', slot:'Pet', enchant:0, exceed:0 };
+      if (!wingData && petwing.wing) wingData = { name: petwing.wing.name||'', icon: petwing.wing.icon||'', grade: petwing.wing.grade||'', slot:'Wing', enchant:0, exceed:0 };
+    }
 
-    const petSlot  = equip.find(function(e) {
-      return ['Pet','pet','PET','펫'].indexOf(e.slotPosName) !== -1;
-    });
-    const wingSlot = equip.find(function(e) {
-      return ['Wing','wing','WING','날개'].indexOf(e.slotPosName) !== -1;
-    });
-
-    const petData  = petSlot  ? mapEquip(petSlot)
-                   : (equipData && equipData.pet  ? { name: equipData.pet.name||'', icon: equipData.pet.icon||'', grade: equipData.pet.grade||'' } : null);
-    const wingData = wingSlot ? mapEquip(wingSlot)
-                   : (equipData && equipData.wing ? { name: equipData.wing.name||'', icon: equipData.wing.icon||'', grade: equipData.wing.grade||'' } : null);
+    // 스킬 데이터
+    var skillList = [];
+    if (skillData) {
+      skillList = skillData.skillList || skillData.skills || skillData.list || (Array.isArray(skillData) ? skillData : []);
+    }
 
     var statList = (infoData && infoData.stat && infoData.stat.statList) ? infoData.stat.statList : [];
     var itemLevelStat = statList.find(function(s) { return s.type === 'ItemLevel'; });
     var itemLevel = itemLevelStat ? (itemLevelStat.value || 0) : 0;
 
-    var stigmaList = (infoData && infoData.stigma && infoData.stigma.stigmaList) ? infoData.stigma.stigmaList
-                   : (equipData && equipData.stigma && equipData.stigma.stigmaList) ? equipData.stigma.stigmaList : [];
-    var arcanaList = (infoData && infoData.arcana && infoData.arcana.arcanaList) ? infoData.arcana.arcanaList
-                   : (equipData && equipData.arcana && equipData.arcana.arcanaList) ? equipData.arcana.arcanaList : [];
+    var arcanaList = equip.filter(function(e) { return (e.slotPosName||'').indexOf('Arcana') !== -1; }).map(mapEquip);
     var daevList   = (infoData && infoData.daevanion && infoData.daevanion.boardList) ? infoData.daevanion.boardList : [];
-    var rankList   = (infoData && infoData.ranking && infoData.ranking.rankingList) ? infoData.ranking.rankingList : [];
-    var titleList  = (infoData && infoData.title && infoData.title.titleList) ? infoData.title.titleList : [];
+    var rankList   = (infoData && infoData.ranking   && infoData.ranking.rankingList)   ? infoData.ranking.rankingList   : [];
+    var titleList  = (infoData && infoData.title     && infoData.title.titleList)       ? infoData.title.titleList       : [];
 
     res.status(200).json({
       characterId:  rawId,
@@ -95,16 +101,16 @@ module.exports = async function handler(req, res) {
       daevanion:    daevList,
       ranking:      rankList,
       titles:       titleList,
-      stigma:       stigmaList,
+      stigma:       [],
       arcana:       arcanaList,
+      skills:       skillList,
       pet:          petData,
       wing:         wingData,
       _debug: {
-        all_slot_names: allSlotNames,
-        equip_top_keys: Object.keys(equipData || {}),
-        info_top_keys:  Object.keys(infoData  || {}),
-        stigma_raw:     (infoData && infoData.stigma) ? infoData.stigma : ((equipData && equipData.stigma) ? equipData.stigma : 'NOT_FOUND'),
-        skill_keys:     (infoData && infoData.skill) ? Object.keys(infoData.skill) : 'NOT_FOUND',
+        all_slot_names:  equip.map(function(e){ return e.slotPosName; }),
+        petwing_raw:     petwing,
+        skill_raw:       skillData,
+        equip_top_keys:  Object.keys(equipData || {}),
       }
     });
   } catch (err) {
