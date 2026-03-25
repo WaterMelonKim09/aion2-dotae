@@ -428,7 +428,7 @@ window.onerror = function(msg, src, line, col, err) {
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
       <div class="section-title" style="margin:0;">📢 공지 / 패치노트</div>
       <div style="display:flex;gap:8px;align-items:center;">
-        <span style="font-size:12px;color:var(--muted);">v1.2.1 · 2026.03.25</span>
+        <span style="font-size:12px;color:var(--muted);">v1.3.0 · 2026.03.25</span>
         <span id="notice-write-btn" style="display:none;"><button class="btn btn-primary btn-sm" onclick="openNoticeWrite()">+ 작성</button></span>
       </div>
     </div>
@@ -1256,6 +1256,15 @@ function toggleSubs(mainId) {
   toggle.innerHTML = isOpen
     ? `▶ 부캐 보기 (${subMembers.length})`
     : `▼ 부캐 숨기기 (${subMembers.length})`;
+}
+
+function openDetailByNickname(nickname) {
+  const m = members.find(x => x.nickname === nickname);
+  if(m) {
+    openDetailById(m.id);
+  } else {
+    toast(nickname + ' 님은 등록된 멤버가 아니에요');
+  }
 }
 
 function openDetailById(id) {
@@ -2113,7 +2122,7 @@ function renderCommentList(recruitId) {
         <div style="display:flex;align-items:center;gap:8px;">
           ${(m && m.profile_img)?`<img src="${m.profile_img}" style="width:24px;height:24px;border-radius:50%;">`:''}
           <div>
-            <span style="font-size:13px;font-weight:700;color:var(--gold-l);">${c.nickname}</span>
+            <span style="font-size:13px;font-weight:700;color:var(--gold-l);cursor:pointer;text-decoration:underline;text-underline-offset:2px;" onclick="openDetailByNickname('${c.nickname}')">${c.nickname}</span>
             ${cls?`<span style="font-size:11px;color:${clsColor};margin-left:6px;">${CLS_ICON[cls]||''} ${cls}</span>`:''}
             ${m?`<span style="font-size:11px;color:var(--muted);margin-left:6px;">전투력 ${(m.combat_power||0).toLocaleString()}</span>`:''}
           </div>
@@ -2923,6 +2932,30 @@ function renderNotices(notices) {
 
   // 초기 패치노트 항상 마지막에
   const initNote = `
+  <div class="card" style="padding:20px;border-left:3px solid var(--gold);">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+      <div>
+        <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(0,200,138,.15);color:var(--gold-l);border:1px solid var(--gold-d);margin-right:8px;">패치노트</span>
+        <span style="font-size:16px;font-weight:700;">v1.3.0 — 상세 스펙 대폭 강화</span>
+      </div>
+      <span style="font-size:12px;color:var(--muted);white-space:nowrap;">2026.03.25</span>
+    </div>
+    <div style="font-size:13px;color:var(--muted);line-height:1.8;">
+      ⚔ <b style="color:var(--text)">스킬 탭 추가</b><br>
+      &nbsp;&nbsp;액티브 / 패시브 / 스티그마 스킬을 카테고리별로 구분해서 보여줘요. 장착된 스킬은 밝게, 미장착은 흐리게 표시돼요.<br><br>
+      🏆 <b style="color:var(--text)">타이틀 탭 추가</b><br>
+      &nbsp;&nbsp;장착 중인 타이틀을 공격/방어/기타 계열로 분류해서 보여줘요. 장착 효과와 보유 효과를 함께 확인할 수 있어요.<br><br>
+      🐹 <b style="color:var(--text)">펫 / 날개 표시</b><br>
+      &nbsp;&nbsp;상세 스펙 종합정보에서 장착 중인 펫과 날개를 확인할 수 있어요. 날개 스킨도 표시돼요.<br><br>
+      🌟 <b style="color:var(--text)">데바니온 카드형 표시</b><br>
+      &nbsp;&nbsp;데바니온 보드를 보드 아이콘과 함께 카드 형태로 보여줘요. 개방률에 따라 색상이 달라져요.<br><br>
+      👆 <b style="color:var(--text)">파티 모집 닉네임 클릭</b><br>
+      &nbsp;&nbsp;파티 모집 상세에서 신청자나 댓글 작성자 닉네임을 클릭하면 해당 멤버의 상세 스펙을 바로 확인할 수 있어요.<br><br>
+      🔧 <b style="color:var(--text)">기타 개선</b><br>
+      &nbsp;&nbsp;닉네임 검색 시 해당 본캐의 부캐만 표시되도록 수정했어요. iOS 호환성을 추가로 개선했어요.
+    </div>
+  </div>
+
   <div class="card" style="padding:20px;border-left:3px solid var(--gold);opacity:.75;">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
       <div>
@@ -3211,6 +3244,30 @@ function renderNotices(notices) {
 
   // 초기 패치노트 항상 마지막에
   const initNote = `
+  <div class="card" style="padding:20px;border-left:3px solid var(--gold);">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+      <div>
+        <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(0,200,138,.15);color:var(--gold-l);border:1px solid var(--gold-d);margin-right:8px;">패치노트</span>
+        <span style="font-size:16px;font-weight:700;">v1.3.0 — 상세 스펙 대폭 강화</span>
+      </div>
+      <span style="font-size:12px;color:var(--muted);white-space:nowrap;">2026.03.25</span>
+    </div>
+    <div style="font-size:13px;color:var(--muted);line-height:1.8;">
+      ⚔ <b style="color:var(--text)">스킬 탭 추가</b><br>
+      &nbsp;&nbsp;액티브 / 패시브 / 스티그마 스킬을 카테고리별로 구분해서 보여줘요. 장착된 스킬은 밝게, 미장착은 흐리게 표시돼요.<br><br>
+      🏆 <b style="color:var(--text)">타이틀 탭 추가</b><br>
+      &nbsp;&nbsp;장착 중인 타이틀을 공격/방어/기타 계열로 분류해서 보여줘요. 장착 효과와 보유 효과를 함께 확인할 수 있어요.<br><br>
+      🐹 <b style="color:var(--text)">펫 / 날개 표시</b><br>
+      &nbsp;&nbsp;상세 스펙 종합정보에서 장착 중인 펫과 날개를 확인할 수 있어요. 날개 스킨도 표시돼요.<br><br>
+      🌟 <b style="color:var(--text)">데바니온 카드형 표시</b><br>
+      &nbsp;&nbsp;데바니온 보드를 보드 아이콘과 함께 카드 형태로 보여줘요. 개방률에 따라 색상이 달라져요.<br><br>
+      👆 <b style="color:var(--text)">파티 모집 닉네임 클릭</b><br>
+      &nbsp;&nbsp;파티 모집 상세에서 신청자나 댓글 작성자 닉네임을 클릭하면 해당 멤버의 상세 스펙을 바로 확인할 수 있어요.<br><br>
+      🔧 <b style="color:var(--text)">기타 개선</b><br>
+      &nbsp;&nbsp;닉네임 검색 시 해당 본캐의 부캐만 표시되도록 수정했어요. iOS 호환성을 추가로 개선했어요.
+    </div>
+  </div>
+
   <div class="card" style="padding:20px;border-left:3px solid var(--gold);opacity:.75;">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
       <div>
@@ -3356,6 +3413,30 @@ function renderNotices(notices) {
 
   // 초기 패치노트 항상 마지막에
   const initNote = `
+  <div class="card" style="padding:20px;border-left:3px solid var(--gold);">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+      <div>
+        <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(0,200,138,.15);color:var(--gold-l);border:1px solid var(--gold-d);margin-right:8px;">패치노트</span>
+        <span style="font-size:16px;font-weight:700;">v1.3.0 — 상세 스펙 대폭 강화</span>
+      </div>
+      <span style="font-size:12px;color:var(--muted);white-space:nowrap;">2026.03.25</span>
+    </div>
+    <div style="font-size:13px;color:var(--muted);line-height:1.8;">
+      ⚔ <b style="color:var(--text)">스킬 탭 추가</b><br>
+      &nbsp;&nbsp;액티브 / 패시브 / 스티그마 스킬을 카테고리별로 구분해서 보여줘요. 장착된 스킬은 밝게, 미장착은 흐리게 표시돼요.<br><br>
+      🏆 <b style="color:var(--text)">타이틀 탭 추가</b><br>
+      &nbsp;&nbsp;장착 중인 타이틀을 공격/방어/기타 계열로 분류해서 보여줘요. 장착 효과와 보유 효과를 함께 확인할 수 있어요.<br><br>
+      🐹 <b style="color:var(--text)">펫 / 날개 표시</b><br>
+      &nbsp;&nbsp;상세 스펙 종합정보에서 장착 중인 펫과 날개를 확인할 수 있어요. 날개 스킨도 표시돼요.<br><br>
+      🌟 <b style="color:var(--text)">데바니온 카드형 표시</b><br>
+      &nbsp;&nbsp;데바니온 보드를 보드 아이콘과 함께 카드 형태로 보여줘요. 개방률에 따라 색상이 달라져요.<br><br>
+      👆 <b style="color:var(--text)">파티 모집 닉네임 클릭</b><br>
+      &nbsp;&nbsp;파티 모집 상세에서 신청자나 댓글 작성자 닉네임을 클릭하면 해당 멤버의 상세 스펙을 바로 확인할 수 있어요.<br><br>
+      🔧 <b style="color:var(--text)">기타 개선</b><br>
+      &nbsp;&nbsp;닉네임 검색 시 해당 본캐의 부캐만 표시되도록 수정했어요. iOS 호환성을 추가로 개선했어요.
+    </div>
+  </div>
+
   <div class="card" style="padding:20px;border-left:3px solid var(--gold);opacity:.75;">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
       <div>
