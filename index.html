@@ -803,6 +803,7 @@ function initFirebase() {
   initBossTimers(); // 슈고 타이머 구독
   db.collection('members').orderBy('combat_power','desc')
     .onSnapshot(snap => {
+      const isFirstLoad = members.length === 0;
       members = snap.docs.map(d => {
         const data = d.data();
         // 어비스 랭킹 순서 계산 (정렬용)
@@ -822,6 +823,7 @@ function initFirebase() {
         return { id: d.id, ...data, abyss_rank_order: rankOrder };
       });
       renderAll();
+      if(isFirstLoad) initLoginScreen();
     });
   db.collection('recruits').orderBy('created_at','desc')
     .onSnapshot(snap => {
@@ -1504,7 +1506,25 @@ function renderRecruit() {
         <div class="rc">
           <div class="rc-head"><span class="rc-title">${r.title}</span><span class="rc-tag tag-${r.type}">${r.type}</span></div>
           <div class="rc-meta">${r.schedule||'일정 미정'} · 최소 ${r.min_cp||'제한 없음'}</div>
-          <div class="rc-reqs">${(r.reqs||[]).map(x=>`<span class="req-item">${x}</span>`).join('')||'<span class="req-item">제한 없음</span>'}</div>
+          <div class="rc-reqs">${(() => {
+            if(!(r.reqs||[]).length) return '<span class="req-item">제한 없음</span>';
+            const applies = r.applies||[];
+            const filled = [];
+            applies.forEach(a => {
+              const m = members.find(x=>x.nickname===a.nickname);
+              if(m) filled.push(CLASS_MAP[m.class]||m.class);
+            });
+            const usedIdx = [];
+            filled.forEach(cls => {
+              let idx = r.reqs.findIndex((rq,i) => !usedIdx.includes(i) && (rq===cls||rq==='상관없음'));
+              if(idx === -1) idx = r.reqs.findIndex((rq,i) => !usedIdx.includes(i));
+              if(idx !== -1) usedIdx.push(idx);
+            });
+            return r.reqs.map((x,i) => {
+              const isFilled = usedIdx.includes(i);
+              return `<span class="req-item" style="${isFilled?'background:rgba(0,200,138,.15);border-color:var(--gold-d);color:var(--gold-l);text-decoration:line-through;opacity:.7':''}">${x}${isFilled?' ✓':''}</span>`;
+            }).join('');
+          })()}</div>
           <div class="rc-foot">
             <span class="rc-author">by ${r.author}</span>
             <div style="display:flex;align-items:center;gap:8px">
@@ -2536,8 +2556,6 @@ const savedTab = localStorage.getItem('activeTab');
 if(savedTab) showTab(savedTab);
 
 initFirebase();
-// members 로드 후 로그인 화면 초기화
-setTimeout(initLoginScreen, 800);
 
 // ─── 슈고 타이머 ────────────────────────────
 let shugoRunning = false;
