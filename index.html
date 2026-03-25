@@ -1372,15 +1372,29 @@ function openDetail(m) {
 
   // 스티그마 (스킬)
   const skills = m.skills || [];
+  function renderSkillGroup(list, label, color) {
+    if(!list.length) return '';
+    return '<div style="margin-bottom:14px;">'
+      + '<div style="font-size:11px;font-weight:600;color:'+color+';margin-bottom:8px;padding:3px 8px;background:rgba(0,0,0,.3);border-radius:4px;display:inline-block;">'+label+'</div>'
+      + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:6px;">'
+      + list.map(function(s) {
+          var equipped = s.equip === 1;
+          return '<div style="display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--surface);border:1px solid '+(equipped?color:'var(--border)')+';border-radius:8px;opacity:'+(equipped?'1':'0.5')+';">'
+            + '<img src="'+(s.icon||'')+'" style="width:28px;height:28px;border-radius:5px;flex-shrink:0;">'
+            + '<div style="min-width:0;">'
+            + '<div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.name||'')+'</div>'
+            + '<div style="font-size:10px;color:var(--muted);">Lv.'+(s.skillLevel||0)+(equipped?' ✓':'')+'</div>'
+            + '</div></div>';
+        }).join('')
+      + '</div></div>';
+  }
+  const activeSkills  = skills.filter(function(s){ return s.category==='Active'; });
+  const passiveSkills = skills.filter(function(s){ return s.category==='Passive'; });
+  const dpSkills      = skills.filter(function(s){ return s.category==='Dp'; });
   const skillHTML = skills.length
-    ? skills.map(function(s) {
-        return '<div style="display:flex;align-items:center;gap:8px;padding:6px;background:var(--surface);border:1px solid var(--border);border-radius:8px;">'
-          + '<img src="'+(s.icon||'')+'" style="width:32px;height:32px;border-radius:6px;border:1px solid var(--border);">'
-          + '<div style="flex:1;min-width:0;">'
-          + '<div style="font-size:13px;font-weight:600;">'+(s.name||s.skillName||'')+'</div>'
-          + '<div style="font-size:11px;color:var(--muted);">Lv.'+(s.level||s.skillLevel||0)+'</div>'
-          + '</div></div>';
-      }).join('')
+    ? renderSkillGroup(activeSkills,'⚔ 액티브 스킬','var(--gold-l)')
+      + renderSkillGroup(passiveSkills,'🛡 패시브 스킬','#60c8ff')
+      + renderSkillGroup(dpSkills,'✨ DP 스킬','#d060d0')
     : '<div style="color:var(--muted);padding:20px;text-align:center;">스킬 정보 없음 (갱신 필요)</div>';
 
     // 펫/날개
@@ -1390,26 +1404,57 @@ function openDetail(m) {
     ${m.pet.grade?`<div style="font-size:11px;color:var(--muted);">등급: ${m.pet.grade}</div>`:''}
     </div></div>` : '<div style="font-size:12px;color:var(--muted);padding:8px;">펫 정보 없음</div>';
 
-  const wingHTML = equipMap['Wing'] ? equipHTML('Wing') : (m.wing ? `<div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;">
-    <img src="${m.wing.icon||''}" style="width:40px;height:40px;border-radius:8px;" onerror="this.style.display='none'">
-    <div><div style="font-size:13px;font-weight:600;">${m.wing.name||'날개'}</div></div></div>` : '<div style="font-size:12px;color:var(--muted);padding:8px;">날개 정보 없음</div>');
+  const wingHTML = equipMap['Wing'] ? equipHTML('Wing') : (m.wing ? '<div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;">'
+    + '<img src="'+(m.wing.icon||'')+'" style="width:40px;height:40px;border-radius:8px;">'
+    + '<div><div style="font-size:13px;font-weight:600;">'+(m.wing.name||'날개')+'</div>'
+    + (m.wing.enchant>0?'<div style="font-size:11px;color:var(--muted);">+'+m.wing.enchant+'</div>':'')
+    + (m.wing.skinName?'<div style="font-size:11px;color:var(--muted);">스킨: '+m.wing.skinName+'</div>':'')
+    + '</div></div>'
+    : '<div style="font-size:12px;color:var(--muted);padding:8px;">날개 정보 없음</div>');
 
-  // 타이틀
-  const titles = m.titles || m.title || [];
-  const activeTitles = Array.isArray(titles) ? titles.filter(t => t && (t.isEquip || t.equipped || t.active)) : [];
-  const titleHTML = activeTitles.length ? activeTitles.map(t => {
-    const effects = t.statList || t.effects || t.stats || [];
-    return '<div style="padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;">' +
-      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:' + (effects.length?'6px':'0') + ';">' +
-      '<span style="font-size:11px;padding:1px 6px;border-radius:10px;background:rgba(232,192,48,.15);color:#e8c030;border:1px solid #604010;">타이틀</span>' +
-      '<span style="font-size:13px;font-weight:600;color:#e8c030;">' + (t.name||t.titleName||'') + '</span>' +
-      '</div>' +
-      (effects.length ? '<div style="display:flex;flex-wrap:wrap;gap:4px;">' + effects.map(s =>
-        '<span style="font-size:11px;padding:2px 6px;background:var(--card);border:1px solid var(--border);border-radius:4px;color:var(--muted);">' +
-        (s.typeName||s.name||s.type||'') + ' ' + (s.value||'') + '</span>'
-      ).join('') + '</div>' : '') +
-      '</div>';
-  }).join('') : '<div style="font-size:12px;color:var(--muted);padding:8px;">장착 중인 타이틀 없음</div>';
+  // 타이틀 - NC공홈 스타일 카테고리별 그룹
+  const titles = m.titles || [];
+  var titleCatMap = {'Attack':'공격 계열','Defense':'방어 계열','Etc':'기타 계열'};
+  var titleCatIcon = {'Attack':'⚔','Defense':'🛡','Etc':'✦'};
+  var titleGroups = {};
+  titles.forEach(function(t) {
+    var cat = t.equipCategory || 'Etc';
+    if(!titleGroups[cat]) titleGroups[cat] = [];
+    titleGroups[cat].push(t);
+  });
+  var catOrder = ['Attack','Defense','Etc'];
+  var totalOwned = titles.reduce(function(a,t){ return a+(t.ownedCount||0); }, 0);
+  var totalAll   = titles.reduce(function(a,t){ return a+(t.totalCount||0); }, 0);
+  var titleHTML = titles.length
+    ? '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">'
+      + '<div style="font-size:13px;color:var(--muted);">장착 중인 타이틀 목록</div>'
+      + '<div style="font-size:13px;color:var(--gold-l);font-weight:600;">'+totalOwned+' / '+totalAll+'</div>'
+      + '</div>'
+      + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;">'
+      + catOrder.filter(function(cat){ return titleGroups[cat]; }).map(function(cat) {
+          var group = titleGroups[cat];
+          var owned = group.reduce(function(a,t){ return a+(t.ownedCount||0); }, 0);
+          var total = group.reduce(function(a,t){ return a+(t.totalCount||0); }, 0);
+          return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;">'
+            + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">'
+            + '<div style="width:36px;height:36px;border-radius:50%;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:18px;">'+(titleCatIcon[cat]||'✦')+'</div>'
+            + '<div>'
+            + '<div style="font-size:13px;font-weight:700;">'+(titleCatMap[cat]||cat)+'</div>'
+            + '<div style="font-size:11px;color:var(--muted);">'+owned+' / '+total+'</div>'
+            + '</div></div>'
+            + group.map(function(t) {
+                var equipStats = t.equipStatList || [];
+                return '<div style="margin-bottom:8px;padding:8px;background:var(--card);border-radius:6px;">'
+                  + '<div style="font-size:12px;font-weight:600;color:var(--gold-l);margin-bottom:4px;">'+(t.name||'')+'</div>'
+                  + equipStats.map(function(s){
+                      return '<div style="font-size:11px;color:var(--muted);">'+(s.desc||'')+'</div>';
+                    }).join('')
+                  + '</div>';
+              }).join('')
+            + '</div>';
+        }).join('')
+      + '</div>'
+    : '<div style="font-size:12px;color:var(--muted);padding:16px;text-align:center;">장착 중인 타이틀 없음 (갱신 필요)</div>';
 
   // 슬롯 그룹
   const equip1 = ['MainHand','SubHand','Helmet','Shoulder','Torso','Gloves','Pants','Boots','Cape','Belt'];
@@ -1481,6 +1526,11 @@ function openDetail(m) {
       </div>
     </div>
 
+    <!-- 타이틀 -->
+    <div id="detail-title" style="display:none;">
+      ${titleHTML}
+    </div>
+
     <!-- 장신구/룬 탭 (별도 탭은 유지) -->
     <div id="detail-equip2" style="display:none;">
       ${equip2.map(equipHTML).join('')}
@@ -1488,7 +1538,7 @@ function openDetail(m) {
 
     <!-- 스킬 (스티그마) -->
     <div id="detail-skill" style="display:none;">
-      ${stigmaHTML ? `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">${skillHTML}</div>` : '<div style="color:var(--muted);padding:20px;text-align:center;">스킬 정보 없음 (갱신 필요)</div>'}
+      ${skillHTML ? `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">${skillHTML}</div>` : '<div style="color:var(--muted);padding:20px;text-align:center;">스킬 정보 없음 (갱신 필요)</div>'}
     </div>
 
     <!-- 데바니온 -->
