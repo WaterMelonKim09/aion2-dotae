@@ -416,7 +416,7 @@
       <div class="section-title" style="margin:0;">📢 공지 / 패치노트</div>
       <div style="display:flex;gap:8px;align-items:center;">
         <span style="font-size:12px;color:var(--muted);">v1.2.0 · 2026.03.25</span>
-        ${isAdmin()?`<button class="btn btn-primary btn-sm" onclick="openNoticeWrite()">+ 작성</button>`:''}
+        <span id="notice-write-btn" style="display:none;"><button class="btn btn-primary btn-sm" onclick="openNoticeWrite()">+ 작성</button></span>
       </div>
     </div>
     <div id="notice-list" style="display:flex;flex-direction:column;gap:12px;">
@@ -1534,7 +1534,14 @@ function renderEquipGrid(equipment, slots) {
 function renderMembers() {
   const search = (document.getElementById('member-search')||{value:''}).value.toLowerCase();
   const filtered = sortMembers(members.filter(m =>
+    m.is_main !== false &&
     (mFilter==='all'||(CLASS_MAP[m.class]||m.class)===mFilter) &&
+    (m.nickname||'').toLowerCase().includes(search)
+  ));
+  // 직업 필터 시 해당 직업의 부캐도 포함
+  const filteredSubs = mFilter === 'all' ? [] : sortMembers(members.filter(m =>
+    m.is_main === false &&
+    (CLASS_MAP[m.class]||m.class) === mFilter &&
     (m.nickname||'').toLowerCase().includes(search)
   ));
   const rankMigrate = r => RANK_MIGRATE[r] || r;
@@ -1632,6 +1639,14 @@ function renderMembers() {
   // is_main 필드 없는 기존 멤버 (항상 표시)
   const legacy = filtered.filter(m => m.is_main === undefined);
   legacy.forEach(m => rows += rowHTML(m, false));
+
+  // 직업 필터 시 해당 직업 부캐 구분선으로 표시
+  if(mFilter !== 'all' && filteredSubs.length > 0) {
+    rows += `<tr><td colspan="9" style="padding:6px 12px;background:rgba(0,200,138,.05);border-top:2px dashed var(--gold-d);border-bottom:1px solid var(--border);">
+      <span style="font-size:11px;color:var(--gold);font-weight:600;">── ${mFilter} 부캐 (${filteredSubs.length}명) ──</span>
+    </td></tr>`;
+    filteredSubs.forEach(s => rows += rowHTML(s, true));
+  }
   document.getElementById('member-body').innerHTML = rows ||
     `<tr><td colspan="8"><div class="empty"><div class="empty-icon">⚔</div><p>검색 결과가 없어요</p></div></td></tr>`;
 }
@@ -2188,6 +2203,10 @@ async function deleteRecruit(id) {
 
 // ─── 유틸 ──────────────────────────────
 function showTab(id) {
+  if(id === 'notice') {
+    const btn = document.getElementById('notice-write-btn');
+    if(btn) btn.style.display = isAdmin() ? 'inline' : 'none';
+  }
   document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('tab-'+id).classList.add('active');
