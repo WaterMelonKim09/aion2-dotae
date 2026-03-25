@@ -678,7 +678,7 @@ window.onerror = function(msg, src, line, col, err) {
 
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
           <span style="font-size:13px;">볼륨</span>
-          <span id="vol-label" style="font-size:13px;color:var(--gold-l);font-weight:600;">80%</span>
+          <span id="vol-label" style="font-size:13px;color:var(--gold-l);font-weight:600;">100%</span>
         </div>
         <input type="range" id="vol-slider" min="0" max="100" value="80"
           oninput="updateVolume(this.value)"
@@ -1578,7 +1578,7 @@ function renderEquipGrid(equipment, slots) {
         ? '<div style="position:absolute;bottom:-1px;right:-1px;font-size:8px;font-weight:700;color:var(--gold-l);background:rgba(0,0,0,.85);border-radius:2px;padding:0 2px;line-height:1.4;">+'+e.enchant+'</div>'
         : '';
       return '<div style="position:relative;width:26px;height:26px;" title="'+(e.name||'')+'">'
-        + '<img src="'+e.icon+'" style="width:26px;height:26px;border-radius:4px;border:2px solid '+gc+';display:block;" onerror="this.style.opacity=0.3">'
+        + '<img src="'+e.icon+'" style="width:26px;height:26px;border-radius:4px;border:2px solid '+gc+';display:block;" onerror="this.style.opacity=0.1">'
         + badge + '</div>';
     }).join('') + '</div>';
 }
@@ -2513,9 +2513,9 @@ function applyLogin() {
 
   // 헤더 유저 표시
   const userEl = document.getElementById('header-user');
-  userEl.style.visibility = 'visible';
-  document.getElementById('header-username').textContent = currentUser.nickname;
-  document.getElementById('header-user-rank').textContent = currentUser.rank ? `(${currentUser.rank})` : '';
+  if(userEl) userEl.style.visibility = 'visible';
+  var unEl = document.getElementById('header-username'); if(unEl) unEl.textContent = currentUser.nickname;
+  var urEl = document.getElementById('header-user-rank'); if(urEl) urEl.textContent = currentUser.rank ? '('+currentUser.rank+')' : '';
   const avatar = document.getElementById('header-avatar');
   if(currentUser.profile_img) {
     avatar.innerHTML = `<img src="${currentUser.profile_img}" style="width:100%;height:100%;object-fit:cover;">`;
@@ -2927,7 +2927,7 @@ initFirebase();
 let shugoRunning = false;
 let shugoInterval = null;
 let ttsEnabled = true;
-let shugoVolume = 0.8;
+let shugoVolume = 1.0;
 
 function toggleTTS() {
   ttsEnabled = !ttsEnabled;
@@ -2938,7 +2938,9 @@ function toggleTTS() {
 }
 
 function updateVolume(val) {
-  shugoVolume = val / 100;
+  // 0~100: 0~1.0, 101~200: 그대로 1.0 but rate 높임으로 강조
+  shugoVolume = Math.min(val / 100, 1.0);
+  window._volBoost = val > 100 ? (val / 100) : 1.0;
   const lbl = document.getElementById('vol-label');
   if(lbl) lbl.textContent = val + '%';
 }
@@ -2957,6 +2959,7 @@ function speakShugo() {
   utter.lang = 'ko-KR';
   utter.volume = shugoVolume;
   utter.rate = 0.9;
+  utter.pitch = window._volBoost > 1 ? 1.2 : 1.0; // 볼륨 부스트 시 피치 높여 더 잘 들리게
   speechSynthesis.cancel();
   speechSynthesis.speak(utter);
 
