@@ -415,6 +415,7 @@ window.onerror = function(msg, src, line, col, err) {
   <button class="nav-btn active" onclick="showTab('dashboard')">🏠 대시보드</button>
   <button class="nav-btn" onclick="showTab('members')">⚔ 멤버 스펙</button>
   <button class="nav-btn" onclick="showTab('recruit')">🛡 파티 모집</button>
+  <button class="nav-btn" onclick="showTab('war')">⚔ 쟁 참여조사</button>
   <button class="nav-btn" onclick="showTab('timer')">🐹 슈고 타이머</button>
   <button class="nav-btn" onclick="showTab('register')">✚ 멤버 등록</button>
 </div>
@@ -638,6 +639,22 @@ window.onerror = function(msg, src, line, col, err) {
     </div>
     <div class="recruit-grid" id="recruit-grid"></div>
   </div>
+  <!-- 쟁 참여조사 -->
+  <div id="tab-war" class="tab-content">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div>
+        <div class="section-title" style="margin:0;">⚔ 쟁 참여조사</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px;">레기온 쟁 참여 의사를 남겨주세요</div>
+      </div>
+      <button id="war-create-btn" class="btn btn-primary btn-sm" onclick="openWarSurveyCreate()" style="display:none;">+ 조사 생성</button>
+    </div>
+
+    <!-- 조사 목록 -->
+    <div id="war-survey-list">
+      <div class="empty" style="padding:40px;"><div class="empty-icon">⚔</div><p>진행 중인 참여조사가 없어요</p></div>
+    </div>
+  </div>
+
 
   <!-- 슈고 타이머 -->
   <div id="tab-timer" class="tab-content">
@@ -919,7 +936,7 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 // ─── 전역 변수 ────────────────────────────
-let members = [], recruits = [], currentUser = null, currentRecruitId = null;
+let members = [], recruits = [], warSurveys = [], currentUser = null, currentRecruitId = null;
 let mFilter = 'all', rFilter = 'all', sortBy = 'rank', sortAsc = true;
 let syncingIds = new Set();
 let shugoRunning = false, shugoInterval = null, ttsEnabled = true, shugoVolume = 1.0;
@@ -1010,12 +1027,16 @@ function showTab(id) {
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   const el = document.getElementById('tab-'+id);
   if(el) el.classList.add('active');
-  ['notice','dashboard','members','recruit','timer','register'].forEach((t,i) => {
+  ['notice','dashboard','members','recruit','war','timer','register'].forEach((t,i) => {
     if(t===id) { const btn=document.querySelectorAll('.nav-btn')[i]; if(btn) btn.classList.add('active'); }
   });
   if(id==='notice') {
     const nb = document.getElementById('notice-write-btn');
     if(nb) nb.style.display = isAdmin() ? 'inline' : 'none';
+  }
+  if(id==='war') {
+    const wb = document.getElementById('war-create-btn');
+    if(wb) wb.style.display = isAdmin() ? 'inline-block' : 'none';
   }
   localStorage.setItem('activeTab', id);
 }
@@ -1150,12 +1171,12 @@ function sortMembers(arr) {
       return (b.combat_power||0)-(a.combat_power||0);
     } else if(sortBy==='nickname') {
       av = a.nickname||''; bv = b.nickname||'';
-      const c = av.localeCompare(bv,'ko');
-      return sortAsc ? c : -c;
+      var cmp = av.localeCompare(bv,'ko');
+      return sortAsc ? cmp : -cmp;
     } else if(sortBy==='class') {
       av = CLASS_MAP[a.class]||a.class||''; bv = CLASS_MAP[b.class]||b.class||'';
-      const c = av.localeCompare(bv,'ko');
-      return sortAsc ? c : -c;
+      var cmp2 = av.localeCompare(bv,'ko');
+      return sortAsc ? cmp2 : -cmp2;
     } else {
       av = a[sortBy]||0; bv = b[sortBy]||0;
       return sortAsc ? av-bv : bv-av;
@@ -2599,6 +2620,134 @@ function renderAll() {
   renderRecentRecruit();
 }
 
+
+// ─── 쟁 참여조사 ────────────────────────────
+function renderWarSurveys() {
+  var el = document.getElementById('war-survey-list');
+  if(!el) return;
+  if(!warSurveys.length) {
+    el.innerHTML = '<div class="empty" style="padding:40px;"><div class="empty-icon">⚔</div><p>진행 중인 참여조사가 없어요</p></div>';
+    return;
+  }
+
+  var stats = {};
+  warSurveys.forEach(function(survey) {
+    (survey.responses||[]).forEach(function(r) {
+      if(!stats[r.nickname]) stats[r.nickname] = {attend:0, absent:0};
+      if(r.type === 'attend') stats[r.nickname].attend++;
+      else stats[r.nickname].absent++;
+    });
+  });
+
+  el.innerHTML = warSurveys.map(function(survey) {
+    var responses = survey.responses || [];
+    var attendList = responses.filter(function(r){ return r.type==='attend'; });
+    var absentList = responses.filter(function(r){ return r.type==='absent'; });
+    var myRes = currentUser ? responses.find(function(r){ return r.nickname===currentUser.nickname; }) : null;
+    var fmtDate = function(ts) {
+      if(!ts) return '';
+      var d = ts.toDate ? ts.toDate() : new Date(ts.seconds*1000);
+      return String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+    };
+
+    var renderMemberRow = function(r) {
+      var m = members.find(function(x){ return x.nickname===r.nickname; });
+      var cls = m ? (CLASS_MAP[m.class]||m.class||'') : '';
+      var clsColor = cls ? (CLS_COLOR[cls]||'var(--muted)') : 'var(--muted)';
+      var mStat = stats[r.nickname] || {attend:0, absent:0};
+      return '<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-bottom:1px solid var(--border);">'
+        +(m&&m.profile_img?'<img src="'+m.profile_img+'" style="width:24px;height:24px;border-radius:50%;flex-shrink:0;">':'<div style="width:24px;height:24px;border-radius:50%;background:var(--surface);border:1px solid var(--border);flex-shrink:0;"></div>')
+        +'<div style="flex:1;min-width:0;">'
+        +'<span style="font-size:13px;font-weight:600;cursor:pointer;text-decoration:underline;" onclick="openDetailByNickname('+JSON.stringify(r.nickname)+')">'+r.nickname+'</span>'
+        +(cls?'<span style="font-size:11px;color:'+clsColor+';margin-left:6px;">'+cls+'</span>':'')
+        +'</div>'
+        +'<div style="font-size:10px;color:var(--muted);flex-shrink:0;">'
+        +'<span style="color:var(--green);">참'+mStat.attend+'</span> '
+        +'<span style="color:#e06060;">불'+mStat.absent+'</span>'
+        +'</div></div>';
+    };
+
+    var attendBtn = myRes&&myRes.type==='attend'
+      ? 'background:rgba(0,200,138,.2);border-color:var(--gold);color:var(--gold-l);'
+      : '';
+    var absentBtn = myRes&&myRes.type==='absent'
+      ? 'background:rgba(220,50,50,.2);border-color:#e06060;color:#e06060;'
+      : '';
+    var surveyId = survey.id;
+
+    return '<div class="card" style="margin-bottom:16px;padding:0;overflow:hidden;">'
+      +'<div style="padding:14px 16px;border-bottom:1px solid var(--border);background:var(--surface);">'
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;">'
+      +'<div><div style="font-size:16px;font-weight:700;">'+survey.title+'</div>'
+      +'<div style="font-size:12px;color:var(--muted);margin-top:3px;">'+fmtDate(survey.created_at)+(survey.deadline?' · 마감 '+survey.deadline:'')+'</div></div>'
+      +(isAdmin()?'<button onclick="deleteWarSurvey('+JSON.stringify(surveyId)+')" style="font-size:10px;padding:2px 7px;background:none;border:1px solid var(--red);border-radius:4px;color:var(--red);cursor:pointer;">삭제</button>':'')
+      +'</div>'
+      +(currentUser
+        ?'<div style="display:flex;gap:8px;margin-top:12px;">'
+        +'<button data-sid="'+surveyId+'" data-type="attend" onclick="respondWarSurvey(this.dataset.sid,this.dataset.type)" class="btn" style="flex:1;font-size:14px;font-weight:700;padding:10px;'+attendBtn+'">✔ 참가</button>'
+        +'<button data-sid="'+surveyId+'" data-type="absent" onclick="respondWarSurvey(this.dataset.sid,this.dataset.type)" class="btn" style="flex:1;font-size:14px;font-weight:700;padding:10px;'+absentBtn+'">✘ 불참</button>'
+        +'</div>'
+        :'<div style="font-size:12px;color:var(--muted);margin-top:8px;">로그인 후 참여 가능해요</div>')
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;">'
+      +'<div style="border-right:1px solid var(--border);">'
+      +'<div style="padding:8px 12px;background:rgba(0,200,138,.08);font-size:12px;font-weight:700;color:var(--green);border-bottom:1px solid var(--border);">✔ 참가 ('+attendList.length+'명)</div>'
+      +attendList.map(renderMemberRow).join('')
+      +(attendList.length===0?'<div style="padding:12px;font-size:12px;color:var(--muted);text-align:center;">없음</div>':'')
+      +'</div>'
+      +'<div>'
+      +'<div style="padding:8px 12px;background:rgba(220,50,50,.08);font-size:12px;font-weight:700;color:#e06060;border-bottom:1px solid var(--border);">✘ 불참 ('+absentList.length+'명)</div>'
+      +absentList.map(renderMemberRow).join('')
+      +(absentList.length===0?'<div style="padding:12px;font-size:12px;color:var(--muted);text-align:center;">없음</div>':'')
+      +'</div></div>'
+      +'<div style="padding:10px 16px;background:var(--surface);border-top:1px solid var(--border);display:flex;gap:10px;flex-wrap:wrap;align-items:center;">'
+      +'<span style="font-size:11px;color:var(--muted);">📊 누적:</span>'
+      +Object.entries(stats).sort(function(a,b){return (b[1].attend+b[1].absent)-(a[1].attend+a[1].absent);}).slice(0,8).map(function(e){
+        return '<span style="font-size:11px;"><b>'+e[0]+'</b>'
+          +' <span style="color:var(--green);">✔'+e[1].attend+'</span>'
+          +' <span style="color:#e06060;">✘'+e[1].absent+'</span></span>';
+      }).join(' · ')
+      +'</div>'
+      +'</div>';
+  }).join('');
+}
+
+async function respondWarSurvey(surveyId, type) {
+  if(!currentUser) { toast('로그인 후 참여 가능해요'); return; }
+  var survey = warSurveys.find(function(x){ return x.id===surveyId; });
+  if(!survey) return;
+  var responses = (survey.responses||[]).filter(function(r){ return r.nickname!==currentUser.nickname; });
+  var d = new Date();
+  var time = String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  responses.push({ nickname: currentUser.nickname, type: type, time: time });
+  await db.collection('war_surveys').doc(surveyId).update({ responses: responses });
+  toast(type==='attend' ? '✔ 참가로 응답했어요!' : '✘ 불참으로 응답했어요!');
+}
+
+async function createWarSurvey(title, deadline) {
+  if(!isAdmin()) { toast('관리자만 생성할 수 있어요'); return; }
+  await db.collection('war_surveys').add({
+    title: title || '쟁 참여조사',
+    deadline: deadline || '',
+    responses: [],
+    created_at: firebase.firestore.FieldValue.serverTimestamp()
+  });
+  toast('참여조사가 생성됐어요 ✓');
+}
+
+async function deleteWarSurvey(id) {
+  if(!confirm('참여조사를 삭제할까요?')) return;
+  await db.collection('war_surveys').doc(id).delete();
+  toast('삭제됐어요');
+}
+
+function openWarSurveyCreate() {
+  var title = prompt('참여조사 제목을 입력하세요', '○월 ○일 쟁 참여조사');
+  if(!title) return;
+  var deadline = prompt('마감일을 입력하세요 (예: 03.28 22:00, 비워두면 없음)', '');
+  createWarSurvey(title, deadline);
+}
+
 // ─── Firebase 구독 ────────────────────────────
 function initFirebase() {
   dbg('Firebase 초기화 시작...');
@@ -2639,6 +2788,11 @@ function initFirebase() {
       recruits = snap.docs.map(function(d){ return Object.assign({id:d.id},d.data()); });
       renderRecruit();
       renderRecentRecruit();
+    });
+  db.collection('war_surveys').orderBy('created_at','desc')
+    .onSnapshot(function(snap) {
+      warSurveys = snap.docs.map(function(d){ return Object.assign({id:d.id},d.data()); });
+      renderWarSurveys();
     });
 }
 
