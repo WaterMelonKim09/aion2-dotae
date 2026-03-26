@@ -12,22 +12,18 @@ module.exports = async function handler(req, res) {
     'Origin': 'https://aion2.plaync.com',
   };
 
+  // NC API 그대로 반환 (응답 구조 제한 없이)
   async function tryFetch(url) {
     try {
       const r = await fetch(url, { headers });
-      if (!r.ok) return null;
       const text = await r.text();
       if (!text || !text.trim()) return null;
       const data = JSON.parse(text);
-      // 래퍼 구조 언래핑 시도
-      const item = data?.result || data?.data || data?.item || data;
-      // 유효한 아이템 응답 여부 (name, mainStats, id 중 하나라도 있으면 OK)
-      if (item && (item.name || item.mainStats || item.id || item.grade)) return item;
-      return null;
-    } catch(_) { return null; }
+      return { _httpStatus: r.status, _url: url, ...data };
+    } catch(e) { return null; }
   }
 
-  // 1) characterId + slotPos + id (가장 정확)
+  // 1) characterId + slotPos + id
   if (characterId && slotPos !== undefined && id) {
     const p = new URLSearchParams({ lang, id, enchantLevel: enchantLevel||0, characterId, serverId, slotPos });
     const data = await tryFetch(`https://aion2.plaync.com/api/character/equipment/item?${p}`);
@@ -41,14 +37,14 @@ module.exports = async function handler(req, res) {
     if (data) return res.status(200).json(data);
   }
 
-  // 3) id만으로 기본 아이템 정보 (characterId 없이)
+  // 3) id만으로 (characterId 없이)
   if (id) {
     const p = new URLSearchParams({ lang, id, enchantLevel: enchantLevel||0, serverId });
     const data = await tryFetch(`https://aion2.plaync.com/api/character/equipment/item?${p}`);
     if (data) return res.status(200).json(data);
   }
 
-  // 4) characterId로 장비 목록에서 슬롯 찾기
+  // 4) characterId로 장비 목록 폴백
   if (characterId) {
     try {
       const equipUrl = `https://aion2.plaync.com/api/character/equipment?lang=${lang}&characterId=${encodeURIComponent(characterId)}&serverId=${serverId}`;
@@ -66,5 +62,5 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  res.status(200).json({ error: 'NC API 조회 실패 (characterId 또는 itemId 필요)' });
+  res.status(200).json({ error: '조회 실패 — id 또는 characterId 필요', params: { id, characterId, slotPos } });
 }

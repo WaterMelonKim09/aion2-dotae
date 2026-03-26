@@ -1806,6 +1806,7 @@ function openDetail(m) {
     let raw = null;
     try {
       const cid = m.character_id || m.characterId || '';
+      console.log('[item-tooltip] cid:', cid, '/ itemId:', e.itemId, '/ slotPos:', e.slotPos);
       const params = new URLSearchParams({ lang: 'ko' });
       if(cid) {
         params.append('characterId', cid);
