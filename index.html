@@ -2121,73 +2121,35 @@ function openDetail(m) {
 
   // 장착 타이틀 (NC 공홈 스타일: 계열별 카드)
   const titles = m.titles || [];
-  // 계열 아이콘 SVG
+  const _catMap   = { Attack:'공격계열', Defense:'방어계열', Etc:'기타계열' };
+  const _catOrder = ['Attack','Defense','Etc'];
   const _titleIcons = {
-    '공격': `<svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M14.5 2L22 9.5 9 22.5 1.5 15 14.5 2Z" stroke="#c8a060" stroke-width="1.5" fill="#c8a06022"/><line x1="2" y1="22" x2="8" y2="16" stroke="#c8a060" stroke-width="1.5"/><line x1="16" y1="2" x2="22" y2="8" stroke="#c8a060" stroke-width="1.5"/></svg>`,
-    '방어': `<svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M12 2L3 6v6c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V6L12 2Z" stroke="#60a8c8" stroke-width="1.5" fill="#60a8c822"/></svg>`,
-    '기타': `<svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2Z" stroke="#a060c8" stroke-width="1.5" fill="#a060c822"/></svg>`,
+    Attack:  `<svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M14.5 2L22 9.5 9.5 22 2 14.5 14.5 2Z" stroke="#c8a060" stroke-width="1.5" fill="#c8a06022"/><line x1="2.5" y1="21.5" x2="7.5" y2="16.5" stroke="#c8a060" stroke-width="1.5"/></svg>`,
+    Defense: `<svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M12 2L3 6v6c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V6L12 2Z" stroke="#60a8c8" stroke-width="1.5" fill="#60a8c822"/></svg>`,
+    Etc:     `<svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2Z" stroke="#a060c8" stroke-width="1.5" fill="#a060c822"/></svg>`,
   };
-  const _getIcon = (name) => {
-    if(!name) return _titleIcons['기타'];
-    if(name.includes('공격')) return _titleIcons['공격'];
-    if(name.includes('방어')) return _titleIcons['방어'];
-    return _titleIcons['기타'];
-  };
-  // 계열 그룹 데이터 vs 단순 타이틀 목록 판별
-  const _isGroupData = titles.length > 0 && (titles[0].groupName || titles[0].titleGroupName || titles[0].acquireCount !== undefined || titles[0].totalCount !== undefined);
   const titleHTML = titles.length ? (() => {
-    if(_isGroupData) {
-      // NC API가 계열 그룹 구조로 반환한 경우
-      return `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1px;background:var(--border);border-radius:8px;overflow:hidden;">` +
-        titles.map(g => {
-          const gname = g.groupName || g.titleGroupName || g.name || '';
-          const acq   = g.acquireCount ?? g.count ?? '';
-          const tot   = g.totalCount   ?? g.maxCount ?? '';
-          const eq    = g.equippedTitle || g.equip || g.title || null;
-          const ename = eq ? (eq.name || eq.titleName || '') : '';
-          const egrade= eq ? (eq.grade || '') : '';
-          const estats= eq ? (eq.equipStatList || eq.statList || eq.stats || []) : [];
-          const gradeColor = egrade==='Legendary'?'#ff6a20':egrade==='Unique'?'#e8c030':egrade==='Hero'||egrade==='Epic'?'#d44040':'#e8c030';
-          return `<div style="background:#1c1d22;padding:16px;">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-              ${_getIcon(gname)}
-              <div>
-                <div style="font-size:13px;font-weight:700;color:#d8d8d8;">${gname}</div>
-                ${(acq!==''&&tot!=='')?`<div style="font-size:11px;color:#555;">${acq}/${tot}</div>`:''}
-              </div>
+    const sorted = _catOrder.map(cat => titles.find(t => t.equipCategory === cat)).filter(Boolean);
+    titles.forEach(t => { if(!_catOrder.includes(t.equipCategory)) sorted.push(t); });
+    return `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:1px;background:var(--border);border-radius:8px;overflow:hidden;">` +
+      sorted.map(t => {
+        const cat   = t.equipCategory || 'Etc';
+        const icon  = _titleIcons[cat] || _titleIcons.Etc;
+        const stats = (t.equipStatList||[]).map(s =>
+          `<div style="font-size:12px;color:#b0b0b0;line-height:1.7;">${s.desc||''}</div>`
+        ).join('');
+        return `<div style="background:#1c1d22;padding:16px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+            ${icon}
+            <div>
+              <div style="font-size:13px;font-weight:700;color:#d8d8d8;">${_catMap[cat]||cat}</div>
+              <div style="font-size:11px;color:#555;">${t.ownedCount||0}/${t.totalCount||0}</div>
             </div>
-            ${ename?`<div style="font-size:13px;color:${gradeColor};margin-bottom:8px;font-weight:500;">${ename}</div>`:'<div style="font-size:12px;color:#444;margin-bottom:8px;">장착 없음</div>'}
-            <div>${estats.map(s=>`<div style="font-size:12px;color:#b0b0b0;line-height:1.7;">${s.desc||s.description||s.name||''}</div>`).join('')}</div>
-          </div>`;
-        }).join('') + '</div>';
-    } else {
-      // 단순 타이틀 목록인 경우 — 계열로 그룹핑 시도
-      const groups = {};
-      titles.forEach(t => {
-        const cat = t.category || t.groupName || t.titleCategory || '기타계열';
-        if(!groups[cat]) groups[cat] = [];
-        groups[cat].push(t);
-      });
-      const cats = Object.keys(groups);
-      return `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1px;background:var(--border);border-radius:8px;overflow:hidden;">` +
-        cats.map(cat => {
-          const list = groups[cat];
-          const eq   = list.find(t=>t.isEquipped||t.equipped||t.equip) || list[0];
-          const ename = eq ? (eq.name||eq.titleName||'') : '';
-          const estats= eq ? (eq.equipStatList||eq.statList||eq.stats||[]) : [];
-          return `<div style="background:#1c1d22;padding:16px;">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-              ${_getIcon(cat)}
-              <div>
-                <div style="font-size:13px;font-weight:700;color:#d8d8d8;">${cat}</div>
-                <div style="font-size:11px;color:#555;">${list.length}개</div>
-              </div>
-            </div>
-            ${ename?`<div style="font-size:13px;color:#e8c030;margin-bottom:8px;font-weight:500;">${ename}</div>`:''}
-            <div>${estats.map(s=>`<div style="font-size:12px;color:#b0b0b0;line-height:1.7;">${s.desc||s.description||s.name||''}</div>`).join('')}</div>
-          </div>`;
-        }).join('') + '</div>';
-    }
+          </div>
+          <div style="font-size:13px;color:#e8c030;margin-bottom:8px;font-weight:500;">${t.name||''}</div>
+          <div>${stats}</div>
+        </div>`;
+      }).join('') + '</div>';
   })()
   : '<div style="color:var(--muted);font-size:12px;padding:12px;text-align:center;">장착된 타이틀 없음 (갱신 필요)</div>';
 
