@@ -1645,6 +1645,7 @@ async function fetchAndRegister() {
       ranking:      data.ranking      || [],
       stigma:       data.stigma || data.skills || [],
       arcana:       data.arcana       || [],
+      titles:       data.titles       || [],
       pet:          data.pet          || null,
       wing:         data.wing         || null,
       server_name:  data.server_name  || '',
@@ -1687,6 +1688,7 @@ async function syncMember(id, nickname, serverId) {
       ranking:      data.ranking      || [],
       stigma:       data.stigma || data.skills || [],
       arcana:       data.arcana       || [],
+      titles:       data.titles       || [],
       pet:          data.pet          || null,
       wing:         data.wing         || null,
       server_name:  data.server_name  || '',
@@ -1728,6 +1730,9 @@ async function syncAllMembers() {
         stats:        data.stats||[],
         daevanion:    data.daevanion||[],
         ranking:      data.ranking||[],
+        stigma:       data.stigma||data.skills||[],
+        arcana:       data.arcana||[],
+        titles:       data.titles||[],
         server_name:  data.server_name||'',
         guild_name:   data.guild_name||'',
         race:         data.race||'',
@@ -2069,6 +2074,7 @@ function openDetail(m) {
     'active':'액티브','Active':'액티브','ACTIVE':'액티브','액티브':'액티브','1':'액티브',
     'passive':'패시브','Passive':'패시브','PASSIVE':'패시브','패시브':'패시브','2':'패시브',
     'stigma':'스티그마','Stigma':'스티그마','STIGMA':'스티그마','스티그마':'스티그마','3':'스티그마',
+    'Dp':'스티그마','dp':'스티그마','DP':'스티그마',
   };
   const SKILL_GROUP_ORDER = ['액티브','패시브','스티그마'];
   const skillGroups = {};
@@ -2093,7 +2099,7 @@ function openDetail(m) {
   const stigmaHTML = skillGroupEntries.length
     ? skillGroupEntries.map(([label, list]) => `
         <div style="margin-bottom:12px;">
-          <div style="font-size:11px;font-weight:700;color:#888;letter-spacing:.05em;padding:4px 0 6px;border-bottom:1px solid var(--border);margin-bottom:6px;">${label} <span style="font-size:10px;color:var(--muted);font-weight:400;">(${list.length})</span></div>
+          <div style="font-size:11px;font-weight:700;color:#888;letter-spacing:.05em;padding:4px 0 6px;border-bottom:1px solid var(--border);margin-bottom:6px;">${label}</div>
           <div class="skill-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">${list.map(skillCardHTML).join('')}</div>
         </div>`).join('')
     : '';

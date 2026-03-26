@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS members (
   ranking         JSONB DEFAULT '[]',
   stigma          JSONB DEFAULT '[]',
   arcana          JSONB DEFAULT '[]',
+  titles          JSONB DEFAULT '[]',
   pet             JSONB,
   wing            JSONB,
   server_name     TEXT DEFAULT '',
