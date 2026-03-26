@@ -1379,7 +1379,7 @@ function renderAll() {
   const mainMembers = members.filter(m => m.is_main !== false);
   const total = mainMembers.length;
   document.getElementById('stat-total').textContent = total;
-  document.getElementById('online-badge').textContent = `● 멤버 ${total}명`;
+  document.getElementById('online-badge').style.display='none';
   const avgCp = total ? Math.round(mainMembers.reduce((s,m)=>s+(m.combat_power||0),0)/total) : 0;
   document.getElementById('stat-avgcp').textContent = avgCp ? Math.round(avgCp/1000)+'K' : '—';
   renderTop5(); renderRecentRecruit(); renderMembers();
@@ -1597,7 +1597,7 @@ function openDetail(m) {
     const options = (e.itemOptions||[]).map(o=>`<div style="font-size:12px;color:#adf;padding:2px 0;">✦ ${o.desc||o.name||''}</div>`).join('');
     const souls = (e.itemSouls||[]).map(s=>`<div style="font-size:11px;color:#fda;padding:1px 0;">◆ ${s.name||''}</div>`).join('');
 
-    document.getElementById('item-tooltip').innerHTML = `
+    (document.getElementById('item-tooltip-inner')||document.getElementById('item-tooltip')).innerHTML = `
       <div style="padding:14px;max-width:300px;">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
           <img src="${e.icon}" style="width:40px;height:40px;border-radius:6px;border:2px solid ${gc};">
@@ -1613,8 +1613,9 @@ function openDetail(m) {
         ${souls ? `<div style="border-top:1px solid var(--border);padding-top:8px;margin-top:6px;">${souls}</div>` : ''}
         <div style="margin-top:10px;text-align:right;"><button class="btn btn-sm" onclick="document.getElementById('item-tooltip').style.display='none'">닫기</button></div>
       </div>`;
-    document.getElementById('item-tooltip').style.display = 'block';
-  };
+    document.getElementById('item-tooltip').style.display = 'flex';
+  }
+  window._showItemTooltip = showItemTooltip;;
 
   // 장비 아이템 HTML
   const equipHTML = slot => {
@@ -1696,6 +1697,19 @@ function openDetail(m) {
   const equip1 = ['MainHand','SubHand','Helmet','Shoulder','Torso','Gloves','Pants','Boots','Cape','Belt'];
   const equip2 = ['Necklace','Earring1','Earring2','Ring1','Ring2','Bracelet1','Bracelet2','Amulet','Rune1','Rune2'];
 
+  // 장착 타이틀
+  const titles = m.titles || [];
+  const _gc2 = g => g==='Legendary'?'#ff6a20':g==='Unique'?'#e8c030':g==='Hero'||g==='Epic'?'#d44040':'#4a90e8';
+  const titleHTML = titles.length
+    ? '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;">'
+      + titles.map(t => {
+          const col = _gc2(t.grade||'');
+          const es = (t.equipStatList||[]).map(s=>`<div style="font-size:11px;color:var(--muted);">${s.desc||''}</div>`).join('');
+          return `<div style="padding:10px;background:var(--card);border:1px solid ${col}44;border-radius:8px;border-left:3px solid ${col};">
+            <div style="font-size:13px;font-weight:600;color:${col};margin-bottom:4px;">${t.name||''}</div>${es}</div>`;
+        }).join('') + '</div>'
+    : '<div style="color:var(--muted);font-size:12px;padding:12px;text-align:center;">장착된 타이틀 없음 (갱신 필요)</div>';
+
   el.querySelector('.modal-detail-content').innerHTML = `
     <!-- 아이템 툴팁 -->
     <div id="item-tooltip" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--card);border:1px solid var(--border);border-radius:10px;z-index:200;max-width:340px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.6);max-height:85vh;overflow:hidden;display:flex;flex-direction:column;">
@@ -1765,6 +1779,12 @@ function openDetail(m) {
           ${['Arcana1','Arcana2','Arcana3','Arcana4','Arcana5','Arcana6'].map(equipHTML).join('')}
         </div>
       </div>
+    </div>
+
+    <!-- 장착 타이틀 -->
+    <div style="margin-top:20px;">
+      <div style="font-size:11px;font-weight:600;color:var(--gold);margin-bottom:10px;">🏅 장착 타이틀</div>
+      \${titleHTML}
     </div>
 
     <!-- 장신구/룬 탭 (별도 탭은 유지) -->
@@ -1879,11 +1899,25 @@ function renderMembers() {
   const rankLabel = r => rankMigrate(r) || '군단병';
   const fmtTime = iso => { if(!iso) return '—'; const d=new Date(iso); return `${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
   const gradeColors = {Common:'#aaaaaa',Rare:'#4a90e8',Hero:'#d44040',Epic:'#d44040',Unique:'#e8c030',Legendary:'#ff6a20',Special:'#40d4c0'};
-  const equips = eq => (eq||[]).slice(0,3).map(e=>
-    `<div class="equip-item grade-${e.grade||''}" style="border-color:${gradeColors[e.grade]||'#555'}88;">
-      ${e.icon?`<img src="${e.icon}" onerror="this.style.display='none'">`:''}
-      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px;display:inline-block;vertical-align:middle;color:${gradeColors[e.grade]||'var(--text)'};">${e.name||''} ${e.enchant?'+'+e.enchant:''}</span>
-    </div>`).join('');
+  const _GC2 = {Common:'#aaaaaa',Rare:'#4a90e8',Hero:'#d44040',Epic:'#d44040',Unique:'#e8c030',Legendary:'#ff6a20',Special:'#40d4c0'};
+  const equips = eq => {
+    const eqMap = {}; (eq||[]).forEach(e => { if(e.slot) eqMap[e.slot]=e; });
+    const slots = ['MainHand','SubHand','Helmet','Shoulder','Torso','Gloves','Pants','Boots','Cape','Belt','Necklace','Earring1','Earring2','Ring1','Ring2','Bracelet1','Bracelet2','Amulet','Rune1','Rune2'];
+    return '<div style="display:grid;grid-template-columns:repeat(10,24px);grid-template-rows:repeat(2,24px);gap:2px;">' +
+      slots.map(slot => {
+        const e = eqMap[slot];
+        if(!e) return '<div style="width:24px;height:24px;border-radius:3px;background:var(--surface);border:1px solid var(--border);opacity:.25;"></div>';
+        const gc = _GC2[e.grade]||'#555';
+        const badge = e.exceed > 0
+          ? '<div style="position:absolute;bottom:-1px;right:-1px;width:14px;height:14px;display:flex;align-items:center;justify-content:center;"><svg viewBox=\'0 0 14 14\' width=\'14\' height=\'14\' style=\'position:absolute;\'><polygon points=\'7,1 13,7 7,13 1,7\' fill=\'#003850\' stroke=\'#60c8ff\' stroke-width=\'1.5\'/></svg><span style=\'position:relative;font-size:7px;font-weight:700;color:#60c8ff;line-height:1;\'>'+e.exceed+'</span></div>'
+          : e.enchant > 0
+          ? '<div style="position:absolute;bottom:-1px;right:-1px;font-size:7px;font-weight:700;color:var(--gold-l);background:rgba(0,0,0,.9);border-radius:2px;padding:0 1px;line-height:1.4;">+'+e.enchant+'</div>'
+          : '';
+        return '<div style="position:relative;width:24px;height:24px;" title="'+(e.name||'')+'">'
+          +'<img src="'+e.icon+'" style="width:24px;height:24px;border-radius:3px;border:1px solid '+gc+';display:block;" onerror="this.style.opacity=0.1">'
+          +badge+'</div>';
+      }).join('') + '</div>';
+  };
 
   const rowHTML = (m, isSub, extraHTML='') => {
     const isSyncing = syncingIds.has(m.id);
