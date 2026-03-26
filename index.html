@@ -1847,24 +1847,22 @@ function openDetail(m) {
 
     console.log('[item-tooltip] raw:', raw, '/ e.itemStats:', e.itemStats);
 
-    // 필드 추출 (API 응답 + 기존 저장 데이터 fallback)
-    // NC API는 itemStat.statList / itemOption.optionList 등의 구조를 사용
-    const _statList   = raw && (raw.itemStat?.statList   || raw.itemStat?.list   || raw.statList   || raw.stats   || []);
-    const _optList    = raw && (raw.itemOption?.optionList || raw.itemOption?.list || raw.optionList || raw.options || raw.itemOptions || []);
-    const _soulList   = raw && (raw.soulCrystal?.crystalList || raw.soulCrystal?.list || raw.crystalList || raw.souls || []);
-    const stats    = (_statList  && _statList.length  ? _statList  : null) || e.itemStats   || [];
-    const options  = (_optList   && _optList.length   ? _optList   : null) || e.itemOptions  || [];
-    const souls    = (_soulList  && _soulList.length  ? _soulList  : null) || e.itemSouls    || [];
-    const soulPct  = (raw&&(raw.soulCrystal?.totalPct || raw.soulTotalPct))                 || 0;
-    const typeName = (raw&&(raw.typeName||raw.type||raw.categoryName||raw.itemTypeName))    || '';
-    const itemLvl  = (raw&&(raw.itemLevel||raw.level))                                       || e.itemLevel || 0;
-    const bonusLvl = (raw&&(raw.enchantBonusItemLevel||raw.bonusItemLevel||raw.bonusLevel)) || 0;
-    const raceName = (raw&&(raw.raceTypeName||raw.raceType||raw.raceName||raw.race))        || '';
-    const clsName  = (raw&&(raw.classTypeName||raw.classType||raw.className||raw.class))    || '';
-    const reqLevel = (raw&&(raw.requiredLevel||raw.equipLimitLevel||raw.limitLevel||raw.reqLevel)) || 0;
-    const setName  = (raw&&(raw.setItemName||raw.setName))                                  || e.setName || '';
-    const setFx    = (raw&&(raw.setEffect?.effectList || raw.setEffectList || raw.setEffects)) || [];
-    const acqList  = (raw&&(raw.acquisitionInfoList||raw.acquisitionInfo||raw.acqList))     || [];
+    // ── NC API 실제 필드 파싱 ──
+    // NC API 응답: mainStats(흰색), subStats(파란색), soulStats(영혼각인)
+    // 각 stat: { id, name, minValue, value, extra, exceed }
+    const mainStats = (raw && (raw.mainStats || raw.itemStat?.statList || raw.statList || raw.stats)) || e.itemStats || [];
+    const subStats  = (raw && (raw.subStats  || raw.randomStats || raw.itemOption?.optionList || raw.optionList)) || e.itemOptions || [];
+    const soulStats = (raw && (raw.soulStats || raw.soulCrystal?.crystalList || raw.crystalList)) || e.itemSouls || [];
+    const soulPct   = (raw && (raw.soulCrystal?.totalPct || raw.soulTotalPct || raw.soulPct)) || 0;
+    const typeName  = (raw && (raw.categoryName || raw.typeName || raw.itemTypeName)) || '';
+    const itemLvl   = (raw && (raw.level || raw.itemLevel)) || e.itemLevel || 0;
+    const bonusLvl  = (raw && (raw.levelValue || raw.enchantBonusItemLevel || raw.bonusItemLevel)) || 0;
+    const raceName  = (raw && (raw.raceName || raw.raceTypeName || raw.raceType)) || '';
+    const clsName   = (raw && (Array.isArray(raw.classNames) ? raw.classNames.join(', ') : (raw.classNames || raw.classTypeName || raw.className))) || '';
+    const reqLevel  = (raw && (raw.equipLevel || raw.requiredLevel || raw.equipLimitLevel)) || 0;
+    const setName   = (raw && (raw.setItemName || raw.setName)) || e.setName || '';
+    const setFx     = (raw && (raw.setEffect?.effectList || raw.setEffectList || raw.setEffects)) || [];
+    const acqList   = (raw && (raw.acquisitionInfoList || raw.acquisitionInfo || raw.acqList)) || [];
 
     // 아이템 정보 행
     const infoRows = [
@@ -1881,24 +1879,31 @@ function openDetail(m) {
         <span style="font-size:12px;color:#ddd;">${val}</span>
       </div>`).join('');
 
-    // 옵션 = 스탯(흰색) + 아이템옵션(파란색)
-    const statsHTML   = stats.map(s => {
-      const bonus = s.enchantValue||s.bonusValue||s.enchantBonusValue||s.enchantStatValue||'';
-      const label = s.name||s.statName||s.typeName||s.displayName||s.statTypeName||s.type||'';
-      const val   = s.value||s.statValue||s.val||s.displayValue||'';
+    // 흰색 스탯 (mainStats): minValue~value 범위 표시, extra=인챈트 보너스
+    const statsHTML = mainStats.map(s => {
+      const label = s.name || s.statName || s.displayName || s.type || '';
+      const extra = s.extra || s.enchantValue || s.bonusValue || '';
+      let val = '';
+      if(s.minValue && s.value && String(s.minValue) !== String(s.value)) {
+        val = `${s.minValue} ~ ${s.value}`;
+      } else {
+        val = s.value || s.statValue || s.val || '';
+      }
       if(!label && !val) return '';
-      return `<div style="font-size:12px;color:#ccc;padding:2px 0;">${label} ${val}${bonus?` <span style="color:var(--gold-l);">(+${bonus})</span>`:''}</div>`;
+      return `<div style="font-size:12px;color:#ccc;padding:2px 0;">${label} ${val}${extra?` <span style="color:var(--gold-l);">(+${extra})</span>`:''}</div>`;
     }).join('');
-    const optionsHTML = options.map(o => {
-      const label = o.name||o.optionName||o.desc||o.description||o.displayName||o.typeName||'';
-      const val   = o.value||o.optionValue||o.val||o.displayValue||'';
+
+    // 파란색 옵션 (subStats)
+    const optionsHTML = subStats.map(o => {
+      const label = o.name || o.optionName || o.displayName || o.typeName || o.desc || '';
+      const val   = o.value || o.optionValue || o.val || '';
       if(!label && !val) return '';
       return `<div style="font-size:12px;color:#7af;padding:2px 0;">${label} ${val}</div>`;
     }).join('');
 
     // 영혼 각인
-    const soulsHTML = souls.map(s => {
-      const label = s.name||s.crystalName||s.skillName||s.displayName||'';
+    const soulsHTML = soulStats.map(s => {
+      const label = s.name || s.crystalName || s.skillName || s.displayName || '';
       if(!label) return '';
       return `<div style="font-size:12px;color:#ccc;padding:2px 0;">${label}</div>`;
     }).join('');

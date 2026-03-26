@@ -12,35 +12,42 @@ module.exports = async function handler(req, res) {
     'Origin': 'https://aion2.plaync.com',
   };
 
-  // 아이템 상세 엔드포인트 시도
-  if (characterId && slotPos !== undefined) {
+  async function tryFetch(url) {
     try {
-      const params = new URLSearchParams({ lang });
-      if (id) params.append('id', id);
-      if (enchantLevel !== undefined) params.append('enchantLevel', enchantLevel);
-      params.append('characterId', characterId);
-      params.append('serverId', serverId);
-      params.append('slotPos', slotPos);
-
-      const url = `https://aion2.plaync.com/api/character/equipment/item?${params.toString()}`;
-      const itemRes = await fetch(url, { headers });
-
-      if (itemRes.ok) {
-        const text = await itemRes.text();
-        if (text && text.trim() !== '') {
-          try {
-            const data = JSON.parse(text);
-            // 에러 응답이 아닌 경우만 반환
-            if (!data.errorCode && !data.error && (data.name || data.itemStat || data.item || data.result)) {
-              return res.status(200).json({ _source: 'item-endpoint', ...data });
-            }
-          } catch(_) {}
-        }
-      }
-    } catch(_) {}
+      const r = await fetch(url, { headers });
+      if (!r.ok) return null;
+      const text = await r.text();
+      if (!text || !text.trim()) return null;
+      const data = JSON.parse(text);
+      // 유효한 아이템 데이터인지 확인 (name 또는 mainStats가 있어야 함)
+      if (data && (data.name || data.mainStats || data.id)) return data;
+      return null;
+    } catch(_) { return null; }
   }
 
-  // 폴백: 캐릭터 장비 목록에서 해당 슬롯 아이템 조회
+  // 1) characterId + slotPos 있으면 아이템 상세 엔드포인트 (서브스탯 포함)
+  if (characterId && slotPos !== undefined && id) {
+    const params = new URLSearchParams({ lang, id, enchantLevel: enchantLevel||0, characterId, serverId, slotPos });
+    const data = await tryFetch(`https://aion2.plaync.com/api/character/equipment/item?${params}`);
+    if (data) return res.status(200).json(data);
+  }
+
+  // 2) characterId만 있으면 slotPos 없이 시도
+  if (characterId && id) {
+    const params = new URLSearchParams({ lang, id, enchantLevel: enchantLevel||0, characterId, serverId });
+    const data = await tryFetch(`https://aion2.plaync.com/api/character/equipment/item?${params}`);
+    if (data) return res.status(200).json(data);
+  }
+
+  // 3) id만 있어도 기본 아이템 정보 조회 (characterId 없이)
+  if (id) {
+    const params = new URLSearchParams({ lang, id, enchantLevel: enchantLevel||0 });
+    if (serverId) params.append('serverId', serverId);
+    const data = await tryFetch(`https://aion2.plaync.com/api/character/equipment/item?${params}`);
+    if (data) return res.status(200).json(data);
+  }
+
+  // 4) 폴백: 캐릭터 장비 목록에서 해당 슬롯 아이템 조회
   if (characterId) {
     try {
       const equipUrl = `https://aion2.plaync.com/api/character/equipment?lang=${lang}&characterId=${encodeURIComponent(characterId)}&serverId=${serverId}`;
@@ -48,27 +55,15 @@ module.exports = async function handler(req, res) {
       if (equipRes.ok) {
         const equipData = await equipRes.json();
         const equipList = (equipData && equipData.equipment && equipData.equipment.equipmentList) || [];
-
-        // slotPos 또는 itemId로 해당 아이템 찾기
         let found = null;
-        if (slotPos !== undefined) {
-          found = equipList.find(e => String(e.slotPos) === String(slotPos));
-        }
-        if (!found && id) {
-          found = equipList.find(e => String(e.itemId || e.id) === String(id));
-        }
-
-        if (found) {
-          return res.status(200).json({ _source: 'equip-list', ...found });
-        }
-
-        // 못 찾으면 전체 장비 목록 반환 (프론트에서 처리)
-        return res.status(200).json({ _source: 'equip-list-all', equipmentList: equipList });
+        if (slotPos !== undefined) found = equipList.find(e => String(e.slotPos) === String(slotPos));
+        if (!found && id) found = equipList.find(e => String(e.itemId || e.id) === String(id));
+        if (found) return res.status(200).json(found);
       }
-    } catch (err) {
+    } catch(err) {
       return res.status(200).json({ error: '장비 목록 조회 실패', detail: err.message });
     }
   }
 
-  res.status(200).json({ error: 'characterId가 필요합니다' });
+  res.status(200).json({ error: 'itemId가 필요합니다' });
 }
