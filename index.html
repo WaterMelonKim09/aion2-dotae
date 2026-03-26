@@ -65,7 +65,8 @@
   tr:hover td { background:rgba(201,147,42,.04); }
 
   /* 직업 배지 */
-  .cls { font-size:12px; padding:3px 8px; border-radius:4px; white-space:nowrap; min-width:80px; display:inline-flex; align-items:center; justify-content:flex-start; gap:2px; }
+  .cls { font-size:12px; padding:3px 8px; border-radius:4px; white-space:nowrap; min-width:80px; display:inline-flex; align-items:center; justify-content:flex-start; gap:4px; line-height:1; }
+  .cls img { margin-top:0 !important; vertical-align:unset !important; }
   /* 아이온2 8개 직업 배지 */
   .cls-검성   { background:#1a2a30; color:#7ab8cc; border:1px solid #7ab8cc55; }
   .cls-수호성   { background:#1a1e30; color:#7a90d0; border:1px solid #7a90d055; }
@@ -798,7 +799,21 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '20260326.4';
+const BUILD_VERSION = '1.5.0';
+
+// 시맨틱 버전 비교 (날짜형 구버전 호환)
+function _semverGte(a, b) {
+  if(!a || !b) return true;
+  const isOld = v => /^\d{8}/.test(v);
+  if(!isOld(a) && isOld(b)) return true;
+  if(isOld(a) && !isOld(b)) return false;
+  const pa = a.split('.').map(Number), pb = b.split('.').map(Number);
+  for(let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    if((pa[i]||0) > (pb[i]||0)) return true;
+    if((pa[i]||0) < (pb[i]||0)) return false;
+  }
+  return true;
+}
 
 let members  = [];
 let recruits = [];
@@ -1129,6 +1144,7 @@ function logoutUser() {
   const c=document.querySelector('.content'); if(c) c.style.display='none';
   const ni=document.getElementById('login-nickname'); if(ni) ni.value='';
   const lp=document.getElementById('login-preview'); if(lp) lp.style.display='none';
+  // 슈고 타이머는 로그아웃 후에도 계속 실행 (인터벌 유지)
 }
 
 async function completeRecruit() {
@@ -1253,7 +1269,7 @@ function openMyProfile() {
   body.innerHTML = `
     <!-- \ud504\ub85c\ud544 \ud5e4\ub354 -->
     <div style="display:flex;align-items:center;gap:14px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;">
-      ${m?.profile_img?`<img src="${m.profile_img}" style="width:64px;height:64px;border-radius:50%;border:2px solid var(--gold-d);flex-shrink:0;">`:`<div style="width:64px;height:64px;border-radius:50%;background:var(--card);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;">${CLS_ICON[cls]||'\ud83d\udc64'}</div>`}
+      ${m?.profile_img?`<img src="${m.profile_img}" style="width:64px;height:64px;border-radius:50%;border:2px solid var(--gold-d);flex-shrink:0;object-fit:cover;">`:`<div style="width:64px;height:64px;border-radius:50%;background:var(--card);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;">👤</div>`}
       <div style="flex:1;">
         <div style="font-size:20px;font-weight:700;">${currentUser.nickname}</div>
         <div style="font-size:12px;color:var(--muted);margin-top:3px;">${cls?`${CLS_ICON[cls]||''} ${cls} \u00b7 `:''}${currentUser.rank||'\uacc4\uae09 \uc5c6\uc74c'}</div>
@@ -1427,13 +1443,18 @@ function initFirebase() {
   window.loadingTimeout = _loadTimeout;
 
   // 버전 관리
-  db.from('config').select('*').eq('key', 'system').maybeSingle().then(({ data: doc }) => {
-    const stored = doc ? (doc.latest_version || '') : '';
-    if(BUILD_VERSION >= stored) {
-      db.from('config').upsert({ key: 'system', latest_version: BUILD_VERSION, updated_at: new Date().toISOString() });
-    }
-    updateVersionDisplay(doc && doc.latest_version ? doc.latest_version : BUILD_VERSION);
-  }).catch(function(){});
+  function checkVersion() {
+    db.from('config').select('*').eq('key', 'system').maybeSingle().then(({ data: doc }) => {
+      const stored = doc ? (doc.latest_version || '') : '';
+      if(_semverGte(BUILD_VERSION, stored)) {
+        db.from('config').upsert({ key: 'system', latest_version: BUILD_VERSION, updated_at: new Date().toISOString() });
+      }
+      updateVersionDisplay(doc && doc.latest_version ? doc.latest_version : BUILD_VERSION);
+    }).catch(function(){});
+  }
+  checkVersion();
+  // 3분마다 최신 버전 폴링
+  setInterval(checkVersion, 3 * 60 * 1000);
 
   migrateRanks(); // 구버전 계급 자동 변환
   initBossTimers(); // 슈고 타이머 폴링
@@ -1548,11 +1569,11 @@ function refreshHeaderUser() {
   if(rk) rk.textContent = currentUser.rank || '군단병';
   var av = document.getElementById('header-avatar');
   if(av) {
-    var m2 = members.find(function(x){ return x.id===currentUser.id; });
-    var cls = CLASS_MAP[(m2||currentUser).class]||(m2||currentUser).class||'';
+    var m2 = members.find(function(x){ return x.id===currentUser.id; })
+           || members.find(function(x){ return x.nickname===currentUser.nickname; });
     av.innerHTML = (m2&&m2.profile_img)
-      ? '<img src="'+m2.profile_img+'" style="width:100%;height:100%;object-fit:cover;">'
-      : (CLS_ICON[cls]||'<span>👤</span>');
+      ? '<img src="'+m2.profile_img+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">'
+      : '<span style="font-size:16px;">👤</span>';
   }
 }
 
@@ -2024,9 +2045,9 @@ function openDetail(m) {
       <div style="position:relative;width:32px;height:32px;flex-shrink:0;">
         <img src="${e.icon}" style="width:32px;height:32px;border-radius:4px;border:2px solid ${gc};">
         ${e.exceed>0
-          ? `<div style="position:absolute;bottom:-1px;right:-1px;width:14px;height:14px;display:flex;align-items:center;justify-content:center;pointer-events:none;"><svg viewBox='0 0 13 13' width='14' height='14' style='position:absolute;'><polygon points='6.5,1 12,6.5 6.5,12 1,6.5' fill='#003850' stroke='#60c8ff' stroke-width='1.5'/></svg><span style='position:relative;font-size:7px;font-weight:700;color:#60c8ff;'>${e.exceed}</span></div>`
+          ? `<div style="position:absolute;bottom:-2px;right:-2px;background:#003850;border:1.5px solid #60c8ff;border-radius:3px;padding:0 3px;font-size:10px;font-weight:700;color:#60c8ff;line-height:1.5;pointer-events:none;white-space:nowrap;">돌${e.exceed}</div>`
           : e.enchant>0
-          ? `<div style="position:absolute;bottom:-1px;right:-1px;font-size:7px;font-weight:700;color:var(--gold-l);background:rgba(0,0,0,.9);border-radius:2px;padding:0 2px;line-height:1.4;pointer-events:none;">+${e.enchant}</div>`
+          ? `<div style="position:absolute;bottom:-2px;right:-2px;font-size:10px;font-weight:700;color:var(--gold-l);background:rgba(0,0,0,.92);border-radius:2px;padding:0 3px;line-height:1.5;pointer-events:none;">+${e.enchant}</div>`
           : ''}
       </div>
       <div style="flex:1;min-width:0;">
@@ -2117,9 +2138,33 @@ function openDetail(m) {
     ${m.pet.grade?`<div style="font-size:11px;color:var(--muted);">등급: ${m.pet.grade}</div>`:''}
     </div></div>` : '<div style="font-size:12px;color:var(--muted);padding:8px;">펫 정보 없음</div>';
 
-  const wingHTML = equipMap['Wing'] ? equipHTML('Wing') : (m.wing ? `<div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;">
-    <img src="${m.wing.icon||''}" style="width:40px;height:40px;border-radius:8px;" onerror="this.style.display='none'">
-    <div><div style="font-size:13px;font-weight:600;">${m.wing.name||'날개'}</div></div></div>` : '<div style="font-size:12px;color:var(--muted);padding:8px;">날개 정보 없음</div>');
+  const _effectWingHTML = equipMap['Wing'] ? equipHTML('Wing') : (m.wing ? (() => {
+    const wgc = GC[m.wing.grade]||'#888', wgn = GN[m.wing.grade]||m.wing.grade||'';
+    return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);">
+      <div style="position:relative;width:32px;height:32px;flex-shrink:0;">
+        <img src="${m.wing.icon||''}" style="width:32px;height:32px;border-radius:4px;border:2px solid ${wgc};" onerror="this.style.opacity=.3">
+        ${m.wing.enchant>0?`<div style="position:absolute;bottom:-2px;right:-2px;font-size:10px;font-weight:700;color:var(--gold-l);background:rgba(0,0,0,.92);border-radius:2px;padding:0 3px;line-height:1.5;">+${m.wing.enchant}</div>`:''}
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;font-weight:600;color:${wgc};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.wing.name||'날개'}</div>
+        <div style="font-size:10px;color:var(--muted);">효과 날개</div>
+      </div>
+      <span style="font-size:10px;padding:1px 5px;border-radius:3px;background:${wgc}22;color:${wgc};border:1px solid ${wgc}44;flex-shrink:0;">${wgn}</span>
+    </div>`;
+  })() : '<div style="font-size:12px;color:var(--muted);padding:8px;">날개 정보 없음</div>');
+  const _skinWingHTML = m.wing && m.wing.skin ? (() => {
+    return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);">
+      <div style="width:32px;height:32px;flex-shrink:0;border-radius:4px;border:2px solid #40d4c0;overflow:hidden;">
+        <img src="${m.wing.skin.icon||''}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.opacity=.3">
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;font-weight:600;color:#40d4c0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.wing.skin.name||'외형 날개'}</div>
+        <div style="font-size:10px;color:var(--muted);">외형 날개</div>
+      </div>
+      <span style="font-size:10px;padding:1px 5px;border-radius:3px;background:#40d4c022;color:#40d4c0;border:1px solid #40d4c044;flex-shrink:0;">외형</span>
+    </div>`;
+  })() : '';
+  const wingHTML = _effectWingHTML + _skinWingHTML;
 
   // 슬롯 그룹
   const equip1 = ['MainHand','SubHand','Helmet','Shoulder','Torso','Gloves','Pants','Boots','Cape','Belt'];
@@ -2272,10 +2317,10 @@ function updateVersionDisplay(latestVersion) {
   const latEl = document.getElementById('ver-latest');
   const btn   = document.getElementById('btn-system-update');
   if(!curEl) return;
-  curEl.textContent = '현재 v' + BUILD_VERSION;
-  const hasUpdate = latestVersion && latestVersion !== BUILD_VERSION;
+  curEl.textContent = 'Ver. ' + BUILD_VERSION;
+  const hasUpdate = latestVersion && !_semverGte(BUILD_VERSION, latestVersion);
   if(latEl) {
-    latEl.textContent = latestVersion ? ('최신 v' + latestVersion) : '';
+    latEl.textContent = latestVersion ? ('최신 Ver. ' + latestVersion) : '';
     latEl.style.color = hasUpdate ? '#f90' : 'var(--muted)';
     latEl.style.fontWeight = hasUpdate ? '600' : '';
   }
@@ -2386,18 +2431,18 @@ function renderMembers() {
   const _SLOTS2 = ['Necklace','Earring1','Earring2','Ring1','Ring2','Bracelet1','Bracelet2','Amulet','Rune1','Rune2'];
   const _mkGrid = (eq, slots) => {
     const eqMap = {}; (eq||[]).forEach(x => { if(x.slot) eqMap[x.slot]=x; });
-    return '<div style="display:grid;grid-template-columns:repeat(5,28px);grid-template-rows:repeat(2,28px);gap:2px;">'
+    return '<div style="display:grid;grid-template-columns:repeat(5,36px);grid-template-rows:repeat(2,36px);gap:3px;">'
       + slots.map(slot => {
           const x = eqMap[slot];
-          if(!x) return '<div style="width:28px;height:28px;border-radius:3px;background:var(--surface);border:1px solid var(--border);opacity:.2;"></div>';
+          if(!x) return '<div style="width:36px;height:36px;border-radius:4px;background:var(--surface);border:1px solid var(--border);opacity:.2;"></div>';
           const gc = _GC3[x.grade]||'#555';
           const badge = x.exceed>0
-            ? '<div style="position:absolute;bottom:-1px;right:-1px;width:13px;height:13px;display:flex;align-items:center;justify-content:center;"><svg viewBox=\'0 0 13 13\' width=\'13\' height=\'13\' style=\'position:absolute;\'><polygon points=\'6.5,1 12,6.5 6.5,12 1,6.5\' fill=\'#003850\' stroke=\'#60c8ff\' stroke-width=\'1.5\'/></svg><span style=\'position:relative;font-size:6px;font-weight:700;color:#60c8ff;\'>'+x.exceed+'</span></div>'
+            ? '<div style="position:absolute;bottom:-1px;right:-1px;width:16px;height:16px;display:flex;align-items:center;justify-content:center;"><svg viewBox=\'0 0 13 13\' width=\'16\' height=\'16\' style=\'position:absolute;\'><polygon points=\'6.5,1 12,6.5 6.5,12 1,6.5\' fill=\'#003850\' stroke=\'#60c8ff\' stroke-width=\'1.5\'/></svg><span style=\'position:relative;font-size:8px;font-weight:700;color:#60c8ff;\'>'+x.exceed+'</span></div>'
             : x.enchant>0
-            ? '<div style="position:absolute;bottom:-1px;right:-1px;font-size:6px;font-weight:700;color:var(--gold-l);background:rgba(0,0,0,.9);border-radius:2px;padding:0 1px;line-height:1.4;">+'+x.enchant+'</div>'
+            ? '<div style="position:absolute;bottom:-1px;right:-1px;font-size:9px;font-weight:700;color:var(--gold-l);background:rgba(0,0,0,.9);border-radius:2px;padding:0 2px;line-height:1.5;">+'+x.enchant+'</div>'
             : '';
-          return '<div style="position:relative;width:28px;height:28px;" title="'+(x.name||'')+'">'
-            +'<img src="'+x.icon+'" style="width:28px;height:28px;border-radius:3px;border:1px solid '+gc+';display:block;" onerror="this.style.opacity=0.1">'
+          return '<div style="position:relative;width:36px;height:36px;" title="'+(x.name||'')+'">'
+            +'<img src="'+x.icon+'" style="width:36px;height:36px;border-radius:4px;border:2px solid '+gc+';display:block;" onerror="this.style.opacity=0.1">'
             +badge+'</div>';
         }).join('') + '</div>';
   };
@@ -2546,13 +2591,18 @@ function drawPie() {
 
 function renderDistList() {
   const counts = {};
-  members.forEach(m => { if(m.is_main!==false && m.class) counts[m.class]=(counts[m.class]||0)+1; });
+  members.forEach(m => {
+    if(m.is_main !== false && m.class) {
+      const cls = CLASS_MAP[m.class] || m.class;
+      counts[cls] = (counts[cls]||0) + 1;
+    }
+  });
   const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0],'ko'));
   document.getElementById('dist-list').innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:8px;">`
     + sorted.map(([cls,cnt])=>
     `<div class="card" style="padding:10px 16px;display:flex;align-items:center;gap:8px;flex-shrink:0;">
-      <span class="cls cls-${cls}" style="min-width:auto;">${CLS_ICON[cls]} ${cls}</span>
-      <span style="font-size:18px;font-weight:700;color:${CLS_COLOR[cls]}">${cnt}</span>
+      <span class="cls cls-${cls}" style="min-width:auto;">${CLS_ICON[cls]||''} ${cls}</span>
+      <span style="font-size:18px;font-weight:700;color:${CLS_COLOR[cls]||'var(--gold-l)'}">${cnt}</span>
       <span style="font-size:12px;color:var(--muted)">명</span>
     </div>`).join('') + '</div>';
 }
@@ -3016,21 +3066,31 @@ function toggleShugoTimer() {
   const btn = document.getElementById('shugo-start-btn');
   if(!shugoRunning) {
     shugoRunning = true;
+    try { localStorage.setItem('shugo_running', '1'); } catch(e) {}
     shugoInterval = setInterval(updateShugoDisplay, 1000);
     updateShugoDisplay();
     if(btn) { btn.textContent = '⏹ 정지'; btn.classList.add('btn-primary'); }
     const st = document.getElementById('shugo-status');
     if(st) { st.textContent = '타이머 실행 중'; st.style.background='rgba(0,200,138,.1)'; st.style.borderColor='var(--gold-d)'; st.style.color='var(--gold-l)'; }
-    // 알림 권한 자동 요청
     if(Notification.permission === 'default') Notification.requestPermission();
   } else {
     shugoRunning = false;
+    try { localStorage.removeItem('shugo_running'); } catch(e) {}
     clearInterval(shugoInterval);
     if(btn) { btn.textContent = '▶ 시작'; }
     const st = document.getElementById('shugo-status');
     if(st) { st.textContent = '대기 중'; st.style.background='var(--surface)'; st.style.borderColor='var(--border)'; st.style.color='var(--muted)'; }
   }
 }
+
+// 새로고침/로그아웃 후에도 타이머 자동 복원
+(function() {
+  try {
+    if(localStorage.getItem('shugo_running') === '1') {
+      setTimeout(function() { toggleShugoTimer(); }, 500);
+    }
+  } catch(e) {}
+})();
 
 </script>
 </body>

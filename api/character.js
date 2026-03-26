@@ -84,14 +84,16 @@ module.exports = async function handler(req, res) {
       };
     }
     if (petwing && petwing.wing) {
-      var w = petwing.wingSkin || petwing.wing;
       wingData = {
         name: petwing.wing.name || '',
-        icon: w.icon || petwing.wing.icon || '',
+        icon: petwing.wing.icon || '',
         grade: petwing.wing.grade || '',
         enchant: petwing.wing.enchantLevel || 0,
         slot: 'Wing', exceed: 0,
-        skinName: petwing.wingSkin ? petwing.wingSkin.name : ''
+        skin: petwing.wingSkin ? {
+          name: petwing.wingSkin.name || '',
+          icon: petwing.wingSkin.icon || ''
+        } : null
       };
     }
 
