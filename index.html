@@ -1461,6 +1461,7 @@ function openDetail(m) {
 
   const content2 = el.querySelector('.modal-detail-content');
   if(!content2) return;
+  const ilvl = m.item_level ? (+m.item_level).toLocaleString() : '—';
   content2.innerHTML = `
     <!-- 아이템 툴팁 -->
     <div id="item-tooltip" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--card);border:1px solid var(--border);border-radius:10px;z-index:200;max-width:320px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.6);"></div>
