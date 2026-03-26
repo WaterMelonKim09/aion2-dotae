@@ -1689,7 +1689,7 @@ function openDetail(m) {
     const options = (e.itemOptions||[]).map(o=>`<div style="font-size:12px;color:#adf;padding:2px 0;">✦ ${o.desc||o.name||''}</div>`).join('');
     const souls = (e.itemSouls||[]).map(s=>`<div style="font-size:11px;color:#fda;padding:1px 0;">◆ ${s.name||''}</div>`).join('');
 
-    (document.getElementById('item-tooltip-inner')||document.getElementById('item-tooltip')).innerHTML = `
+    document.getElementById('item-tooltip-scroll').innerHTML = `
       <div style="padding:14px;max-width:300px;">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
           <img src="${e.icon}" style="width:40px;height:40px;border-radius:6px;border:2px solid ${gc};">
@@ -1707,7 +1707,6 @@ function openDetail(m) {
       </div>`;
     document.getElementById('item-tooltip').style.display = 'flex';
   }
-  window._showItemTooltip = showItemTooltip;;
 
   // 장비 아이템 HTML
   const equipHTML = slot => {
@@ -1804,12 +1803,13 @@ function openDetail(m) {
 
   el.querySelector('.modal-detail-content').innerHTML = `
     <!-- 아이템 툴팁 -->
-    <div id="item-tooltip" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--card);border:1px solid var(--border);border-radius:10px;z-index:200;max-width:340px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.6);max-height:85vh;overflow:hidden;display:flex;flex-direction:column;">
+    <div id="item-tooltip" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--card);border:1px solid var(--border);border-radius:10px;z-index:300;max-width:340px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.6);max-height:85vh;overflow:hidden;flex-direction:column;">
       <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;">
         <span style="font-size:13px;font-weight:700;color:var(--gold-l);">아이템 정보</span>
         <button onclick="closeItemTooltip()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;">✕</button>
       </div>
       <div id="item-tooltip-scroll" style="overflow-y:auto;flex:1;"></div>
+    </div>
 
     <!-- 프로필 헤더 -->
     <div style="display:flex;align-items:center;gap:16px;padding:16px;background:var(--surface);border-radius:10px;margin-bottom:16px;border:1px solid var(--border);">
@@ -1903,6 +1903,11 @@ function openDetail(m) {
   `;
 
   el.classList.add('open');
+}
+
+function closeItemTooltip() {
+  const el = document.getElementById('item-tooltip');
+  if(el) el.style.display = 'none';
 }
 
 function toggleExtraStats() {
