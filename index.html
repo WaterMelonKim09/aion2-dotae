@@ -1605,9 +1605,9 @@ async function fetchCharacterData(nickname, serverId) {
 // ─── 자동 불러오기 + 등록 ──────────────
 async function fetchAndRegister() {
   const nickname = document.getElementById('reg-name').value.trim();
-  const serverId = document.getElementById('reg-server').value;
-  const rank     = document.getElementById('reg-rank').value;
-  const intro    = document.getElementById('reg-intro').value.trim();
+  const serverId = (document.getElementById('reg-server')||{value:'2001'}).value;
+  const rank     = (document.getElementById('reg-rank')||{value:''}).value;
+  const intro    = (document.getElementById('reg-intro')||{value:''}).value.trim();
 
   if (!nickname) { toast('닉네임을 입력해주세요'); return; }
 
@@ -2223,9 +2223,9 @@ function switchDetailTab(tab) {
 // ─── 수동 등록 ─────────────────────────
 async function saveManual() {
   const nickname = document.getElementById('reg-name').value.trim();
-  const serverId = document.getElementById('reg-server').value;
-  const rank     = document.getElementById('reg-rank').value;
-  const intro    = document.getElementById('reg-intro').value.trim();
+  const serverId = (document.getElementById('reg-server')||{value:'2001'}).value;
+  const rank     = (document.getElementById('reg-rank')||{value:''}).value;
+  const intro    = (document.getElementById('reg-intro')||{value:''}).value.trim();
   if (!nickname) { toast('닉네임을 입력해주세요'); return; }
   const isMainMEl = document.getElementById('reg-is-main');
   const isMainM = isMainMEl ? isMainMEl.value === 'true' : true;
