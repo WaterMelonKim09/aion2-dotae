@@ -34,9 +34,6 @@ CREATE TABLE IF NOT EXISTS members (
   updated_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 기존 테이블에 누락된 컬럼 추가 (이미 있으면 무시)
-ALTER TABLE members ADD COLUMN IF NOT EXISTS titles JSONB DEFAULT '[]';
-
 -- recruits 테이블
 CREATE TABLE IF NOT EXISTS recruits (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -63,8 +60,6 @@ CREATE TABLE IF NOT EXISTS notices (
   author      TEXT,
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
-ALTER TABLE notices ADD COLUMN IF NOT EXISTS type    TEXT DEFAULT '공지사항';
-ALTER TABLE notices ADD COLUMN IF NOT EXISTS version TEXT DEFAULT '';
 
 -- war_surveys 테이블
 CREATE TABLE IF NOT EXISTS war_surveys (
@@ -90,6 +85,13 @@ CREATE TABLE IF NOT EXISTS config (
 );
 
 -- ================================================================
+-- 기존 DB에 누락된 컬럼 추가 (이미 있으면 무시)
+-- ================================================================
+ALTER TABLE members ADD COLUMN IF NOT EXISTS titles       JSONB DEFAULT '[]';
+ALTER TABLE notices ADD COLUMN IF NOT EXISTS type         TEXT DEFAULT '공지사항';
+ALTER TABLE notices ADD COLUMN IF NOT EXISTS version      TEXT DEFAULT '';
+
+-- ================================================================
 -- RLS (Row Level Security) 활성화 + 공개 접근 허용
 -- ================================================================
 ALTER TABLE members     ENABLE ROW LEVEL SECURITY;
@@ -99,7 +101,6 @@ ALTER TABLE war_surveys ENABLE ROW LEVEL SECURITY;
 ALTER TABLE boss_timers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE config      ENABLE ROW LEVEL SECURITY;
 
--- Policy 생성 (이미 존재하면 건너뜀)
 DO $$ BEGIN
   CREATE POLICY "public_all" ON members     FOR ALL TO anon USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
@@ -123,11 +124,3 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN
   CREATE POLICY "public_all" ON config      FOR ALL TO anon USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
--- ================================================================
--- 컬럼/테이블 정보 확인용 쿼리
--- ================================================================
-SELECT column_name, data_type
-FROM information_schema.columns
-WHERE table_name IN ('members', 'boss_timers')
-AND column_name = 'id';
