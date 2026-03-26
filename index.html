@@ -67,6 +67,9 @@
 
   /* 직업 배지 */
   .cls { font-size:12px; padding:3px 8px; border-radius:4px; white-space:nowrap; min-width:80px; display:inline-flex; align-items:center; justify-content:flex-start; gap:2px; }
+  .cls img { margin:0 !important; vertical-align:unset !important; }
+  /* 내정보·아바타 원형 컨테이너 내 엠블렘 중앙 정렬 */
+  .cls-icon-circle img { margin:0 !important; vertical-align:unset !important; }
   /* 아이온2 8개 직업 배지 */
   .cls-검성   { background:#1a2a30; color:#7ab8cc; border:1px solid #7ab8cc55; }
   .cls-수호성   { background:#1a1e30; color:#7a90d0; border:1px solid #7a90d055; }
@@ -1239,7 +1242,7 @@ function openMyProfile() {
   body.innerHTML = `
     <!-- \ud504\ub85c\ud544 \ud5e4\ub354 -->
     <div style="display:flex;align-items:center;gap:14px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;">
-      ${m?.profile_img?`<img src="${m.profile_img}" style="width:64px;height:64px;border-radius:50%;border:2px solid var(--gold-d);flex-shrink:0;">`:`<div style="width:64px;height:64px;border-radius:50%;background:var(--card);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;">${CLS_ICON[cls]||'\ud83d\udc64'}</div>`}
+      ${m?.profile_img?`<img src="${m.profile_img}" style="width:64px;height:64px;border-radius:50%;border:2px solid var(--gold-d);flex-shrink:0;">`:`<div class="cls-icon-circle" style="width:64px;height:64px;border-radius:50%;background:var(--card);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;">${CLS_ICON[cls]||'\ud83d\udc64'}</div>`}
       <div style="flex:1;">
         <div style="font-size:20px;font-weight:700;">${currentUser.nickname}</div>
         <div style="font-size:12px;color:var(--muted);margin-top:3px;">${cls?`${CLS_ICON[cls]||''} ${cls} \u00b7 `:''}${currentUser.rank||'\uacc4\uae09 \uc5c6\uc74c'}</div>
@@ -1377,7 +1380,7 @@ function nickSelect(el, inputId, previewId, cardId, memberId) {
   card.style.display='block';
   card.innerHTML = '<div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--card);border:1px solid var(--gold-d);border-radius:8px;">'
     +(m.profile_img?'<img src="'+m.profile_img+'" style="width:40px;height:40px;border-radius:50%;border:2px solid var(--gold-d);flex-shrink:0;">'
-      :'<div style="width:40px;height:40px;border-radius:50%;background:var(--surface);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+(CLS_ICON[cls]||'👤')+'</div>')
+      :'<div class="cls-icon-circle" style="width:40px;height:40px;border-radius:50%;background:var(--surface);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+(CLS_ICON[cls]||'👤')+'</div>')
     +'<div style="flex:1;min-width:0;">'
     +'<div style="font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+m.nickname+'</div>'
     +'<div style="font-size:11px;color:var(--muted);">'+cls+(abyss?' · '+abyss.gradeName:'')+'</div>'
