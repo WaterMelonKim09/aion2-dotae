@@ -321,6 +321,9 @@
     <div style="margin-top:12px;text-align:center;">
       <button onclick="showTab('register')" class="btn btn-sm" style="color:var(--muted);">멤버 등록하러 가기</button>
     </div>
+    <div id="firebase-status" style="margin-top:14px;text-align:center;font-size:12px;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:6px;">
+      <span class="spinner"></span><span>서버 연결 중...</span>
+    </div>
   </div>
 </div>
 
@@ -732,15 +735,26 @@ function selectLoginNick(nick) {
   if(ni) { ni.value = nick; loginNicknameInput(nick); }
 }
 
+function setFirebaseStatus(state) {
+  var el = document.getElementById('firebase-status');
+  if(!el) return;
+  if(state === 'ok') {
+    el.style.display = 'none';
+  } else if(state === 'error') {
+    el.style.color = 'var(--red)';
+    el.innerHTML = '⚠ 서버 연결 실패&nbsp;&nbsp;<button onclick="location.reload()" style="background:none;border:1px solid var(--red);color:var(--red);padding:3px 10px;border-radius:5px;font-size:12px;cursor:pointer;">새로고침</button>';
+  }
+}
+
 function tryLogin() {
   var ni = document.getElementById('login-nickname');
   var val = (ni ? ni.value : '').trim();
   if(!val) { toast('닉네임을 입력해주세요'); return; }
-  if(!members || members.length === 0) { toast('⚠ 데이터 로딩 중이에요. 잠시 후 다시 시도해주세요.'); return; }
+  if(!members || members.length === 0) { toast('⚠ 서버에 연결할 수 없어요. 새로고침 후 다시 시도해주세요.'); setFirebaseStatus('error'); return; }
   var m = members.find(function(x){ return x.nickname === val; });
   if(!m) { toast('등록되지 않은 닉네임이에요. 멤버 등록 후 이용해주세요.'); return; }
   currentUser = { nickname: m.nickname, rank: m.rank||'군단병', id: m.id, class: m.class };
-  localStorage.setItem('dotae_user', JSON.stringify(currentUser));
+  try { localStorage.setItem('dotae_user', JSON.stringify(currentUser)); } catch(e) {}
   applyLogin();
 }
 
@@ -1396,6 +1410,10 @@ function initFirebase() {
     var el = document.getElementById('loading-screen');
     if(el) el.style.display='none';
     initLoginScreen();
+    // 10초 후에도 데이터 없으면 연결 실패로 간주
+    setTimeout(function() {
+      if(!members || members.length === 0) setFirebaseStatus('error');
+    }, 500);
   }, 10000);
   window.loadingTimeout = _loadTimeout;
 
@@ -1418,9 +1436,17 @@ function initFirebase() {
     .onSnapshot(snap => {
       members = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       renderAll();
+      setFirebaseStatus('ok');
       clearTimeout(window.loadingTimeout); var _loadEl=document.getElementById('loading-screen'); if(_loadEl) _loadEl.style.display='none';
-            const isFirstLoad = !sessionStorage.getItem("_loginInit");
+      const isFirstLoad = !sessionStorage.getItem("_loginInit");
       if(isFirstLoad){ sessionStorage.setItem("_loginInit","1"); initLoginScreen(); }
+    }, function(err) {
+      clearTimeout(window.loadingTimeout);
+      var _loadEl=document.getElementById('loading-screen'); if(_loadEl) _loadEl.style.display='none';
+      const isFirstLoad = !sessionStorage.getItem("_loginInit");
+      if(isFirstLoad){ sessionStorage.setItem("_loginInit","1"); initLoginScreen(); }
+      setFirebaseStatus('error');
+      console.error('Firebase 연결 오류:', err);
     });
   db.collection('recruits').orderBy('created_at','desc')
     .onSnapshot(snap => {
