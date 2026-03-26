@@ -1402,17 +1402,7 @@ function initFirebase() {
       if(isFirstLoad){ sessionStorage.setItem("_loginInit","1"); initLoginScreen(); }
     });
   db.collection('recruits').orderBy('created_at','desc')
-    .o
-
-  db.collection('notices').orderBy('created_at','desc')
-    .onSnapshot(function(snap) {
-      renderNotices(snap.docs.map(function(d){ return Object.assign({id:d.id},d.data()); }));
-    });
-
-  db.collection('war_surveys').orderBy('created_at','desc').onSnapshot(snap => {
-    warSurveys = snap.docs.map(d => Object.assign({id:d.id},d.data()));
-    renderWarSurveys();
-  });nSnapshot(snap => {
+    .onSnapshot(snap => {
       recruits = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       renderRecruit();
       document.getElementById('stat-recruit').textContent = recruits.length;
@@ -1422,6 +1412,16 @@ function initFirebase() {
         renderCommentList(currentRecruitId);
       }
     });
+
+  db.collection('notices').orderBy('created_at','desc')
+    .onSnapshot(function(snap) {
+      renderNotices(snap.docs.map(function(d){ return Object.assign({id:d.id},d.data()); }));
+    });
+
+  db.collection('war_surveys').orderBy('created_at','desc').onSnapshot(snap => {
+    warSurveys = snap.docs.map(d => Object.assign({id:d.id},d.data()));
+    renderWarSurveys();
+  });
 }
 
 // 계급 순서
