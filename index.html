@@ -183,8 +183,8 @@
   @keyframes spin { to { transform:rotate(360deg); } }
 
   /* 토스트 */
-  #toast { position:fixed; bottom:24px; right:24px; z-index:999; background:var(--card); border:1px solid var(--gold-d); border-radius:8px; padding:12px 20px; font-size:13px; opacity:0; transform:translateY(10px); transition:all .3s; pointer-events:none; }
-  #toast.show { opacity:1; transform:translateY(0); }
+  #toast { position:fixed; top:24px; left:50%; transform:translateX(-50%) translateY(-10px); z-index:9999; background:var(--card); border:1px solid var(--gold-d); border-radius:10px; padding:14px 32px; font-size:15px; font-weight:600; opacity:0; transition:all .3s; pointer-events:none; white-space:nowrap; box-shadow:0 8px 32px rgba(0,0,0,.6); }
+  #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
 
 /* ── 모바일 반응형 ─────────────────── */
 @media (max-width: 768px) {
@@ -308,7 +308,9 @@
 <div id="login-screen" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:9998;align-items:center;justify-content:center;">
   <div style="background:var(--surface);border:1px solid var(--gold-d);border-radius:14px;padding:32px;width:90%;max-width:380px;">
     <div style="text-align:center;margin-bottom:24px;">
-      <div style="font-size:28px;margin-bottom:8px;">⚔</div>
+      <div style="margin-bottom:12px;display:flex;justify-content:center;">
+        <img id="login-logo-img" style="width:60px;height:60px;object-fit:contain;">
+      </div>
       <div style="font-size:20px;font-weight:700;color:var(--gold-l);">아이온2 도태</div>
       <div style="font-size:13px;color:var(--muted);margin-top:4px;">레기온 관리 시스템</div>
     </div>
@@ -519,9 +521,9 @@
 
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
           <span style="font-size:13px;">볼륨</span>
-          <span id="vol-label" style="font-size:13px;color:var(--gold-l);font-weight:600;">80%</span>
+          <span id="vol-label" style="font-size:13px;color:var(--gold-l);font-weight:600;">100%</span>
         </div>
-        <input type="range" id="vol-slider" min="0" max="100" value="80"
+        <input type="range" id="vol-slider" min="0" max="100" value="100"
           oninput="updateVolume(this.value)"
           style="width:100%;accent-color:var(--gold);cursor:pointer;margin-bottom:16px;">
 
@@ -2035,13 +2037,14 @@ function openDetail(m) {
   }
 
   // 장비 아이템 HTML
-  const equipHTML = slot => {
+  const equipHTML = (slot, isLast = false) => {
     const e = equipMap[slot];
     const gc = e ? (GC[e.grade]||'#888') : null;
-    if(!e) return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);opacity:.25;cursor:default;">
+    const bb = isLast ? '' : 'border-bottom:1px solid var(--border);';
+    if(!e) return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;${bb}opacity:.25;cursor:default;">
       <div style="width:32px;height:32px;border-radius:4px;background:var(--surface);border:1px solid var(--border);flex-shrink:0;"></div>
       <div style="font-size:11px;color:var(--muted);">${SN[slot]||slot}</div></div>`;
-    return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);cursor:pointer;" onclick="_showItemTooltip('${slot}')">
+    return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;${bb}cursor:pointer;" onclick="_showItemTooltip('${slot}')">
       <div style="position:relative;width:32px;height:32px;flex-shrink:0;">
         <img src="${e.icon}" style="width:32px;height:32px;border-radius:4px;border:2px solid ${gc};">
         ${e.exceed>0
@@ -2131,40 +2134,42 @@ function openDetail(m) {
         </div>`).join('')
     : '';
 
-  // 펫/날개
-  const petHTML = m.pet ? `<div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;">
-    <img src="${m.pet.icon||''}" style="width:40px;height:40px;border-radius:8px;" onerror="this.style.display='none'">
-    <div><div style="font-size:13px;font-weight:600;">${m.pet.name||'펫'}</div>
-    ${m.pet.grade?`<div style="font-size:11px;color:var(--muted);">등급: ${m.pet.grade}</div>`:''}
-    </div></div>` : '<div style="font-size:12px;color:var(--muted);padding:8px;">펫 정보 없음</div>';
-
-  const _effectWingHTML = equipMap['Wing'] ? equipHTML('Wing') : (m.wing ? (() => {
-    const wgc = GC[m.wing.grade]||'#888', wgn = GN[m.wing.grade]||m.wing.grade||'';
-    return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);">
-      <div style="position:relative;width:32px;height:32px;flex-shrink:0;">
-        <img src="${m.wing.icon||''}" style="width:32px;height:32px;border-radius:4px;border:2px solid ${wgc};" onerror="this.style.opacity=.3">
-        ${m.wing.enchant>0?`<div style="position:absolute;bottom:-2px;right:-2px;font-size:10px;font-weight:700;color:var(--gold-l);background:rgba(0,0,0,.92);border-radius:2px;padding:0 3px;line-height:1.5;">+${m.wing.enchant}</div>`:''}
+  // 펫/날개 NC 스타일 헬퍼
+  const _pwRow = (icon, nameHTML, rightIcon) =>
+    `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;">
+      <div style="width:36px;height:36px;border-radius:4px;border:1px solid rgba(255,255,255,.18);overflow:hidden;flex-shrink:0;background:#111;display:flex;align-items:center;justify-content:center;">
+        ${icon?`<img src="${icon}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.opacity=.25">`:``}
       </div>
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:12px;font-weight:600;color:${wgc};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.wing.name||'날개'}</div>
-        <div style="font-size:10px;color:var(--muted);">효과 날개</div>
-      </div>
-      <span style="font-size:10px;padding:1px 5px;border-radius:3px;background:${wgc}22;color:${wgc};border:1px solid ${wgc}44;flex-shrink:0;">${wgn}</span>
+      <div style="flex:1;min-width:0;">${nameHTML}</div>
+      ${rightIcon?`<div style="width:32px;height:32px;border-radius:4px;border:2px solid #5a3a9a;overflow:hidden;flex-shrink:0;background:#111;"><img src="${rightIcon}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.opacity=.25"></div>`:''}
     </div>`;
-  })() : '<div style="font-size:12px;color:var(--muted);padding:8px;">날개 정보 없음</div>');
-  const _skinWingHTML = m.wing && m.wing.skin ? (() => {
-    return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);">
-      <div style="width:32px;height:32px;flex-shrink:0;border-radius:4px;border:2px solid #40d4c0;overflow:hidden;">
-        <img src="${m.wing.skin.icon||''}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.opacity=.3">
-      </div>
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:12px;font-weight:600;color:#40d4c0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.wing.skin.name||'외형 날개'}</div>
-        <div style="font-size:10px;color:var(--muted);">외형 날개</div>
-      </div>
-      <span style="font-size:10px;padding:1px 5px;border-radius:3px;background:#40d4c022;color:#40d4c0;border:1px solid #40d4c044;flex-shrink:0;">외형</span>
-    </div>`;
-  })() : '';
-  const wingHTML = _effectWingHTML + _skinWingHTML;
+  const petHTML = m.pet
+    ? `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;">
+        <div style="position:relative;width:32px;height:32px;flex-shrink:0;">
+          <img src="${m.pet.icon||''}" style="width:32px;height:32px;border-radius:4px;border:2px solid #888;" onerror="this.style.opacity=.3">
+          ${m.pet.level?`<div style="position:absolute;bottom:-2px;right:-2px;font-size:10px;font-weight:700;color:var(--gold-l);background:rgba(0,0,0,.92);border-radius:2px;padding:0 3px;line-height:1.5;">Lv.${m.pet.level}</div>`:''}
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:12px;font-weight:600;color:#d8d8d8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.pet.name||'펫'}</div>
+          <div style="font-size:10px;color:var(--muted);">펫</div>
+        </div>
+      </div>`
+    : `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;opacity:.25;">
+        <div style="width:32px;height:32px;border-radius:4px;background:var(--surface);border:1px solid var(--border);flex-shrink:0;"></div>
+        <div style="font-size:11px;color:var(--muted);">펫 없음</div>
+      </div>`;
+  const effectWingHTML = (() => {
+    if(equipMap['Wing']) {
+      const e = equipMap['Wing'], gc = GC[e.grade]||'#e8a030';
+      return _pwRow(e.icon, `<div style="font-size:13px;color:#e8a030;">${e.name}${e.enchant>0?' +'+e.enchant:''}</div>`, '');
+    }
+    if(m.wing) return _pwRow(m.wing.icon,
+      `<div style="font-size:13px;color:#e8a030;">${m.wing.name||'날개'}${m.wing.enchant>0?' +'+m.wing.enchant:''}</div>`, '');
+    return `<div style="font-size:12px;color:var(--muted);padding:8px 10px;">없음</div>`;
+  })();
+  const skinWingHTML = (m.wing && m.wing.skin)
+    ? _pwRow(m.wing.skin.icon, `<div style="font-size:13px;color:#e8a030;">${m.wing.skin.name||'외형 날개'}</div>`, m.wing.skin.icon)
+    : `<div style="font-size:12px;color:var(--muted);padding:8px 10px;">없음</div>`;
 
   // 슬롯 그룹
   const equip1 = ['MainHand','SubHand','Helmet','Shoulder','Torso','Gloves','Pants','Boots','Cape','Belt'];
@@ -2258,20 +2263,25 @@ function openDetail(m) {
         <!-- 무기/방어구 -->
         <div>
           <div style="font-size:11px;font-weight:600;color:var(--gold);margin-bottom:8px;">무기 / 방어구</div>
-          ${equip1.map(equipHTML).join('')}
+          ${equip1.map((s,i)=>equipHTML(s,i===equip1.length-1)).join('')}
         </div>
         <!-- 장신구/룬 -->
         <div>
           <div style="font-size:11px;font-weight:600;color:var(--gold);margin-bottom:8px;">장신구 / 룬</div>
-          ${equip2.map(equipHTML).join('')}
+          ${equip2.map((s,i)=>equipHTML(s,i===equip2.length-1)).join('')}
         </div>
         <!-- 펫/날개/아르카나 -->
         <div>
-          <div style="font-size:11px;font-weight:600;color:var(--gold);margin-bottom:8px;">펫 / 날개</div>
-          ${petHTML}
-          ${wingHTML}
+          <div style="border:1px solid var(--border);border-radius:6px;overflow:hidden;background:var(--card);margin-bottom:12px;">
+            <div style="font-size:10px;font-weight:600;color:var(--muted);padding:6px 10px 4px;border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.5px;">펫</div>
+            <div style="padding:0;">${petHTML}</div>
+            <div style="font-size:10px;font-weight:600;color:var(--muted);padding:6px 10px 4px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.5px;">효과 날개</div>
+            <div style="padding:0;">${effectWingHTML}</div>
+            <div style="font-size:10px;font-weight:600;color:var(--muted);padding:6px 10px 4px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.5px;">외형 날개</div>
+            <div style="padding:0;">${skinWingHTML}</div>
+          </div>
           <div style="font-size:11px;font-weight:600;color:var(--gold);margin:12px 0 8px;">아르카나</div>
-          ${['Arcana1','Arcana2','Arcana3','Arcana4','Arcana5','Arcana6'].map(equipHTML).join('')}
+          ${['Arcana1','Arcana2','Arcana3','Arcana4','Arcana5','Arcana6'].map((s,i,a)=>equipHTML(s,i===a.length-1)).join('')}
         </div>
       </div>
       <!-- 장착 타이틀 -->
@@ -2283,7 +2293,7 @@ function openDetail(m) {
 
     <!-- 장신구/룬 탭 (별도 탭은 유지) -->
     <div id="detail-equip2" style="display:none;">
-      ${equip2.map(equipHTML).join('')}
+      ${equip2.map((s,i)=>equipHTML(s,i===equip2.length-1)).join('')}
     </div>
 
     <!-- 스킬 (액티브/패시브/스티그마) -->
@@ -2317,7 +2327,7 @@ function updateVersionDisplay(latestVersion) {
   const latEl = document.getElementById('ver-latest');
   const btn   = document.getElementById('btn-system-update');
   if(!curEl) return;
-  curEl.textContent = 'Ver. ' + BUILD_VERSION;
+  curEl.textContent = '현재 Ver. ' + BUILD_VERSION;
   const hasUpdate = latestVersion && !_semverGte(BUILD_VERSION, latestVersion);
   if(latEl) {
     latEl.textContent = latestVersion ? ('최신 Ver. ' + latestVersion) : '';
@@ -2966,13 +2976,15 @@ setTimeout(() => {
   if(el) el.textContent = '▲';
 }, 100);
 try { const savedTab = localStorage.getItem('activeTab'); if(savedTab) showTab(savedTab); } catch(e) {}
+// 로그인 화면 로고 = 헤더 로고와 동일한 이미지
+(function(){ const hdr=document.querySelector('.logo img'), lg=document.getElementById('login-logo-img'); if(hdr&&lg) lg.src=hdr.src; })();
 initFirebase();
 
 // ─── 슈고 타이머 ────────────────────────────
 let shugoRunning = false;
 let shugoInterval = null;
 let ttsEnabled = true;
-let shugoVolume = 0.8; window._volBoost = 2.0;
+let shugoVolume = 1.0; window._volBoost = 2.0;
 
 function toggleTTS() {
   ttsEnabled = !ttsEnabled;
