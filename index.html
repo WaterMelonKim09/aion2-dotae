@@ -333,8 +333,11 @@
   </div>
   <div style="display:flex;align-items:center;gap:8px;">
     <button onclick="location.reload()" class="btn btn-sm" style="font-size:12px;padding:6px 10px;white-space:nowrap;">⟳ 시스템 업데이트</button>
-    <div id="header-avatar" style="width:32px;height:32px;border-radius:50%;background:var(--surface);border:2px solid var(--gold-d);overflow:hidden;cursor:pointer;flex-shrink:0;display:none;" onclick="openMyProfile()"></div>
-    <button id="btn-myprofile" onclick="openMyProfile()" class="btn btn-primary btn-sm" style="display:none;font-size:12px;white-space:nowrap;">👤 내 정보</button>
+    <div id="header-user-btn" onclick="openMyProfile()" style="display:none;cursor:pointer;align-items:center;gap:8px;padding:5px 12px 5px 5px;background:var(--surface);border:1px solid var(--border);border-radius:20px;">
+      <div id="header-avatar" style="width:28px;height:28px;border-radius:50%;background:var(--card);border:2px solid var(--gold-d);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;"></div>
+      <div><div id="header-nick" style="font-size:13px;font-weight:700;color:var(--gold-l);white-space:nowrap;"></div>
+      <div id="header-rank" style="font-size:10px;color:var(--muted);white-space:nowrap;"></div></div>
+    </div>
     <button id="btn-logout" onclick="logoutUser()" class="btn btn-sm" style="display:none;font-size:12px;color:var(--muted);white-space:nowrap;">로그아웃</button>
     <span id="online-badge" style="display:none;"></span>
   </div>
@@ -453,7 +456,7 @@
         <button class="chip" onclick="setRFilter('투기장',this)">투기장</button>
         <button class="chip" onclick="setRFilter('토벌전',this)">토벌전</button>
       </div>
-      <button class="btn btn-primary" onclick="openModal('recruit')">+ 모집 등록</button>
+      <button class="btn btn-primary" onclick="openModal('recruit');setTimeout(function(){if(currentUser){var el=document.getElementById('m-author');if(el&&!el.value)el.value=currentUser.nickname;}},50);">+ 모집 등록</button>
     </div>
     <div class="recruit-grid" id="recruit-grid"></div>
   </div>
@@ -610,7 +613,15 @@
         <div style="display:flex;align-items:center;gap:4px;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:4px 8px;"><span style="font-size:12px;flex:1;">호법성</span><input type="number" id="req-호법성" min="0" max="9" value="0" style="width:36px;background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);text-align:center;font-size:13px;padding:2px;"></div>
       </div>
     </div>
-    <div class="form-group"><label class="form-label">작성자 닉네임 *</label><input class="form-input" id="m-author" placeholder="내 닉네임"></div>
+    <div class="form-group"><label class="form-label">작성자 닉네임 *</label>
+  <div style="position:relative;">
+    <input class="form-input" id="m-author" placeholder="내 닉네임" autocomplete="off"
+      oninput="nickPreview(this,'m-author-drop','m-author-card')"
+      onblur="setTimeout(function(){var d=document.getElementById('m-author-drop');if(d)d.style.display='none';},200)">
+    <div id="m-author-drop" style="display:none;position:absolute;left:0;right:0;top:100%;background:var(--card);border:1px solid var(--border);border-radius:6px;z-index:100;max-height:200px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.4);"></div>
+  </div>
+  <div id="m-author-card" style="display:none;margin-top:6px;"></div>
+</div>
     <div class="form-group"><label class="form-label">상세 내용</label><textarea class="form-input" id="m-desc" rows="3" placeholder="모집 조건, 공략 방식 등 자세한 내용을 적어주세요" style="resize:vertical;"></textarea></div>
     <div class="modal-foot">
       <button class="btn" onclick="closeModal('modal-recruit')">취소</button>
@@ -681,11 +692,7 @@
     </div>
     <div class="form-group"><label class="form-label">등급 변경</label>
       <select class="form-select" id="edit-rank">
-        <option>총사령관</option><option>사령관</option><option>대장군</option><option>장군</option>
-        <option>5성장교</option><option>4성장교</option><option>3성장교</option><option>2성장교</option><option>1성장교</option>
-        <option>1급병</option><option>2급병</option><option>3급병</option><option>4급병</option>
-        <option>5급병</option><option>6급병</option><option>7급병</option><option>8급병</option><option>9급병</option>
-        <option>훈련병</option>
+        <option>군단병</option><option>엘리트장교</option><option>군단장</option>
       </select>
     </div>
     <div class="modal-foot">
@@ -724,6 +731,7 @@ function tryLogin() {
   var ni = document.getElementById('login-nickname');
   var val = (ni ? ni.value : '').trim();
   if(!val) { toast('닉네임을 입력해주세요'); return; }
+  if(!members || members.length === 0) { toast('⚠ 데이터 로딩 중이에요. 잠시 후 다시 시도해주세요.'); return; }
   var m = members.find(function(x){ return x.nickname === val; });
   if(!m) { toast('등록되지 않은 닉네임이에요. 멤버 등록 후 이용해주세요.'); return; }
   currentUser = { nickname: m.nickname, rank: m.rank||'군단병', id: m.id, class: m.class };
@@ -1175,19 +1183,21 @@ function applyLogin() {
   if(main) main.style.display = '';
 
   // 헤더 버튼 표시
+  var ub = document.getElementById('header-user-btn');
   var av = document.getElementById('header-avatar');
-  var mp = document.getElementById('btn-myprofile');
   var lo = document.getElementById('btn-logout');
-  if(av) av.style.display = 'block';
-  if(mp) mp.style.display = '';
+  var nk = document.getElementById('header-nick');
+  var rk = document.getElementById('header-rank');
+  if(ub) ub.style.display = 'flex';
   if(lo) lo.style.display = '';
+  if(nk) nk.textContent = currentUser.nickname;
+  if(rk) rk.textContent = currentUser.rank || '군단병';
   if(av) {
-    if(currentUser.profile_img) {
-      av.innerHTML = '<img src="'+currentUser.profile_img+'" style="width:100%;height:100%;object-fit:cover;">';
-    } else {
-      var cls = CLASS_MAP[currentUser.class]||currentUser.class||'';
-      av.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;">'+(CLS_ICON[cls]||'👤')+'</div>';
-    }
+    var m2 = members.find(function(x){ return x.id===currentUser.id; });
+    var cls = CLASS_MAP[(m2||currentUser).class]||(m2||currentUser).class||'';
+    av.innerHTML = (m2&&m2.profile_img)
+      ? '<img src="'+m2.profile_img+'" style="width:100%;height:100%;object-fit:cover;">'
+      : (CLS_ICON[cls]||'<span>👤</span>');
   }
 
   // 탭 복원
@@ -1338,7 +1348,7 @@ function nickPreview(inputEl, previewId, cardId) {
       +'<div style="font-size:11px;color:var(--muted);">'+cls+(abyss?' · '+abyss.gradeName:'')+'</div></div></div>'
       +'<div style="text-align:right;font-size:11px;color:var(--muted);margin-right:6px;">'
       +'<div>'+(m.combat_power?(+m.combat_power).toLocaleString():'—')+'</div>'
-      +'<div>IL '+(m.item_level?(+m.item_level).toLocaleString():'—')+'</div></div>'
+      +'<div>아이템레벨 '+(m.item_level?(+m.item_level).toLocaleString():'—')+'</div></div>'
       +'<button onmousedown="event.preventDefault();event.stopPropagation();openDetailById(\''+m.id+'\');" '
       +'style="font-size:11px;padding:2px 6px;background:var(--card);border:1px solid var(--border);border-radius:4px;cursor:pointer;color:var(--text);white-space:nowrap;">상세</button>'
       +'</div>';
@@ -1367,7 +1377,7 @@ function nickSelect(el, inputId, previewId, cardId, memberId) {
     +'</div>'
     +'<div style="text-align:right;font-size:12px;flex-shrink:0;">'
     +'<div style="font-weight:700;color:var(--gold-l);">'+(m.combat_power?(+m.combat_power).toLocaleString():'—')+'</div>'
-    +'<div style="color:var(--muted);">IL '+(m.item_level?(+m.item_level).toLocaleString():'—')+'</div>'
+    +'<div style="color:var(--muted);">아이템레벨 '+(m.item_level?(+m.item_level).toLocaleString():'—')+'</div>'
     +'</div>'
     +'<button onclick="openDetailById(\''+m.id+'\')" style="margin-left:8px;font-size:11px;padding:4px 8px;background:var(--surface);border:1px solid var(--border);border-radius:6px;cursor:pointer;flex-shrink:0;">상세</button>'
     +'</div>';
@@ -1379,7 +1389,7 @@ function initFirebase() {
     var el = document.getElementById('loading-screen');
     if(el) el.style.display='none';
     initLoginScreen();
-  }, 10000);
+  }, 3000);
   window.loadingTimeout = _loadTimeout;
 
   migrateRanks(); // 구버전 계급 자동 변환
@@ -1649,6 +1659,7 @@ function openDetailById(id) {
 
 function openDetail(m) {
   const el = document.getElementById('modal-detail');
+  if(!el) return;
   const GC = {Common:'#aaaaaa',Rare:'#4a90e8',Hero:'#d44040',Epic:'#d44040',Unique:'#e8c030',Legendary:'#ff6a20',Special:'#40d4c0'};
   const GN = {Common:'일반',Rare:'희귀',Hero:'영웅',Epic:'영웅',Unique:'유일',Legendary:'전설',Special:'스페셜'};
   const SN = {
