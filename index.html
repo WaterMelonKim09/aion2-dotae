@@ -6,8 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>아이온2 도태 — 레기온 관리</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root {
     --bg:#0d0f14; --surface:#151820; --card:#1a1e28; --border:#2a2f3d;
@@ -745,18 +744,11 @@ function tryLogin() {
 }
 
 // ════════════════════════════════════════
-// ✅ Firebase 설정 — 아래 값을 교체하세요!
+// ✅ Supabase 설정 — 아래 값을 교체하세요!
 // ════════════════════════════════════════
-const firebaseConfig = {
-  apiKey:            "AIzaSyAIp50vmWSNy2406o81eG0SSezYYLpldhk",
-  authDomain:        "aion2-dotae.firebaseapp.com",
-  projectId:         "aion2-dotae",
-  storageBucket:     "aion2-dotae.firebasestorage.app",
-  messagingSenderId: "922096514693",
-  appId:             "1:922096514693:web:a883686ff2008b0959dbec"
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+const SUPABASE_URL      = 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // ════════════════════════════════════════
 
 const CLS_ICON  = {
@@ -782,7 +774,7 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '20260326.3';
+const BUILD_VERSION = '20260326.4';
 
 let members  = [];
 let recruits = [];
@@ -800,20 +792,16 @@ let sortAsc = true;
 // 구버전 계급 마이그레이션 (일반→군단병, 부마스터→엘리트장교, 마스터→군단장)
 const RANK_MIGRATE = {'일반':'군단병','부마스터':'엘리트장교','마스터':'군단장'};
 async function migrateRanks() {
-  const snap = await db.collection('members').get();
-  const batch = db.batch();
+  const { data } = await db.from('members').select('id, rank');
+  if(!data) return;
   let count = 0;
-  snap.docs.forEach(doc => {
-    const rank = doc.data().rank;
-    if(RANK_MIGRATE[rank]) {
-      batch.update(doc.ref, { rank: RANK_MIGRATE[rank] });
+  for(const row of data) {
+    if(RANK_MIGRATE[row.rank]) {
+      await db.from('members').update({ rank: RANK_MIGRATE[row.rank] }).eq('id', row.id);
       count++;
     }
-  });
-  if(count > 0) {
-    await batch.commit();
-    console.log(`계급 마이그레이션 완료: ${count}명`);
   }
+  if(count > 0) console.log(`계급 마이그레이션 완료: ${count}명`);
 }
 
 
@@ -888,16 +876,11 @@ function autoInitWarSurvey() {
   })) return;
 
   _warSurveyCreating = true;
-  db.collection('notices').orderBy('created_at','desc')
-    .onSnapshot(function(snap) {
-      renderNotices(snap.docs.map(function(d){ return Object.assign({id:d.id},d.data()); }));
-    });
-
-  db.collection('war_surveys').add({
+  db.from('war_surveys').insert({
     title: info.title,
     deadline: info.dateStr + ' 21:00',
     responses: [],
-    created_at: firebase.firestore.FieldValue.serverTimestamp()
+    created_at: new Date().toISOString()
   }).then(function(){
     _warSurveyCreating = false;
     toast('📋 ' + info.title + ' 생성됨');
@@ -941,7 +924,7 @@ function renderWarSurveys() {
 
     var fmtDate = function(ts) {
       if(!ts) return '';
-      var d = ts.toDate ? ts.toDate() : new Date(ts.seconds*1000);
+      var d = new Date(ts);
       return (d.getMonth()+1)+'월 '+d.getDate()+'일 '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
     };
 
@@ -1063,24 +1046,24 @@ async function respondWarSurvey(surveyId, type) {
   var d = new Date();
   var time = String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
   responses.push({ nickname: currentUser.nickname, type: type, time: time });
-  await db.collection('war_surveys').doc(surveyId).update({ responses: responses });
+  await db.from('war_surveys').update({ responses: responses }).eq('id', surveyId);
   toast(type==='attend' ? '✔ 참가로 응답했어요!' : '✘ 불참으로 응답했어요!');
 }
 
 async function createWarSurvey(title, deadline) {
   if(!isAdmin()) { toast('관리자만 생성할 수 있어요'); return; }
-  await db.collection('war_surveys').add({
+  await db.from('war_surveys').insert({
     title: title || '쟁 참여조사',
     deadline: deadline || '',
     responses: [],
-    created_at: firebase.firestore.FieldValue.serverTimestamp()
+    created_at: new Date().toISOString()
   });
   toast('참여조사가 생성됐어요 ✓');
 }
 
 async function deleteWarSurvey(id) {
   if(!confirm('참여조사를 삭제할까요?')) return;
-  await db.collection('war_surveys').doc(id).delete();
+  await db.from('war_surveys').delete().eq('id', id);
   toast('삭제됐어요');
 }
 
@@ -1096,10 +1079,7 @@ function openWarSurveyCreate() {
 
 async function resetWarSurveys() {
   if(!confirm('기존 쟁 참여조사를 모두 삭제하고 새로 1개 생성할까요?')) return;
-  const snap = await db.collection('war_surveys').get();
-  const batch = db.batch();
-  snap.docs.forEach(function(doc){ batch.delete(doc.ref); });
-  await batch.commit();
+  await db.from('war_surveys').delete().not('id', 'is', null);
   _warSurveyCreating = false;
   autoInitWarSurvey();
   toast('초기화 완료!');
@@ -1119,7 +1099,7 @@ function logoutUser() {
 
 async function completeRecruit() {
   if(!confirm('모집을 완료할까요? (슬롯이 0으로 변경돼요)')) return;
-  await db.collection('recruits').doc(currentRecruitId).update({ slots: 0 });
+  await db.from('recruits').update({ slots: 0 }).eq('id', currentRecruitId);
   toast('모집 완료됐어요 ✓');
 }
 
@@ -1127,7 +1107,7 @@ async function reopenRecruit() {
   const r = recruits.find(x => x.id === currentRecruitId);
   if(!r) return;
   const slots = parseInt(prompt('모집 인원을 다시 설정해주세요', '4')) || 4;
-  await db.collection('recruits').doc(currentRecruitId).update({ slots });
+  await db.from('recruits').update({ slots }).eq('id', currentRecruitId);
   toast('모집 재개됐어요 ✓');
 }
 
@@ -1400,49 +1380,65 @@ function initFirebase() {
   window.loadingTimeout = _loadTimeout;
 
   // 버전 관리
-  const versionRef = db.collection('config').doc('system');
-  versionRef.get().then(doc => {
-    const stored = doc.exists ? (doc.data().latest_version || '') : '';
+  db.from('config').select('*').eq('key', 'system').single().then(({ data: doc }) => {
+    const stored = doc ? (doc.latest_version || '') : '';
     if(BUILD_VERSION >= stored) {
-      versionRef.set({ latest_version: BUILD_VERSION, updated_at: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+      db.from('config').upsert({ key: 'system', latest_version: BUILD_VERSION, updated_at: new Date().toISOString() });
     }
-  });
-  versionRef.onSnapshot(doc => {
-    if(doc.exists && doc.data().latest_version) updateVersionDisplay(doc.data().latest_version);
-    else updateVersionDisplay(BUILD_VERSION);
-  });
+    updateVersionDisplay(doc && doc.latest_version ? doc.latest_version : BUILD_VERSION);
+  }).catch(function(){});
 
   migrateRanks(); // 구버전 계급 자동 변환
-  initBossTimers(); // 슈고 타이머 구독
-  db.collection('members').orderBy('combat_power','desc')
-    .onSnapshot(snap => {
-      members = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      renderAll();
-      clearTimeout(window.loadingTimeout); var _loadEl=document.getElementById('loading-screen'); if(_loadEl) _loadEl.style.display='none';
-            const isFirstLoad = !sessionStorage.getItem("_loginInit");
-      if(isFirstLoad){ sessionStorage.setItem("_loginInit","1"); initLoginScreen(); }
-    });
-  db.collection('recruits').orderBy('created_at','desc')
-    .onSnapshot(snap => {
-      recruits = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      renderRecruit();
-      document.getElementById('stat-recruit').textContent = recruits.length;
-      // 상세 모달 열려있으면 갱신
-      if(currentRecruitId && document.getElementById('modal-recruit-detail').classList.contains('open')) {
-        renderApplyList(currentRecruitId);
-        renderCommentList(currentRecruitId);
-      }
-    });
+  initBossTimers(); // 슈고 타이머 폴링
 
-  db.collection('notices').orderBy('created_at','desc')
-    .onSnapshot(function(snap) {
-      renderNotices(snap.docs.map(function(d){ return Object.assign({id:d.id},d.data()); }));
-    });
+  // Supabase REST 기반 데이터 로딩
+  function loadAllData() {
+    var membersTimeout = new Promise(function(_, reject){ setTimeout(function(){ reject(new Error('network-timeout')); }, 8000); });
+    Promise.race([
+      db.from('members').select('*').order('combat_power', { ascending: false }),
+      membersTimeout
+    ])
+      .then(function(result) {
+        if(result && result.error) throw result.error;
+        members = result.data || [];
+        renderAll();
+        setFirebaseStatus('ok');
+        clearTimeout(window.loadingTimeout); var _loadEl=document.getElementById('loading-screen'); if(_loadEl) _loadEl.style.display='none';
+        const isFirstLoad = !sessionStorage.getItem("_loginInit");
+        if(isFirstLoad){ sessionStorage.setItem("_loginInit","1"); initLoginScreen(); }
+      })
+      .catch(function(err) {
+        clearTimeout(window.loadingTimeout);
+        var _loadEl=document.getElementById('loading-screen'); if(_loadEl) _loadEl.style.display='none';
+        const isFirstLoad = !sessionStorage.getItem("_loginInit");
+        if(isFirstLoad){ sessionStorage.setItem("_loginInit","1"); initLoginScreen(); }
+        setFirebaseStatus('error', err.code || err.message);
+        console.error('Supabase 연결 오류:', err);
+      });
 
-  db.collection('war_surveys').orderBy('created_at','desc').onSnapshot(snap => {
-    warSurveys = snap.docs.map(d => Object.assign({id:d.id},d.data()));
-    renderWarSurveys();
-  });
+    db.from('recruits').select('*').order('created_at', { ascending: false })
+      .then(({ data, error }) => {
+        if(error) return;
+        recruits = data || [];
+        renderRecruit();
+        document.getElementById('stat-recruit').textContent = recruits.length;
+      });
+
+    db.from('notices').select('*').order('created_at', { ascending: false })
+      .then(function({ data, error }) {
+        if(error) return;
+        renderNotices(data || []);
+      });
+
+    db.from('war_surveys').select('*').order('created_at', { ascending: false })
+      .then(({ data, error }) => {
+        if(error) return;
+        warSurveys = data || [];
+        renderWarSurveys();
+      });
+  }
+  window.refreshData = loadAllData;
+  loadAllData();
 }
 
 // 계급 순서
@@ -1562,7 +1558,8 @@ async function fetchAndRegister() {
       toast('본캐 닉네임을 입력해주세요'); btn.disabled=false; btn.textContent='닉네임으로 스펙 불러와서 등록'; return;
     }
     const finalRank = isMain ? rank : '';
-    await db.collection('members').doc(nickname+'_'+serverId).set({
+    await db.from('members').upsert({
+      id: nickname+'_'+serverId,
       nickname, server: serverId, rank: finalRank, intro,
       is_main: isMain, player_id: playerId,
       class:        cls,
@@ -1583,7 +1580,7 @@ async function fetchAndRegister() {
       profile_img:  data.profile_img  || '',
       character_id: data.characterId  || '',
       last_synced:  new Date().toISOString(),
-      updated_at:   firebase.firestore.FieldValue.serverTimestamp(),
+      updated_at:   new Date().toISOString(),
     });
 
     resultEl.innerHTML = `<span style="color:#6acd8a">✓ ${nickname} 등록 완료! 전투력: ${(data.combat_power||0).toLocaleString()}</span>`;
@@ -1606,7 +1603,7 @@ async function syncMember(id, nickname, serverId) {
   try {
     const data = await fetchCharacterData(nickname, serverId);
     const cls  = CLASS_MAP[data.class] || data.class || '';
-    await db.collection('members').doc(id).update({
+    await db.from('members').update({
       class:        cls,
       level:        data.level        || 0,
       combat_power: data.combat_power || 0,
@@ -1624,7 +1621,7 @@ async function syncMember(id, nickname, serverId) {
       race:         data.race         || '',
       profile_img:  data.profile_img  || '',
       last_synced:  new Date().toISOString(),
-    });
+    }).eq('id', id);
     toast(`${nickname} 갱신 완료! ✓`);
   } catch(err) {
     toast('갱신 실패: ' + err.message);
@@ -1649,7 +1646,7 @@ async function syncAllMembers() {
     try {
       const data = await fetchCharacterData(m.nickname, m.server||'2001');
       const cls = CLASS_MAP[data.class] || data.class || '';
-      await db.collection('members').doc(m.id).update({
+      await db.from('members').update({
         class: cls, level: data.level||0,
         combat_power: data.combat_power||0,
         item_level:   data.item_level||0,
@@ -1662,7 +1659,7 @@ async function syncAllMembers() {
         race:         data.race||'',
         profile_img:  data.profile_img||'',
         last_synced:  new Date().toISOString(),
-      });
+      }).eq('id', m.id);
       done++;
     } catch(e) {
       fail++;
@@ -2163,11 +2160,12 @@ async function saveManual() {
   const isMainM = isMainMEl ? isMainMEl.value === 'true' : true;
   const playerIdMEl = document.getElementById('reg-player-id');
   const playerIdM = isMainM ? nickname : (playerIdMEl ? playerIdMEl.value.trim() || nickname : nickname);
-  await db.collection('members').doc(nickname+'_'+serverId).set({
+  await db.from('members').upsert({
+    id: nickname+'_'+serverId,
     nickname, server: serverId, rank, intro,
     is_main: isMainM, player_id: playerIdM,
     combat_power: 0, item_level: 0, equipment: [],
-    updated_at: firebase.firestore.FieldValue.serverTimestamp(),
+    updated_at: new Date().toISOString(),
   });
   toast(`${nickname} 등록 완료! ✓`);
 }
@@ -2417,12 +2415,12 @@ function setDistView(v) {
 async function deleteMember() {
   const id = document.getElementById('edit-id').value;
   if(!confirm('이 멤버를 삭제할까요?')) return;
-  await db.collection('members').doc(id).delete();
+  await db.from('members').delete().eq('id', id);
   closeModal('modal-edit'); toast('멤버 삭제 완료');
 }
 async function updateMember() {
   const id=document.getElementById('edit-id').value, rank=document.getElementById('edit-rank').value;
-  await db.collection('members').doc(id).update({ rank });
+  await db.from('members').update({ rank }).eq('id', id);
   closeModal('modal-edit'); toast('등급 변경 완료 ✓');
 }
 async function saveRecruit() {
@@ -2440,15 +2438,15 @@ async function saveRecruit() {
   const authorMember = members.find(function(m){ return m.nickname === author; });
   const initApply = authorMember ? [{nickname: author, time: time}] : [];
   try {
-    await db.collection('recruits').add({
+    await db.from('recruits').insert({
       title, type:document.getElementById('m-type').value, author, reqs,
-      min_cp:   document.getElementById('m-cp').value.trim(),
-      slots:    parseInt(document.getElementById('m-slots').value)||4,
-      schedule: document.getElementById('m-schedule').value.trim(),
-      desc:     document.getElementById('m-desc').value.trim(),
-      applies:  initApply,
-      comments: [],
-      created_at: firebase.firestore.FieldValue.serverTimestamp()
+      min_cp:      document.getElementById('m-cp').value.trim(),
+      slots:       parseInt(document.getElementById('m-slots').value)||4,
+      schedule:    document.getElementById('m-schedule').value.trim(),
+      description: document.getElementById('m-desc').value.trim(),
+      applies:     initApply,
+      comments:    [],
+      created_at:  new Date().toISOString()
     });
     closeModal('modal-recruit'); toast('모집 공고 등록 완료 ✓');
   } catch(err) { toast('등록 실패: ' + err.message); }
@@ -2467,7 +2465,7 @@ async function openRecruit(id) {
       <span class="${r.slots>0?'slots-open':'slots-full'}">${r.slots>0?'모집중 '+r.slots+'자리':'마감'}</span>
     </div>
     <div style="font-size:13px;color:var(--muted);margin-bottom:8px;">📅 ${r.schedule||'일정 미정'} · 최소 ${r.min_cp||'제한 없음'} · by ${r.author}</div>
-    ${r.desc ? `<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:13px;line-height:1.6;margin-bottom:12px;white-space:pre-wrap;">${r.desc}</div>` : ''}
+    ${(r.description||r.desc) ? `<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:13px;line-height:1.6;margin-bottom:12px;white-space:pre-wrap;">${r.description||r.desc}</div>` : ''}
     ${r.reqs&&r.reqs.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">${r.reqs.map(x=>`<span class="req-item">${x}</span>`).join('')}</div>` : ''}
   `;
 
@@ -2514,7 +2512,7 @@ async function applyRecruit() {
   const now = new Date();
   const time = `${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
   applies.push({nickname, time});
-  await db.collection('recruits').doc(currentRecruitId).update({applies});
+  await db.from('recruits').update({applies}).eq('id', currentRecruitId);
   document.getElementById('apply-nickname').value = '';
   toast(`${nickname} 신청 완료! ✓`);
 }
@@ -2529,14 +2527,14 @@ async function addComment() {
   const now = new Date();
   const time = `${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
   comments.push({nickname, text, time});
-  await db.collection('recruits').doc(currentRecruitId).update({comments});
+  await db.from('recruits').update({comments}).eq('id', currentRecruitId);
   document.getElementById('comment-text').value = '';
   toast('댓글 등록 완료 ✓');
 }
 
 async function deleteRecruit(id) {
   if(!confirm('삭제할까요?')) return;
-  await db.collection('recruits').doc(id).delete(); toast('삭제 완료');
+  await db.from('recruits').delete().eq('id', id); toast('삭제 완료');
 }
 
 // ─── 유틸 ──────────────────────────────
@@ -2700,22 +2698,28 @@ function renderBossGrid() {
 
 async function recordKill(bossId) {
   const killTime = Date.now();
-  await db.collection('boss_timers').doc(bossId).set({ killTime, updatedAt: new Date().toISOString() });
+  await db.from('boss_timers').upsert({ id: bossId, kill_time: killTime, updated_at: new Date().toISOString() });
   toast('킬 시간 기록 완료! ✓');
 }
 
 async function clearKill(bossId) {
-  await db.collection('boss_timers').doc(bossId).delete();
+  await db.from('boss_timers').delete().eq('id', bossId);
   toast('초기화 완료');
 }
 
 // Firebase 슈고 타이머 구독
 function initBossTimers() {
-  db.collection('boss_timers').onSnapshot(snap => {
-    bossData = {};
-    snap.docs.forEach(d => { bossData[d.id] = d.data(); });
-    renderBossGrid();
-  });
+  function loadBossTimers() {
+    db.from('boss_timers').select('*').then(({ data, error }) => {
+      if(error) return;
+      bossData = {};
+      (data || []).forEach(d => { bossData[d.id] = { killTime: d.kill_time, updatedAt: d.updated_at }; });
+      renderBossGrid();
+    });
+  }
+  loadBossTimers();
+  // 30초마다 갱신 (실시간 대신 폴링)
+  setInterval(loadBossTimers, 30000);
 
   // 1초마다 카운트다운 업데이트
   setInterval(() => {
