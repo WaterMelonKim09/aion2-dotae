@@ -1510,18 +1510,33 @@ function initFirebase() {
   }, 10000);
   window.loadingTimeout = _loadTimeout;
 
-  // 버전 관리
+  // 버전 관리: version.json 폴링 (배포 즉시 감지) + config realtime 병행
   function checkVersion() {
-    db.from('config').select('*').eq('key', 'system').maybeSingle().then(({ data: doc }) => {
-      const stored = doc ? (doc.latest_version || '') : '';
-      if(_semverGte(BUILD_VERSION, stored)) {
-        db.from('config').upsert({ key: 'system', latest_version: BUILD_VERSION, updated_at: new Date().toISOString() });
-      }
-      updateVersionDisplay(doc && doc.latest_version ? doc.latest_version : BUILD_VERSION);
-    }).catch(function(){});
+    fetch('/version.json?_=' + Date.now())
+      .then(r => r.json())
+      .then(data => {
+        const latest = data.version || BUILD_VERSION;
+        updateVersionDisplay(latest);
+        // config 테이블도 최신 버전으로 동기화
+        if(_semverGte(BUILD_VERSION, latest)) {
+          db.from('config').upsert({ key: 'system', latest_version: latest, updated_at: new Date().toISOString() }).catch(()=>{});
+        }
+      })
+      .catch(function(){
+        // version.json 실패 시 config 테이블 폴백
+        db.from('config').select('*').eq('key', 'system').maybeSingle().then(({ data: doc }) => {
+          const stored = doc ? (doc.latest_version || '') : '';
+          if(_semverGte(BUILD_VERSION, stored)) {
+            db.from('config').upsert({ key: 'system', latest_version: BUILD_VERSION, updated_at: new Date().toISOString() });
+          }
+          updateVersionDisplay(stored || BUILD_VERSION);
+        }).catch(function(){});
+      });
   }
   checkVersion();
-  // config 실시간 구독: 버전 업데이트 즉시 반영
+  // 3분마다 폴링 (구버전 사용자도 배포 후 바로 감지)
+  setInterval(checkVersion, 3 * 60 * 1000);
+  // config realtime: 다른 채널에서 업데이트 시 즉시 반영
   db.channel('config-realtime')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'config', filter: 'key=eq.system' }, () => {
       checkVersion();
