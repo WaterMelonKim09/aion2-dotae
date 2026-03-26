@@ -1396,7 +1396,7 @@ function initFirebase() {
     var el = document.getElementById('loading-screen');
     if(el) el.style.display='none';
     initLoginScreen();
-  }, 3000);
+  }, 10000);
   window.loadingTimeout = _loadTimeout;
 
   // 버전 관리
@@ -2541,13 +2541,15 @@ async function deleteRecruit(id) {
 
 // ─── 유틸 ──────────────────────────────
 function showTab(id) {
+  const tabEl = document.getElementById('tab-'+id);
+  if(!tabEl) { try { localStorage.removeItem('activeTab'); } catch(e) {} if(id !== 'dashboard') showTab('dashboard'); return; }
   document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('tab-'+id).classList.add('active');
+  tabEl.classList.add('active');
   ['notice','dashboard','members','recruit','war','timer','register'].forEach((t,i)=>{ if(t===id) document.querySelectorAll('.nav-btn')[i].classList.add('active'); });
   if(id==='war'){const wb=document.getElementById('war-create-btn');if(wb)wb.style.display=isAdmin()?'inline-block':'none';const wr=document.getElementById('war-reset-btn');if(wr)wr.style.display=isAdmin()?'inline-block':'none';renderWarSurveys();}
   if(id==='notice'){const nb=document.getElementById('notice-write-btn');if(nb)nb.style.display=isAdmin()?'inline-block':'none';}
-  localStorage.setItem('activeTab', id);
+  try { localStorage.setItem('activeTab', id); } catch(e) {}
 }
 function openModal(id) { 
   const el = document.getElementById('modal-'+id) || document.getElementById(id);
@@ -2755,9 +2757,7 @@ setTimeout(() => {
   const el = document.getElementById('sort-rank');
   if(el) el.textContent = '▲';
 }, 100);
-const savedTab = localStorage.getItem('activeTab');
-if(savedTab) showTab(savedTab);
-
+try { const savedTab = localStorage.getItem('activeTab'); if(savedTab) showTab(savedTab); } catch(e) {}
 initFirebase();
 
 // ─── 슈고 타이머 ────────────────────────────
@@ -2874,39 +2874,6 @@ function toggleShugoTimer() {
   }
 }
 
-// 마지막 탭 복원// 마지막 탭 복원
-// 초기 정렬 아이콘
-setTimeout(() => {
-  const el = document.getElementById('sort-rank');
-  if(el) el.textContent = '▲';
-}, 100);
-
-function toggleShugoTimer() {
-  const btn = document.getElementById('shugo-start-btn');
-  if(!shugoRunning) {
-    shugoRunning = true;
-    shugoInterval = setInterval(updateShugoDisplay, 1000);
-    updateShugoDisplay();
-    if(btn) { btn.textContent = '⏹ 정지'; btn.classList.add('btn-primary'); }
-    const st = document.getElementById('shugo-status');
-    if(st) { st.textContent = '타이머 실행 중'; st.style.background='rgba(0,200,138,.1)'; st.style.borderColor='var(--gold-d)'; st.style.color='var(--gold-l)'; }
-    // 알림 권한 자동 요청
-    if(Notification.permission === 'default') Notification.requestPermission();
-  } else {
-    shugoRunning = false;
-    clearInterval(shugoInterval);
-    if(btn) { btn.textContent = '▶ 시작'; }
-    const st = document.getElementById('shugo-status');
-    if(st) { st.textContent = '대기 중'; st.style.background='var(--surface)'; st.style.borderColor='var(--border)'; st.style.color='var(--muted)'; }
-  }
-}
-
-// 마지막 탭 복원// 마지막 탭 복원
-// 초기 정렬 아이콘
-setTimeout(() => {
-  const el = document.getElementById('sort-rank');
-  if(el) el.textContent = '▲';
-}, 100);
 </script>
 </body>
 </html>
