@@ -1534,8 +1534,8 @@ function initFirebase() {
       });
   }
   checkVersion();
-  // 3분마다 폴링 (구버전 사용자도 배포 후 바로 감지)
-  setInterval(checkVersion, 3 * 60 * 1000);
+  // 10초마다 폴링 (구버전 사용자 배포 즉시 감지)
+  setInterval(checkVersion, 10 * 1000);
   // config realtime: 다른 채널에서 업데이트 시 즉시 반영
   db.channel('config-realtime')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'config', filter: 'key=eq.system' }, () => {
