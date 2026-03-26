@@ -1433,12 +1433,12 @@ function nickPreview(inputEl, previewId, cardId) {
       +'<div style="flex:1;display:flex;align-items:center;gap:6px;">'
       +(CLS_ICON[cls]||'<span>👤</span>')
       +'<div><div style="font-size:13px;font-weight:600;">'+m.nickname+'</div>'
-      +'<div style="font-size:11px;color:var(--muted);">'+cls+(abyss?' · '+abyss.gradeName:'')+'</div></div></div>'
+      +'<div style="font-size:11px;color:var(--muted);">'+cls+(abyss&&abyss.gradeName?' · '+abyss.gradeName:'')+'</div></div></div>'
       +'<div style="text-align:right;font-size:11px;color:var(--muted);margin-right:6px;">'
       +'<div>'+(m.combat_power?(+m.combat_power).toLocaleString():'—')+'</div>'
       +'<div>아이템레벨 '+(m.item_level?(+m.item_level).toLocaleString():'—')+'</div></div>'
       +'<button onmousedown="event.preventDefault();event.stopPropagation();openDetailById(\''+m.id+'\');" '
-      +'style="font-size:11px;padding:2px 6px;background:var(--card);border:1px solid var(--border);border-radius:4px;cursor:pointer;color:var(--text);white-space:nowrap;">상세</button>'
+      +'style="font-size:11px;padding:4px 10px;background:var(--gold-d);border:none;border-radius:4px;cursor:pointer;color:#fff;font-weight:600;white-space:nowrap;">상세</button>'
       +'</div>';
   }).join('');
 }
@@ -2823,6 +2823,7 @@ function renderApplyList(recruitId) {
             ${cp?`<div style="font-size:11px;color:var(--muted);">${(+cp).toLocaleString()} 전투력</div>`:''}
           </div>
           <span style="font-size:11px;color:var(--muted);flex-shrink:0;">${a.time||''}</span>
+          ${mem?`<button onmousedown="event.preventDefault();" onclick="openDetailById('${mem.id}')" style="font-size:11px;padding:3px 8px;background:var(--gold-d);border:none;border-radius:4px;cursor:pointer;color:#fff;font-weight:600;flex-shrink:0;">상세</button>`:''}
         </div>`;
       }).join('')
     : '<div style="font-size:12px;color:var(--muted);">신청자가 없어요</div>';
@@ -2831,14 +2832,29 @@ function renderApplyList(recruitId) {
 function renderCommentList(recruitId) {
   const r = recruits.find(x => x.id === recruitId);
   const comments = r?.comments || [];
-  document.getElementById('comment-list').innerHTML = comments.map(c=>`
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;">
-      <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
-        <span style="font-size:13px;font-weight:600;color:var(--gold-l);">${c.nickname}</span>
-        <span style="font-size:11px;color:var(--muted);">${c.time||''}</span>
+  document.getElementById('comment-list').innerHTML = comments.map(c=>{
+    const mem = members.find(m => m.nickname === c.nickname);
+    const cls = mem ? (CLASS_MAP[mem.class]||mem.class||'') : '';
+    const cp  = mem && mem.combat_power ? (+mem.combat_power).toLocaleString() : null;
+    const avatar = (mem && mem.profile_img)
+      ? `<img src="${mem.profile_img}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;border:1px solid var(--border);flex-shrink:0;">`
+      : `<div style="width:28px;height:28px;border-radius:50%;background:var(--surface);border:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;">👤</div>`;
+    return `<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;">
+        ${avatar}
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:5px;">
+            ${CLS_ICON[cls]||''}
+            <span style="font-size:13px;font-weight:600;color:var(--gold-l);">${c.nickname}</span>
+            ${cls?`<span style="font-size:11px;color:var(--muted);">${cls}</span>`:''}
+            ${cp?`<span style="font-size:11px;color:var(--muted);">· ${cp} 전투력</span>`:''}
+          </div>
+        </div>
+        <span style="font-size:11px;color:var(--muted);flex-shrink:0;">${c.time||''}</span>
       </div>
-      <div style="font-size:13px;line-height:1.5;">${c.text}</div>
-    </div>`).join('') || '<div style="font-size:12px;color:var(--muted);">댓글이 없어요</div>';
+      <div style="font-size:13px;line-height:1.5;padding-left:36px;">${c.text}</div>
+    </div>`;
+  }).join('') || '<div style="font-size:12px;color:var(--muted);">댓글이 없어요</div>';
 }
 
 async function applyRecruit() {
