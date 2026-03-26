@@ -1694,14 +1694,20 @@ function refreshHeaderUser() {
   }
 }
 
-function renderNotices(notices) {
+function renderNotices(notices, showAll) {
   const list = document.getElementById('notice-list');
   if(!list) return;
   const gradeColor3 = t => t==='공지사항'?'#e8c030':'var(--gold-l)';
   const typeBg3 = t => t==='공지사항'?'rgba(232,192,48,.15)':'rgba(0,200,138,.15)';
   const typeBorder3 = t => t==='공지사항'?'#604010':'var(--gold-d)';
   const borderLeft3 = t => t==='공지사항'?'#e8c030':'var(--gold)';
-  const dbItems = notices.map(n => {
+
+  const announcements = notices.filter(n => n.type === '공지사항');
+  const patches = notices.filter(n => n.type !== '공지사항');
+  const visiblePatches = showAll ? patches : patches.slice(0, 5);
+  const hiddenCount = patches.length - visiblePatches.length;
+
+  const renderItem = n => {
     const d = n.created_at ? new Date(n.created_at) : new Date();
     const dateStr = d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0');
     return '<div class="card" style="padding:20px;border-left:3px solid '+borderLeft3(n.type)+';margin-bottom:12px;">'
@@ -1713,8 +1719,15 @@ function renderNotices(notices) {
       +(isAdmin()?'<button onclick="deleteNotice(\''+n.id+'\')" style="font-size:10px;padding:2px 7px;background:none;border:1px solid var(--red);border-radius:4px;color:var(--red);cursor:pointer;">삭제</button>':'')
       +'</div></div>'
       +'<div style="font-size:13px;color:var(--muted);line-height:1.8;white-space:pre-wrap;">'+(n.content||'')+'</div></div>';
-  }).join('');
-  list.innerHTML = dbItems || '<div style="color:var(--muted);font-size:13px;padding:12px">공지사항이 없어요</div>';
+  };
+
+  const allItems = [...announcements, ...visiblePatches].map(renderItem).join('');
+  const moreBtn = hiddenCount > 0
+    ? '<button onclick="renderNotices(window._cachedNotices, true)" style="width:100%;padding:10px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:13px;cursor:pointer;margin-top:4px;">▼ 이전 패치노트 '+hiddenCount+'개 더보기</button>'
+    : '';
+
+  list.innerHTML = (allItems || '<div style="color:var(--muted);font-size:13px;padding:12px">공지사항이 없어요</div>') + moreBtn;
+  window._cachedNotices = notices;
 }
 
 function renderAll() {
