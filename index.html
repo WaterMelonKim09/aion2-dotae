@@ -1573,7 +1573,7 @@ async function fetchAndRegister() {
       stats:        data.stats        || [],
       daevanion:    data.daevanion    || [],
       ranking:      data.ranking      || [],
-      stigma:       data.stigma       || [],
+      stigma:       data.stigma || data.skills || [],
       arcana:       data.arcana       || [],
       pet:          data.pet          || null,
       wing:         data.wing         || null,
@@ -1615,7 +1615,7 @@ async function syncMember(id, nickname, serverId) {
       stats:        data.stats        || [],
       daevanion:    data.daevanion    || [],
       ranking:      data.ranking      || [],
-      stigma:       data.stigma       || [],
+      stigma:       data.stigma || data.skills || [],
       arcana:       data.arcana       || [],
       pet:          data.pet          || null,
       wing:         data.wing         || null,
@@ -1721,88 +1721,128 @@ function openDetail(m) {
   (m.stats||[]).forEach(s => { statMap[s.type] = s; });
   const ilvl = statMap['ItemLevel'] ? statMap['ItemLevel'].value : (m.item_level||0);
 
-  // 아이템 클릭 시 툴팁
-  window._showItemTooltip = function(slotKey) {
+  // 아이템 클릭 시 툴팁 (공식 홈 스타일)
+  window._showItemTooltip = async function(slotKey) {
     const e = equipMap[slotKey];
     if(!e) return;
     const gc = GC[e.grade]||'#888';
     const gn = GN[e.grade]||e.grade||'';
 
-    // 강화 / 돌파 배지
-    const enchantBadge = e.enchant>0
-      ? `<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(212,173,0,.15);border:1px solid rgba(212,173,0,.4);border-radius:4px;padding:2px 8px;font-size:12px;font-weight:700;color:var(--gold-l);">+${e.enchant} 강화</span>`
-      : '';
-    const exceedBadge = e.exceed>0
-      ? `<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(96,200,255,.12);border:1px solid rgba(96,200,255,.35);border-radius:4px;padding:2px 8px;font-size:12px;font-weight:700;color:#60c8ff;">돌파 ${e.exceed}단계</span>`
-      : '';
+    const scrollEl = document.getElementById('item-tooltip-scroll');
+    document.getElementById('item-tooltip').style.display = 'flex';
+    scrollEl.innerHTML = `<div style="padding:40px;text-align:center;color:var(--muted);font-size:13px;">불러오는 중...</div>`;
 
-    // 스탯 행
-    const statsHTML = (e.itemStats||[]).map(s => `
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04);">
-        <span style="font-size:12px;color:#aab;">${s.name||s.type||''}</span>
-        <span style="font-size:12px;font-weight:600;color:#7af;">${s.value||''}</span>
+    // /api/item 호출
+    let raw = null;
+    try {
+      const params = new URLSearchParams({ lang: 'ko' });
+      if(m.characterId && e.slotPos !== null && e.slotPos !== undefined) {
+        params.append('characterId', m.characterId);
+        params.append('serverId', m.server || '2001');
+        params.append('slotPos', e.slotPos);
+        params.append('enchantLevel', e.enchant || 0);
+      } else if(e.itemId) {
+        params.append('id', e.itemId);
+        params.append('enchantLevel', e.enchant || 0);
+      }
+      const res = await fetch('/api/item?' + params.toString());
+      const json = await res.json();
+      raw = json.item || json.equipment || json;
+    } catch(_) {}
+
+    // 필드 추출 (API 응답 + 기존 저장 데이터 fallback)
+    const stats    = (raw&&raw.itemStat&&raw.itemStat.statList)       || e.itemStats  || [];
+    const options  = (raw&&raw.itemOption&&raw.itemOption.optionList)  || e.itemOptions|| [];
+    const souls    = (raw&&raw.soulCrystal&&raw.soulCrystal.crystalList) || e.itemSouls || [];
+    const soulPct  = raw&&raw.soulCrystal ? (raw.soulCrystal.totalPct||0) : 0;
+    const typeName = raw ? (raw.typeName||raw.type||raw.categoryName||'') : '';
+    const itemLvl  = raw ? (raw.itemLevel||0) : (e.itemLevel||0);
+    const bonusLvl = raw ? (raw.enchantBonusItemLevel||raw.bonusItemLevel||0) : 0;
+    const raceName = raw ? (raw.raceTypeName||raw.raceType||raw.raceName||'') : '';
+    const clsName  = raw ? (raw.classTypeName||raw.classType||raw.className||'') : '';
+    const reqLevel = raw ? (raw.requiredLevel||raw.equipLimitLevel||raw.limitLevel||0) : 0;
+    const setName  = raw ? (raw.setItemName||'') : (e.setName||'');
+    const setFx    = (raw&&raw.setEffect&&raw.setEffect.effectList) || (raw&&raw.setEffectList) || [];
+    const acqList  = (raw&&(raw.acquisitionInfoList||raw.acquisitionInfo)) || [];
+
+    // 아이템 정보 행
+    const infoRows = [
+      typeName  && ['분류',           typeName],
+      itemLvl   && ['아이템 레벨',     `${itemLvl}${bonusLvl?` <span style="color:var(--gold-l);">(+${bonusLvl})</span>`:''}`],
+      raceName  && ['종족 제한',        raceName],
+      clsName   && ['직업 제한',        clsName],
+      reqLevel  && ['장착 제한 레벨',   String(reqLevel)],
+    ].filter(Boolean);
+
+    const infoRowsHTML = infoRows.map(([lbl, val]) => `
+      <div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05);">
+        <span style="font-size:12px;color:#778;flex-shrink:0;min-width:80px;">${lbl}</span>
+        <span style="font-size:12px;color:#ddd;">${val}</span>
       </div>`).join('');
 
-    // 옵션 행
-    const optionsHTML = (e.itemOptions||[]).map(o => `
-      <div style="display:flex;gap:6px;padding:3px 0;font-size:12px;color:#9de;line-height:1.5;">
-        <span style="color:${gc};flex-shrink:0;">✦</span>
-        <span>${o.desc||o.name||''}</span>
-      </div>`).join('');
+    // 옵션 = 스탯(흰색) + 아이템옵션(파란색)
+    const statsHTML   = stats.map(s => {
+      const bonus = s.enchantValue||s.bonusValue||'';
+      return `<div style="font-size:12px;color:#ccc;padding:2px 0;">${s.name||s.statName||s.type||''} ${s.value||s.statValue||''}${bonus?` <span style="color:var(--gold-l);">(+${bonus})</span>`:''}</div>`;
+    }).join('');
+    const optionsHTML = options.map(o =>
+      `<div style="font-size:12px;color:#7af;padding:2px 0;">${o.name||o.optionName||o.desc||''} ${o.value||o.optionValue||''}</div>`
+    ).join('');
 
-    // 소울 인스크립션
-    const soulsHTML = (e.itemSouls||[]).map(s => `
-      <div style="display:flex;gap:6px;padding:2px 0;font-size:11px;color:#fda;line-height:1.4;">
-        <span style="flex-shrink:0;">◆</span>
-        <span>${s.name||''}</span>
-      </div>`).join('');
+    // 영혼 각인
+    const soulsHTML = souls.map(s =>
+      `<div style="font-size:12px;color:#ccc;padding:2px 0;">${s.name||s.crystalName||''}</div>`
+    ).join('');
 
-    document.getElementById('item-tooltip-scroll').innerHTML = `
+    // 세트 효과
+    const setFxHTML = setFx.length
+      ? setFx.map(se=>`<div style="font-size:12px;color:#ccc;padding:2px 0;">${se.name||se.desc||se.effectName||''}</div>`).join('')
+      : '<div style="font-size:12px;color:#556;padding:2px 0;">없음</div>';
+
+    // 획득처
+    const acqHTML = acqList.length
+      ? acqList.map(a=>`<div style="font-size:12px;color:#ccc;padding:2px 0;">${a.name||a.zoneName||a.infoName||a.type||''}</div>`).join('')
+      : '<div style="font-size:12px;color:#556;padding:2px 0;">—</div>';
+
+    const sectionHdr = (txt) =>
+      `<div style="padding:5px 12px;background:rgba(255,255,255,.05);border-top:1px solid var(--border);border-bottom:1px solid var(--border);font-size:11px;font-weight:700;color:#888;letter-spacing:.04em;">${txt}</div>`;
+
+    scrollEl.innerHTML = `
       <!-- 헤더 -->
-      <div style="background:linear-gradient(135deg,${gc}22 0%,${gc}08 100%);border-bottom:1px solid ${gc}44;padding:14px 16px;display:flex;align-items:flex-start;gap:12px;">
-        <div style="position:relative;flex-shrink:0;">
-          <img src="${e.icon}" style="width:56px;height:56px;border-radius:8px;border:2px solid ${gc};display:block;">
-          ${e.exceed>0
-            ? `<div style="position:absolute;bottom:-2px;right:-2px;width:16px;height:16px;display:flex;align-items:center;justify-content:center;"><svg viewBox='0 0 13 13' width='16' height='16' style='position:absolute;'><polygon points='6.5,1 12,6.5 6.5,12 1,6.5' fill='#003850' stroke='#60c8ff' stroke-width='1.5'/></svg><span style='position:relative;font-size:7px;font-weight:700;color:#60c8ff;'>${e.exceed}</span></div>`
-            : e.enchant>0
-            ? `<div style="position:absolute;bottom:-2px;right:-2px;background:rgba(0,0,0,.85);border-radius:3px;padding:0 3px;font-size:8px;font-weight:700;color:var(--gold-l);line-height:14px;">+${e.enchant}</div>`
-            : ''}
-        </div>
+      <div style="background:${gc}18;border-bottom:1px solid ${gc}44;padding:10px 14px;display:flex;align-items:center;gap:10px;">
+        <img src="${e.icon}" style="width:52px;height:52px;border-radius:6px;border:2px solid ${gc};flex-shrink:0;">
         <div style="flex:1;min-width:0;">
-          <div style="font-size:15px;font-weight:700;color:${gc};line-height:1.3;margin-bottom:4px;">${e.name||''}</div>
-          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-            <span style="font-size:11px;color:var(--muted);">${SN[slotKey]||slotKey}</span>
-            <span style="font-size:10px;padding:1px 6px;border-radius:3px;background:${gc}28;color:${gc};border:1px solid ${gc}55;font-weight:600;">${gn}</span>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px;">
+            ${e.enchant>0?`<span style="font-size:13px;font-weight:700;color:var(--gold-l);">+${e.enchant}</span>`:''}
+            <span style="font-size:14px;font-weight:700;color:${gc};">${e.name||''}</span>
           </div>
-          ${e.setName ? `<div style="margin-top:5px;font-size:11px;color:#7cf;">[${e.setName}]</div>` : ''}
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+            <span style="font-size:10px;padding:1px 5px;border-radius:3px;background:${gc}22;color:${gc};border:1px solid ${gc}44;">${gn}</span>
+            ${e.exceed>0?`<span style="font-size:10px;color:#60c8ff;">돌파 ${e.exceed}단계</span>`:''}
+            ${setName?`<span style="font-size:10px;color:#7cf;">[${setName}]</span>`:''}
+          </div>
         </div>
       </div>
 
-      <!-- 강화 / 돌파 -->
-      ${(enchantBadge||exceedBadge) ? `<div style="display:flex;gap:6px;padding:10px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap;">${enchantBadge}${exceedBadge}</div>` : ''}
-
-      <!-- 스탯 -->
-      ${statsHTML ? `
-      <div style="padding:10px 16px;border-bottom:1px solid var(--border);">
-        <div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.08em;margin-bottom:6px;">아이템 스탯</div>
-        ${statsHTML}
-      </div>` : ''}
-
-      <!-- 옵션 -->
-      ${optionsHTML ? `
-      <div style="padding:10px 16px;border-bottom:1px solid var(--border);">
-        <div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.08em;margin-bottom:6px;">아이템 옵션</div>
-        ${optionsHTML}
-      </div>` : ''}
-
-      <!-- 소울 인스크립션 -->
-      ${soulsHTML ? `
-      <div style="padding:10px 16px;">
-        <div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.08em;margin-bottom:6px;">소울 인스크립션</div>
-        ${soulsHTML}
-      </div>` : ''}
+      <!-- 2컬럼 본문 -->
+      <div style="display:flex;align-items:stretch;min-height:0;">
+        <!-- 왼쪽 -->
+        <div style="flex:1;min-width:0;overflow:hidden;">
+          ${sectionHdr('아이템 정보')}
+          ${infoRowsHTML ? `<div style="padding:6px 12px;">${infoRowsHTML}</div>` : ''}
+          ${(statsHTML||optionsHTML) ? `${sectionHdr('옵션')}<div style="padding:6px 12px;">${statsHTML}${optionsHTML}</div>` : ''}
+          ${soulsHTML ? `${sectionHdr(`영혼 각인${soulPct?` (${soulPct}%)`:''}`)}
+          <div style="padding:6px 12px;">${soulsHTML}</div>` : ''}
+        </div>
+        <!-- 오른쪽 -->
+        <div style="width:155px;flex-shrink:0;border-left:1px solid var(--border);">
+          ${sectionHdr('세트 효과')}
+          <div style="padding:6px 10px;">${setFxHTML}</div>
+          ${sectionHdr('획득처')}
+          <div style="padding:6px 10px;">${acqHTML}</div>
+        </div>
+      </div>
     `;
-    document.getElementById('item-tooltip').style.display = 'flex';
   }
 
   // 장비 아이템 HTML
@@ -1907,7 +1947,7 @@ function openDetail(m) {
 
   el.querySelector('.modal-detail-content').innerHTML = `
     <!-- 아이템 툴팁 -->
-    <div id="item-tooltip" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--card);border:1px solid var(--border);border-radius:12px;z-index:300;max-width:400px;width:92%;box-shadow:0 12px 48px rgba(0,0,0,.75);max-height:85vh;overflow:hidden;flex-direction:column;">
+    <div id="item-tooltip" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--card);border:1px solid var(--border);border-radius:12px;z-index:300;max-width:620px;width:95%;box-shadow:0 12px 48px rgba(0,0,0,.75);max-height:85vh;overflow:hidden;flex-direction:column;">
       <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;">
         <span style="font-size:13px;font-weight:700;color:var(--gold-l);">아이템 정보</span>
         <button onclick="closeItemTooltip()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;">✕</button>
@@ -1975,12 +2015,11 @@ function openDetail(m) {
           ${['Arcana1','Arcana2','Arcana3','Arcana4','Arcana5','Arcana6'].map(equipHTML).join('')}
         </div>
       </div>
-    </div>
-
-    <!-- 장착 타이틀 -->
-    <div style="margin-top:20px;">
-      <div style="font-size:11px;font-weight:600;color:var(--gold);margin-bottom:10px;">🏅 장착 타이틀</div>
-      ${titleHTML}
+      <!-- 장착 타이틀 -->
+      <div style="margin-top:20px;">
+        <div style="font-size:11px;font-weight:600;color:var(--gold);margin-bottom:10px;">🏅 장착 타이틀</div>
+        ${titleHTML}
+      </div>
     </div>
 
     <!-- 장신구/룬 탭 (별도 탭은 유지) -->
