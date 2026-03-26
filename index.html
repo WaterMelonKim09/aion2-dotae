@@ -1848,7 +1848,8 @@ function openDetail(m) {
       }
     } catch(err) { console.error('[item-tooltip] 오류:', err); }
 
-    console.log('[item-tooltip] raw:', raw, '/ e(장비):', JSON.stringify(e));
+    console.log('[item-tooltip] raw keys:', raw ? Object.keys(raw).join(', ') : 'null');
+    console.log('[item-tooltip] raw full:', raw ? JSON.stringify(raw).substring(0, 1000) : 'null');
 
     // ── NC API 실제 필드 파싱 ──
     // NC API 응답: mainStats(흰색), subStats(파란색), soulStats(영혼각인)
@@ -1967,22 +1968,29 @@ function openDetail(m) {
               ${infoRows.map(([lbl,val])=>ncRow(lbl,val)).join('')}
             </table>` : ''}
 
-          ${(statsHTML||optionsHTML) ? `
+          ${statsHTML ? `
             ${ncSec('옵션')}
             <table style="width:100%;border-collapse:collapse;">
               <tr>
                 <td style="width:110px;padding:10px 20px;font-size:12px;color:#666;vertical-align:top;white-space:nowrap;">옵션</td>
-                <td style="padding:10px 20px 10px 0;">
-                  ${statsHTML}${optionsHTML}
-                </td>
+                <td style="padding:10px 20px 10px 0;">${statsHTML}</td>
+              </tr>
+            </table>` : ''}
+
+          ${optionsHTML ? `
+            ${ncSec('서브 옵션')}
+            <table style="width:100%;border-collapse:collapse;">
+              <tr>
+                <td style="width:110px;padding:10px 20px;font-size:12px;color:#666;vertical-align:top;white-space:nowrap;">서브 옵션</td>
+                <td style="padding:10px 20px 10px 0;">${optionsHTML}</td>
               </tr>
             </table>` : ''}
 
           ${soulsHTML ? `
-            ${ncSec('영혼 각인')}
+            ${ncSec(`영혼 각인${soulPct ? ` (${soulPct}%)` : ''}`)}
             <table style="width:100%;border-collapse:collapse;">
               <tr>
-                <td style="width:110px;padding:10px 20px;font-size:12px;color:#666;vertical-align:top;white-space:nowrap;">영혼 각인${soulPct?`<br><span style="color:#7ab8d8;font-size:11px;">(${soulPct}%)</span>`:''}</td>
+                <td style="width:110px;padding:10px 20px;font-size:12px;color:#666;vertical-align:top;white-space:nowrap;">영혼 각인${soulPct?`<span style="color:#7ab8d8;font-size:11px;"> (${soulPct}%)</span>`:''}</td>
                 <td style="padding:10px 20px 10px 0;">${soulsHTML}</td>
               </tr>
             </table>` : ''}
