@@ -1893,70 +1893,122 @@ function openDetail(m) {
         val = s.value || s.statValue || s.val || '';
       }
       if(!label && !val) return '';
-      return `<div style="font-size:12px;color:#ccc;padding:2px 0;">${label} ${val}${extra?` <span style="color:var(--gold-l);">(+${extra})</span>`:''}</div>`;
+      return `<div style="font-size:12px;color:#d0d0d0;padding:2px 0;">${label} ${val}${extra?` <span style="color:#d4a843;">(+${extra})</span>`:''}</div>`;
     }).join('');
 
-    // 파란색 옵션 (subStats)
+    // 파란색 옵션 (subStats) — NC 공홈 색상 #5fb0ff
     const optionsHTML = subStats.map(o => {
       const label = o.name || o.optionName || o.displayName || o.typeName || o.desc || '';
       const val   = o.value || o.optionValue || o.val || '';
       if(!label && !val) return '';
-      return `<div style="font-size:12px;color:#7af;padding:2px 0;">${label} ${val}</div>`;
+      return `<div style="font-size:12px;color:#5fb0ff;padding:2px 0;">${label} ${val}</div>`;
     }).join('');
 
-    // 영혼 각인
+    // 영혼 각인 — 살짝 파란 회색
     const soulsHTML = soulStats.map(s => {
       const label = s.name || s.crystalName || s.skillName || s.displayName || '';
       if(!label) return '';
-      return `<div style="font-size:12px;color:#ccc;padding:2px 0;">${label}</div>`;
+      return `<div style="font-size:12px;color:#b8ccd8;padding:2px 0;">${label}</div>`;
     }).join('');
+
+    // 추가 NC API 필드
+    const costumeList = (raw && (raw.costumes || raw.costume)) || [];
+    const godStoneList  = (raw && (raw.godStoneList  || raw.godStones  || [])) || [];
+    const magicStoneList= (raw && (raw.magicStoneList || raw.magicStones || [])) || [];
+
+    // NC 공홈 스타일 헬퍼
+    const ncSec = (txt) =>
+      `<div style="padding:5px 20px;background:#25262b;font-size:11px;font-weight:600;color:#777;letter-spacing:.06em;border-top:1px solid rgba(255,255,255,.06);">${txt}</div>`;
+    const ncRow = (lbl, val) =>
+      `<tr><td style="width:110px;padding:6px 20px;font-size:12px;color:#666;white-space:nowrap;vertical-align:top;">${lbl}</td><td style="padding:6px 20px 6px 0;font-size:12px;color:#d8d8d8;">${val}</td></tr>`;
 
     // 세트 효과
     const setFxHTML = setFx.length
-      ? setFx.map(se=>`<div style="font-size:12px;color:#ccc;padding:2px 0;">${se.name||se.desc||se.effectName||''}</div>`).join('')
-      : '<div style="font-size:12px;color:#556;padding:2px 0;">없음</div>';
+      ? setFx.map(se=>`<div style="font-size:12px;color:#c8c8c8;padding:2px 0;">${se.name||se.desc||se.effectName||''}</div>`).join('')
+      : `<span style="font-size:12px;color:#444;">없음</span>`;
 
     // 획득처
     const acqHTML = acqList.length
-      ? acqList.map(a=>`<div style="font-size:12px;color:#ccc;padding:2px 0;">${a.name||a.zoneName||a.infoName||a.type||''}</div>`).join('')
-      : '<div style="font-size:12px;color:#556;padding:2px 0;">—</div>';
-
-    const sectionHdr = (txt) =>
-      `<div style="padding:5px 12px;background:rgba(255,255,255,.05);border-top:1px solid var(--border);border-bottom:1px solid var(--border);font-size:11px;font-weight:700;color:#888;letter-spacing:.04em;">${txt}</div>`;
+      ? acqList.map(a=>`<div style="font-size:12px;color:#c8c8c8;padding:2px 0;">${a.name||a.zoneName||a.infoName||a.type||''}</div>`).join('')
+      : `<span style="font-size:12px;color:#444;">—</span>`;
 
     scrollEl.innerHTML = `
       <!-- 헤더 -->
-      <div style="background:${gc}18;border-bottom:1px solid ${gc}44;padding:10px 14px;display:flex;align-items:center;gap:10px;">
-        <img src="${e.icon}" style="width:52px;height:52px;border-radius:6px;border:2px solid ${gc};flex-shrink:0;">
+      <div style="padding:14px 20px 12px;display:flex;align-items:center;gap:14px;border-bottom:1px solid rgba(255,255,255,.07);">
+        <div style="position:relative;flex-shrink:0;">
+          <img src="${e.icon}" style="width:58px;height:58px;border-radius:6px;border:2px solid ${gc};">
+          ${e.exceed>0
+            ? `<div style="position:absolute;bottom:-2px;right:-2px;width:18px;height:18px;display:flex;align-items:center;justify-content:center;"><svg viewBox='0 0 13 13' width='18' height='18' style='position:absolute;'><polygon points='6.5,1 12,6.5 6.5,12 1,6.5' fill='#001e30' stroke='#60c8ff' stroke-width='1.5'/></svg><span style='position:relative;font-size:8px;font-weight:700;color:#60c8ff;'>${e.exceed}</span></div>`
+            : e.enchant>0
+            ? `<div style="position:absolute;bottom:-3px;right:-2px;font-size:9px;font-weight:700;color:#f0c060;background:rgba(0,0,0,.85);border-radius:3px;padding:1px 3px;line-height:1.3;">+${e.enchant}</div>`
+            : ''}
+        </div>
         <div style="flex:1;min-width:0;">
-          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px;">
-            ${e.enchant>0?`<span style="font-size:13px;font-weight:700;color:var(--gold-l);">+${e.enchant}</span>`:''}
-            <span style="font-size:14px;font-weight:700;color:${gc};">${e.name||''}</span>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;flex-wrap:wrap;">
+            ${e.enchant>0?`<span style="font-size:15px;font-weight:700;color:#f0c060;">+${e.enchant}</span>`:''}
+            <span style="font-size:15px;font-weight:700;color:${gc};">${e.name||''}</span>
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-            <span style="font-size:10px;padding:1px 5px;border-radius:3px;background:${gc}22;color:${gc};border:1px solid ${gc}44;">${gn}</span>
-            ${e.exceed>0?`<span style="font-size:10px;color:#60c8ff;">돌파 ${e.exceed}단계</span>`:''}
-            ${setName?`<span style="font-size:10px;color:#7cf;">[${setName}]</span>`:''}
+            <span style="font-size:11px;padding:2px 7px;border-radius:3px;background:${gc}20;color:${gc};border:1px solid ${gc}40;">${gn}</span>
+            ${e.exceed>0?`<span style="font-size:11px;color:#60c8ff;">돌파 ${e.exceed}단계</span>`:''}
+            ${setName?`<span style="font-size:11px;color:#5fb0ff;">[${setName}]</span>`:''}
           </div>
         </div>
       </div>
 
       <!-- 2컬럼 본문 -->
-      <div style="display:flex;align-items:stretch;min-height:0;">
+      <div style="display:flex;align-items:stretch;">
         <!-- 왼쪽 -->
         <div style="flex:1;min-width:0;overflow:hidden;">
-          ${sectionHdr('아이템 정보')}
-          ${infoRowsHTML ? `<div style="padding:6px 12px;">${infoRowsHTML}</div>` : ''}
-          ${(statsHTML||optionsHTML) ? `${sectionHdr('옵션')}<div style="padding:6px 12px;">${statsHTML}${optionsHTML}</div>` : ''}
-          ${soulsHTML ? `${sectionHdr(`영혼 각인${soulPct?` (${soulPct}%)`:''}`)}
-          <div style="padding:6px 12px;">${soulsHTML}</div>` : ''}
+
+          ${infoRows.length ? `
+            ${ncSec('아이템 정보')}
+            <table style="width:100%;border-collapse:collapse;">
+              ${infoRows.map(([lbl,val])=>ncRow(lbl,val)).join('')}
+            </table>` : ''}
+
+          ${(statsHTML||optionsHTML) ? `
+            ${ncSec('옵션')}
+            <table style="width:100%;border-collapse:collapse;">
+              <tr>
+                <td style="width:110px;padding:10px 20px;font-size:12px;color:#666;vertical-align:top;white-space:nowrap;">옵션</td>
+                <td style="padding:10px 20px 10px 0;">
+                  ${statsHTML}${optionsHTML}
+                </td>
+              </tr>
+            </table>` : ''}
+
+          ${soulsHTML ? `
+            ${ncSec('영혼 각인')}
+            <table style="width:100%;border-collapse:collapse;">
+              <tr>
+                <td style="width:110px;padding:10px 20px;font-size:12px;color:#666;vertical-align:top;white-space:nowrap;">영혼 각인${soulPct?`<br><span style="color:#7ab8d8;font-size:11px;">(${soulPct}%)</span>`:''}</td>
+                <td style="padding:10px 20px 10px 0;">${soulsHTML}</td>
+              </tr>
+            </table>` : ''}
+
+          ${magicStoneList.length ? `
+            ${ncSec('마법석')}
+            <div style="padding:8px 20px;">${magicStoneList.map(s=>`<div style="font-size:12px;color:#a0c8ff;padding:2px 0;">🔷 ${s.name||''} ${s.value?'+'+s.value:''}</div>`).join('')}</div>` : ''}
+
+          ${godStoneList.length ? `
+            ${ncSec('신석')}
+            <div style="padding:8px 20px;">${godStoneList.map(s=>`<div style="margin-bottom:8px;"><div style="font-size:12px;color:#a0c8ff;font-weight:600;margin-bottom:2px;">🔮 ${s.name||''}</div>${s.description?`<div style="font-size:11px;color:#778;line-height:1.5;">${s.description}</div>`:''}</div>`).join('')}</div>` : ''}
+
+          ${costumeList.length ? `
+            ${ncSec('외형 정보')}
+            <table style="width:100%;border-collapse:collapse;">
+              ${ncRow('외형', costumeList.join(', '))}
+            </table>` : ''}
+
         </div>
+
         <!-- 오른쪽 -->
-        <div style="width:155px;flex-shrink:0;border-left:1px solid var(--border);">
-          ${sectionHdr('세트 효과')}
-          <div style="padding:6px 10px;">${setFxHTML}</div>
-          ${sectionHdr('획득처')}
-          <div style="padding:6px 10px;">${acqHTML}</div>
+        <div style="width:170px;flex-shrink:0;border-left:1px solid rgba(255,255,255,.07);">
+          <div style="padding:5px 16px;background:#25262b;font-size:11px;font-weight:600;color:#777;letter-spacing:.06em;">세트 효과</div>
+          <div style="padding:10px 14px;">${setFxHTML}</div>
+          <div style="padding:5px 16px;background:#25262b;font-size:11px;font-weight:600;color:#777;letter-spacing:.06em;border-top:1px solid rgba(255,255,255,.06);">획득처</div>
+          <div style="padding:10px 14px;">${acqHTML}</div>
         </div>
       </div>
     `;
@@ -2088,12 +2140,12 @@ function openDetail(m) {
 
   el.querySelector('.modal-detail-content').innerHTML = `
     <!-- 아이템 툴팁 -->
-    <div id="item-tooltip" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--card);border:1px solid var(--border);border-radius:12px;z-index:300;max-width:620px;width:95%;box-shadow:0 12px 48px rgba(0,0,0,.75);max-height:85vh;overflow:hidden;flex-direction:column;">
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;">
-        <span style="font-size:13px;font-weight:700;color:var(--gold-l);">아이템 정보</span>
-        <button onclick="closeItemTooltip()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;">✕</button>
+    <div id="item-tooltip" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#1a1b1f;border:1px solid rgba(255,255,255,.1);border-radius:8px;z-index:300;max-width:640px;width:95%;box-shadow:0 16px 56px rgba(0,0,0,.85);max-height:88vh;overflow:hidden;flex-direction:column;">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:#222328;border-bottom:1px solid rgba(255,255,255,.08);flex-shrink:0;">
+        <span style="font-size:12px;font-weight:600;color:#888;letter-spacing:.05em;">상세 보기</span>
+        <button onclick="closeItemTooltip()" style="background:none;border:none;color:#666;font-size:18px;cursor:pointer;line-height:1;padding:0 2px;">✕</button>
       </div>
-      <div id="item-tooltip-scroll" style="overflow-y:auto;flex:1;"></div>
+      <div id="item-tooltip-scroll" style="overflow-y:auto;flex:1;background:#1a1b1f;"></div>
     </div>
 
     <!-- 프로필 헤더 -->
