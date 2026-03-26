@@ -350,10 +350,10 @@
       <span id="ver-current" style="font-size:10px;color:var(--muted);white-space:nowrap;"></span>
     </div>
     <button id="btn-system-update" onclick="doSystemUpdate()" class="btn btn-sm" style="font-size:12px;padding:6px 10px;white-space:nowrap;">⟳ 시스템 업데이트</button>
-    <div id="header-user-btn" onclick="openMyProfile()" style="cursor:pointer;align-items:center;gap:8px;padding:5px 12px 5px 5px;background:var(--surface);border:1px solid var(--border);border-radius:20px;">
-      <div id="header-avatar" style="width:28px;height:28px;border-radius:50%;background:var(--card);border:2px solid var(--gold-d);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;"></div>
-      <div><div id="header-nick" style="font-size:13px;font-weight:700;color:var(--gold-l);white-space:nowrap;"></div>
-      <div id="header-rank" style="font-size:10px;color:var(--muted);white-space:nowrap;"></div></div>
+    <div id="header-user-btn" onclick="openMyProfile()" style="cursor:pointer;display:flex;align-items:center;gap:10px;padding:6px 16px 6px 6px;background:var(--surface);border:1px solid var(--border);border-radius:24px;">
+      <div id="header-avatar" style="width:34px;height:34px;border-radius:50%;background:var(--card);border:2px solid var(--gold-d);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:15px;"></div>
+      <div><div id="header-nick" style="font-size:14px;font-weight:700;color:var(--gold-l);white-space:nowrap;"></div>
+      <div id="header-rank" style="font-size:11px;color:var(--muted);white-space:nowrap;"></div></div>
     </div>
     <button id="btn-logout" onclick="logoutUser()" class="btn btn-sm" style="display:none;font-size:12px;color:var(--muted);white-space:nowrap;">로그아웃</button>
     <span id="online-badge" style="display:none;"></span>
@@ -1461,13 +1461,13 @@ function nickSelect(el, inputId, previewId, cardId, memberId) {
       :'<div style="width:40px;height:40px;border-radius:50%;background:var(--surface);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+(CLS_ICON[cls]||'👤')+'</div>')
     +'<div style="flex:1;min-width:0;">'
     +'<div style="font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+m.nickname+'</div>'
-    +'<div style="font-size:11px;color:var(--muted);">'+cls+(abyss?' · '+abyss.gradeName:'')+'</div>'
+    +'<div style="font-size:11px;color:var(--muted);">'+cls+(abyss&&abyss.gradeName?' · '+abyss.gradeName:'')+'</div>'
     +'</div>'
     +'<div style="text-align:right;font-size:12px;flex-shrink:0;">'
     +'<div style="font-weight:700;color:var(--gold-l);">'+(m.combat_power?(+m.combat_power).toLocaleString():'—')+'</div>'
     +'<div style="color:var(--muted);">아이템레벨 '+(m.item_level?(+m.item_level).toLocaleString():'—')+'</div>'
     +'</div>'
-    +'<button onclick="openDetailById(\''+m.id+'\')" style="margin-left:8px;font-size:11px;padding:4px 8px;background:var(--surface);border:1px solid var(--border);border-radius:6px;cursor:pointer;flex-shrink:0;">상세</button>'
+    +'<button onclick="openDetailById(\''+m.id+'\')" style="margin-left:8px;font-size:11px;padding:4px 10px;background:var(--gold-d);border:none;border-radius:4px;cursor:pointer;color:#fff;font-weight:600;flex-shrink:0;">상세</button>'
     +'</div>';
 }
 
@@ -2874,6 +2874,7 @@ function renderCommentList(recruitId) {
           </div>
         </div>
         <span style="font-size:11px;color:var(--muted);flex-shrink:0;">${c.time||''}</span>
+        ${mem?`<button onmousedown="event.preventDefault();" onclick="openDetailById('${mem.id}')" style="font-size:11px;padding:4px 10px;background:var(--gold-d);border:none;border-radius:4px;cursor:pointer;color:#fff;font-weight:600;flex-shrink:0;">상세</button>`:''}
       </div>
       <div style="font-size:13px;line-height:1.5;padding-left:36px;">${c.text}</div>
     </div>`;
