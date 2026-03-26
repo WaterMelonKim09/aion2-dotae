@@ -437,7 +437,7 @@
   <th><span onclick="setSortBy('nickname')" style="cursor:pointer;user-select:none;">닉네임 <span id="sort-nickname"></span></span></th>
   <th><span onclick="setSortBy('class')" style="cursor:pointer;user-select:none;">직업 <span id="sort-class"></span></span></th>
   <th><span onclick="setSortBy('rank')" style="cursor:pointer;user-select:none;">계급 <span id="sort-rank"></span></span></th>
-  <th><span onclick="setSortBy('combat_power')" style="cursor:pointer;user-select:none;">전투력 <span id="sort-combat_power"></span></span></th>
+  <th style="white-space:nowrap;"><span onclick="setSortBy('combat_power')" style="cursor:pointer;user-select:none;">전투력 <span id="sort-combat_power"></span></span></th>
   <th style="white-space:nowrap;"><span onclick="setSortBy('item_level')" style="cursor:pointer;user-select:none;">아이템레벨 <span id="sort-item_level"></span></span></th>
   <th style="white-space:nowrap;"><span onclick="setSortBy('abyss_rank')" style="cursor:pointer;user-select:none;">어비스 <span id="sort-abyss_rank"></span></span></th><th>장비</th><th>갱신</th><th>관리</th>
 </tr></thead>
@@ -1427,7 +1427,7 @@ function initFirebase() {
 }
 
 // 계급 순서
-const RANK_ORDER = {'총사령관':0,'사령관':1,'대장군':2,'장군':3,'5성장교':4,'4성장교':5,'3성장교':6,'2성장교':7,'1성장교':8,'1급병':9,'2급병':10,'3급병':11,'4급병':12,'5급병':13,'6급병':14,'7급병':15,'8급병':16,'9급병':17,'훈련병':18,'':19};
+const RANK_ORDER = {'군단장':0,'엘리트장교':1,'군단병':2,'':3};
 
 function setSortBy(col) {
   if(sortBy === col) sortAsc = !sortAsc;
