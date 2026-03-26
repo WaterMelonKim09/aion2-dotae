@@ -95,15 +95,28 @@ module.exports = async function handler(req, res) {
       };
     }
 
-    var rawSkills = (skillData && skillData.skillList)
-      || (infoData && infoData.skill && infoData.skill.skillList)
-      || (infoData && infoData.stigma && infoData.stigma.skillList)
-      || [];
-    var skillList = rawSkills.map(function(s) {
+    // 스킬: 여러 소스 합치고 type 저장, 중복 제거
+    var allRawSkills = [];
+    var seenSkillNames = new Set();
+    function addSkills(list, defaultType) {
+      if (!list || !list.length) return;
+      list.forEach(function(s) {
+        var name = s.skillName || s.name || '';
+        if (!name || seenSkillNames.has(name)) return;
+        seenSkillNames.add(name);
+        allRawSkills.push({ _s: s, _defaultType: defaultType });
+      });
+    }
+    addSkills(skillData && skillData.skillList, '');
+    addSkills(infoData && infoData.skill && infoData.skill.skillList, '');
+    addSkills(infoData && infoData.stigma && infoData.stigma.skillList, 'stigma');
+    var skillList = allRawSkills.map(function(item) {
+      var s = item._s;
       return {
         name:  s.skillName  || s.name  || '',
         icon:  s.skillIcon  || s.icon  || '',
         level: s.skillLevel || s.level || 0,
+        type:  s.skillType  || s.type  || s.category || s.skillCategory || s.typeName || item._defaultType || '',
       };
     });
     var statList = (infoData && infoData.stat && infoData.stat.statList) ? infoData.stat.statList : [];
