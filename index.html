@@ -1691,6 +1691,7 @@ async function syncMember(id, nickname, serverId) {
       guild_name:   data.guild_name   || '',
       race:         data.race         || '',
       profile_img:  data.profile_img  || '',
+      character_id: data.characterId  || '',
       last_synced:  new Date().toISOString(),
     }).eq('id', id);
     toast(`${nickname} 갱신 완료! ✓`);
@@ -1729,6 +1730,7 @@ async function syncAllMembers() {
         guild_name:   data.guild_name||'',
         race:         data.race||'',
         profile_img:  data.profile_img||'',
+        character_id: data.characterId||'',
         last_synced:  new Date().toISOString(),
       }).eq('id', m.id);
       done++;
