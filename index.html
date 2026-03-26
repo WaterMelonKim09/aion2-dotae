@@ -1160,7 +1160,6 @@ function isAdmin() {
 }
 
 async function autoInsertPatchNote() {
-  if(!isAdmin()) return;
   try {
     const { data } = await db.from('notices').select('id').eq('version', BUILD_VERSION).maybeSingle();
     if(data) return; // 이미 등록된 버전
