@@ -1735,33 +1735,41 @@ function openDetail(m) {
     // /api/item 호출
     let raw = null;
     try {
+      const cid = m.character_id || m.characterId || '';
       const params = new URLSearchParams({ lang: 'ko' });
-      if(m.characterId && e.slotPos !== null && e.slotPos !== undefined) {
-        params.append('characterId', m.characterId);
+      if(cid && e.slotPos !== null && e.slotPos !== undefined) {
+        params.append('characterId', cid);
         params.append('serverId', m.server || '2001');
         params.append('slotPos', e.slotPos);
         params.append('enchantLevel', e.enchant || 0);
+      } else if(cid && e.itemId) {
+        params.append('characterId', cid);
+        params.append('serverId', m.server || '2001');
+        params.append('enchantLevel', e.enchant || 0);
+        params.append('id', e.itemId);
       } else if(e.itemId) {
         params.append('id', e.itemId);
         params.append('enchantLevel', e.enchant || 0);
       }
-      const res = await fetch('/api/item?' + params.toString());
-      const json = await res.json();
-      raw = json.item || json.equipment || json;
+      if([...params.keys()].filter(k=>k!=='lang').length > 0) {
+        const res = await fetch('/api/item?' + params.toString());
+        const json = await res.json();
+        if(!json.error) raw = json.item || json.equipment || json;
+      }
     } catch(_) {}
 
     // 필드 추출 (API 응답 + 기존 저장 데이터 fallback)
-    const stats    = (raw&&raw.itemStat&&raw.itemStat.statList)       || e.itemStats  || [];
-    const options  = (raw&&raw.itemOption&&raw.itemOption.optionList)  || e.itemOptions|| [];
-    const souls    = (raw&&raw.soulCrystal&&raw.soulCrystal.crystalList) || e.itemSouls || [];
-    const soulPct  = raw&&raw.soulCrystal ? (raw.soulCrystal.totalPct||0) : 0;
-    const typeName = raw ? (raw.typeName||raw.type||raw.categoryName||'') : '';
-    const itemLvl  = raw ? (raw.itemLevel||0) : (e.itemLevel||0);
-    const bonusLvl = raw ? (raw.enchantBonusItemLevel||raw.bonusItemLevel||0) : 0;
-    const raceName = raw ? (raw.raceTypeName||raw.raceType||raw.raceName||'') : '';
-    const clsName  = raw ? (raw.classTypeName||raw.classType||raw.className||'') : '';
-    const reqLevel = raw ? (raw.requiredLevel||raw.equipLimitLevel||raw.limitLevel||0) : 0;
-    const setName  = raw ? (raw.setItemName||'') : (e.setName||'');
+    const stats    = (raw&&raw.itemStat&&raw.itemStat.statList)          || e.itemStats   || [];
+    const options  = (raw&&raw.itemOption&&raw.itemOption.optionList)    || e.itemOptions  || [];
+    const souls    = (raw&&raw.soulCrystal&&raw.soulCrystal.crystalList) || e.itemSouls    || [];
+    const soulPct  = (raw&&raw.soulCrystal&&raw.soulCrystal.totalPct)   || 0;
+    const typeName = (raw&&(raw.typeName||raw.type||raw.categoryName))   || '';
+    const itemLvl  = (raw&&raw.itemLevel) || e.itemLevel || 0;
+    const bonusLvl = (raw&&(raw.enchantBonusItemLevel||raw.bonusItemLevel)) || 0;
+    const raceName = (raw&&(raw.raceTypeName||raw.raceType||raw.raceName))  || '';
+    const clsName  = (raw&&(raw.classTypeName||raw.classType||raw.className)) || '';
+    const reqLevel = (raw&&(raw.requiredLevel||raw.equipLimitLevel||raw.limitLevel)) || 0;
+    const setName  = (raw&&raw.setItemName) || e.setName || '';
     const setFx    = (raw&&raw.setEffect&&raw.setEffect.effectList) || (raw&&raw.setEffectList) || [];
     const acqList  = (raw&&(raw.acquisitionInfoList||raw.acquisitionInfo)) || [];
 
