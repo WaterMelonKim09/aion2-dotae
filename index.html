@@ -279,7 +279,7 @@
   #detail-rank > div { grid-template-columns:1fr !important; }
 
   /* 스킬 3열 → 2열 */
-  #detail-skill > div { grid-template-columns:repeat(2,1fr) !important; }
+  #detail-skill .skill-grid { grid-template-columns:repeat(2,1fr) !important; }
 }
 
 @media (max-width: 480px) {
@@ -782,7 +782,7 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '20260326.2';
+const BUILD_VERSION = '20260326.3';
 
 let members  = [];
 let recruits = [];
@@ -1742,11 +1742,12 @@ function openDetail(m) {
         params.append('serverId', m.server || '2001');
         params.append('slotPos', e.slotPos);
         params.append('enchantLevel', e.enchant || 0);
-      } else if(cid && e.itemId) {
+        if(e.itemId) params.append('id', e.itemId);
+      } else if(cid) {
         params.append('characterId', cid);
         params.append('serverId', m.server || '2001');
         params.append('enchantLevel', e.enchant || 0);
-        params.append('id', e.itemId);
+        if(e.itemId) params.append('id', e.itemId);
       } else if(e.itemId) {
         params.append('id', e.itemId);
         params.append('enchantLevel', e.enchant || 0);
@@ -1754,24 +1755,36 @@ function openDetail(m) {
       if([...params.keys()].filter(k=>k!=='lang').length > 0) {
         const res = await fetch('/api/item?' + params.toString());
         const json = await res.json();
-        if(!json.error) raw = json.item || json.equipment || json;
+        if(!json.error) {
+          // NC API 응답 구조 여러 케이스 처리
+          raw = json.item || json.equipment || json.result?.item || json.result?.equipment || json.result || json;
+          // 래퍼 객체인 경우 내부 아이템 데이터를 찾아 언래핑
+          if(raw && !raw.name && !raw.itemStat && !raw.statList && !raw.itemLevel) {
+            for(const key of Object.keys(raw)) {
+              const v = raw[key];
+              if(v && typeof v === 'object' && (v.name || v.itemStat || v.statList || v.itemLevel)) {
+                raw = v; break;
+              }
+            }
+          }
+        }
       }
     } catch(_) {}
 
     // 필드 추출 (API 응답 + 기존 저장 데이터 fallback)
-    const stats    = (raw&&raw.itemStat&&raw.itemStat.statList)          || e.itemStats   || [];
-    const options  = (raw&&raw.itemOption&&raw.itemOption.optionList)    || e.itemOptions  || [];
-    const souls    = (raw&&raw.soulCrystal&&raw.soulCrystal.crystalList) || e.itemSouls    || [];
-    const soulPct  = (raw&&raw.soulCrystal&&raw.soulCrystal.totalPct)   || 0;
-    const typeName = (raw&&(raw.typeName||raw.type||raw.categoryName))   || '';
-    const itemLvl  = (raw&&raw.itemLevel) || e.itemLevel || 0;
-    const bonusLvl = (raw&&(raw.enchantBonusItemLevel||raw.bonusItemLevel)) || 0;
-    const raceName = (raw&&(raw.raceTypeName||raw.raceType||raw.raceName))  || '';
-    const clsName  = (raw&&(raw.classTypeName||raw.classType||raw.className)) || '';
-    const reqLevel = (raw&&(raw.requiredLevel||raw.equipLimitLevel||raw.limitLevel)) || 0;
-    const setName  = (raw&&raw.setItemName) || e.setName || '';
-    const setFx    = (raw&&raw.setEffect&&raw.setEffect.effectList) || (raw&&raw.setEffectList) || [];
-    const acqList  = (raw&&(raw.acquisitionInfoList||raw.acquisitionInfo)) || [];
+    const stats    = (raw&&(raw.itemStat?.statList || raw.statList || raw.stats))            || e.itemStats   || [];
+    const options  = (raw&&(raw.itemOption?.optionList || raw.optionList || raw.itemOptions))|| e.itemOptions  || [];
+    const souls    = (raw&&(raw.soulCrystal?.crystalList || raw.crystalList || raw.souls))  || e.itemSouls    || [];
+    const soulPct  = (raw&&(raw.soulCrystal?.totalPct || raw.soulTotalPct))                 || 0;
+    const typeName = (raw&&(raw.typeName||raw.type||raw.categoryName||raw.itemTypeName))    || '';
+    const itemLvl  = (raw&&(raw.itemLevel||raw.level))                                       || e.itemLevel || 0;
+    const bonusLvl = (raw&&(raw.enchantBonusItemLevel||raw.bonusItemLevel||raw.bonusLevel)) || 0;
+    const raceName = (raw&&(raw.raceTypeName||raw.raceType||raw.raceName||raw.race))        || '';
+    const clsName  = (raw&&(raw.classTypeName||raw.classType||raw.className||raw.class))    || '';
+    const reqLevel = (raw&&(raw.requiredLevel||raw.equipLimitLevel||raw.limitLevel||raw.reqLevel)) || 0;
+    const setName  = (raw&&(raw.setItemName||raw.setName))                                  || e.setName || '';
+    const setFx    = (raw&&(raw.setEffect?.effectList || raw.setEffectList || raw.setEffects)) || [];
+    const acqList  = (raw&&(raw.acquisitionInfoList||raw.acquisitionInfo||raw.acqList))     || [];
 
     // 아이템 정보 행
     const infoRows = [
@@ -1790,17 +1803,25 @@ function openDetail(m) {
 
     // 옵션 = 스탯(흰색) + 아이템옵션(파란색)
     const statsHTML   = stats.map(s => {
-      const bonus = s.enchantValue||s.bonusValue||'';
-      return `<div style="font-size:12px;color:#ccc;padding:2px 0;">${s.name||s.statName||s.type||''} ${s.value||s.statValue||''}${bonus?` <span style="color:var(--gold-l);">(+${bonus})</span>`:''}</div>`;
+      const bonus = s.enchantValue||s.bonusValue||s.enchantBonusValue||'';
+      const label = s.name||s.statName||s.typeName||s.type||'';
+      const val   = s.value||s.statValue||s.val||'';
+      if(!label && !val) return '';
+      return `<div style="font-size:12px;color:#ccc;padding:2px 0;">${label} ${val}${bonus?` <span style="color:var(--gold-l);">(+${bonus})</span>`:''}</div>`;
     }).join('');
-    const optionsHTML = options.map(o =>
-      `<div style="font-size:12px;color:#7af;padding:2px 0;">${o.name||o.optionName||o.desc||''} ${o.value||o.optionValue||''}</div>`
-    ).join('');
+    const optionsHTML = options.map(o => {
+      const label = o.name||o.optionName||o.desc||o.description||'';
+      const val   = o.value||o.optionValue||o.val||'';
+      if(!label && !val) return '';
+      return `<div style="font-size:12px;color:#7af;padding:2px 0;">${label} ${val}</div>`;
+    }).join('');
 
     // 영혼 각인
-    const soulsHTML = souls.map(s =>
-      `<div style="font-size:12px;color:#ccc;padding:2px 0;">${s.name||s.crystalName||''}</div>`
-    ).join('');
+    const soulsHTML = souls.map(s => {
+      const label = s.name||s.crystalName||s.skillName||'';
+      if(!label) return '';
+      return `<div style="font-size:12px;color:#ccc;padding:2px 0;">${label}</div>`;
+    }).join('');
 
     // 세트 효과
     const setFxHTML = setFx.length
@@ -1915,15 +1936,39 @@ function openDetail(m) {
       </div>
     </div>`).join('');
 
-  // 스티그마 (스킬)
-  const stigmaHTML = (m.stigma||[]).map(s => `
+  // 스킬 — 타입별 그룹 분리
+  const SKILL_TYPE_LABEL = {
+    'active':'액티브','Active':'액티브','ACTIVE':'액티브','액티브':'액티브','1':'액티브',
+    'passive':'패시브','Passive':'패시브','PASSIVE':'패시브','패시브':'패시브','2':'패시브',
+    'stigma':'스티그마','Stigma':'스티그마','STIGMA':'스티그마','스티그마':'스티그마','3':'스티그마',
+  };
+  const SKILL_GROUP_ORDER = ['액티브','패시브','스티그마'];
+  const skillGroups = {};
+  (m.stigma||[]).forEach(s => {
+    const typeLbl = SKILL_TYPE_LABEL[s.type] || (s.type ? s.type : '기타');
+    if(!skillGroups[typeLbl]) skillGroups[typeLbl] = [];
+    skillGroups[typeLbl].push(s);
+  });
+  const skillGroupEntries = Object.entries(skillGroups).sort(([a],[b]) => {
+    const ai = SKILL_GROUP_ORDER.indexOf(a), bi = SKILL_GROUP_ORDER.indexOf(b);
+    if(ai>=0&&bi>=0) return ai-bi; if(ai>=0) return -1; if(bi>=0) return 1;
+    return a.localeCompare(b);
+  });
+  const skillCardHTML = s => `
     <div style="display:flex;align-items:center;gap:8px;padding:6px;background:var(--surface);border:1px solid var(--border);border-radius:8px;">
       <img src="${s.icon||''}" style="width:32px;height:32px;border-radius:6px;border:1px solid var(--border);" onerror="this.style.display='none'">
       <div style="flex:1;min-width:0;">
         <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.name||''}</div>
         <div style="font-size:10px;color:var(--muted);">Lv.${s.level||0}</div>
       </div>
-    </div>`).join('');
+    </div>`;
+  const stigmaHTML = skillGroupEntries.length
+    ? skillGroupEntries.map(([label, list]) => `
+        <div style="margin-bottom:12px;">
+          <div style="font-size:11px;font-weight:700;color:#888;letter-spacing:.05em;padding:4px 0 6px;border-bottom:1px solid var(--border);margin-bottom:6px;">${label} <span style="font-size:10px;color:var(--muted);font-weight:400;">(${list.length})</span></div>
+          <div class="skill-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">${list.map(skillCardHTML).join('')}</div>
+        </div>`).join('')
+    : '';
 
   // 펫/날개
   const petHTML = m.pet ? `<div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;">
@@ -2035,9 +2080,9 @@ function openDetail(m) {
       ${equip2.map(equipHTML).join('')}
     </div>
 
-    <!-- 스킬 (스티그마) -->
+    <!-- 스킬 (액티브/패시브/스티그마) -->
     <div id="detail-skill" style="display:none;">
-      ${stigmaHTML ? `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">${stigmaHTML}</div>` : '<div style="color:var(--muted);padding:20px;text-align:center;">스킬 정보 없음 (갱신 필요)</div>'}
+      ${stigmaHTML || '<div style="color:var(--muted);padding:20px;text-align:center;">스킬 정보 없음 (갱신 필요)</div>'}
     </div>
 
     <!-- 데바니온 -->
