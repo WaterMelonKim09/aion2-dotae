@@ -125,7 +125,9 @@ module.exports = async function handler(req, res) {
     var arcanaList = equip.filter(function(e) { return (e.slotPosName||'').indexOf('Arcana') !== -1; }).map(mapEquip);
     var daevList   = (infoData && infoData.daevanion && infoData.daevanion.boardList) ? infoData.daevanion.boardList : [];
     var rankList   = (infoData && infoData.ranking   && infoData.ranking.rankingList)   ? infoData.ranking.rankingList   : [];
-    var titleList  = (infoData && infoData.title     && infoData.title.titleList)       ? infoData.title.titleList       : [];
+    var titleRaw       = (infoData && infoData.title) ? infoData.title : {};
+    var titleList      = titleRaw.titleList      || [];
+    var titleGroupList = titleRaw.titleGroupList || titleRaw.groupList || [];
 
     res.status(200).json({
       characterId:  rawId,
@@ -143,7 +145,7 @@ module.exports = async function handler(req, res) {
       stats:        statList,
       daevanion:    daevList,
       ranking:      rankList,
-      titles:       titleList,
+      titles:       titleGroupList.length ? titleGroupList : titleList,
       stigma:       skillList,
       arcana:       arcanaList,
       pet:          petData,
