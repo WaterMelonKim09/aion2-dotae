@@ -121,6 +121,7 @@
   .slots-full { color:var(--red);   font-size:12px; }
 
   /* 모달 */
+  #header-user-btn { display:none; }
   .overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.75); z-index:200; align-items:center; justify-content:center; }
   .overlay.open { display:flex; }
   .modal { background:var(--surface); border:1px solid var(--gold-d); border-radius:14px; padding:28px; width:90%; max-width:520px; max-height:90vh; overflow-y:auto; }
@@ -333,7 +334,7 @@
   </div>
   <div style="display:flex;align-items:center;gap:8px;">
     <button onclick="location.reload()" class="btn btn-sm" style="font-size:12px;padding:6px 10px;white-space:nowrap;">⟳ 시스템 업데이트</button>
-    <div id="header-user-btn" onclick="openMyProfile()" style="display:none;cursor:pointer;align-items:center;gap:8px;padding:5px 12px 5px 5px;background:var(--surface);border:1px solid var(--border);border-radius:20px;">
+    <div id="header-user-btn" onclick="openMyProfile()" style="cursor:pointer;align-items:center;gap:8px;padding:5px 12px 5px 5px;background:var(--surface);border:1px solid var(--border);border-radius:20px;">
       <div id="header-avatar" style="width:28px;height:28px;border-radius:50%;background:var(--card);border:2px solid var(--gold-d);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;"></div>
       <div><div id="header-nick" style="font-size:13px;font-weight:700;color:var(--gold-l);white-space:nowrap;"></div>
       <div id="header-rank" style="font-size:10px;color:var(--muted);white-space:nowrap;"></div></div>
@@ -700,9 +701,7 @@
       <button class="btn btn-danger" onclick="deleteMember()">삭제</button>
       <button class="btn btn-primary" onclick="saveManual()">저장</button>
     </div>
-  </div>
-</div>
-
+ 
 <script>
 function loginNicknameInput(val) {
   var preview = document.getElementById('login-preview');
@@ -1188,7 +1187,7 @@ function applyLogin() {
   var lo = document.getElementById('btn-logout');
   var nk = document.getElementById('header-nick');
   var rk = document.getElementById('header-rank');
-  if(ub) ub.style.display = 'flex';
+  if(ub) { ub.style.display = 'flex'; }
   if(lo) lo.style.display = '';
   if(nk) nk.textContent = currentUser.nickname;
   if(rk) rk.textContent = currentUser.rank || '군단병';
@@ -1877,7 +1876,7 @@ function openDetail(m) {
     <!-- 장착 타이틀 -->
     <div style="margin-top:20px;">
       <div style="font-size:11px;font-weight:600;color:var(--gold);margin-bottom:10px;">🏅 장착 타이틀</div>
-      \${titleHTML}
+      ${titleHTML}
     </div>
 
     <!-- 장신구/룬 탭 (별도 탭은 유지) -->
@@ -2002,22 +2001,22 @@ function renderMembers() {
   const _SLOTS2 = ['Necklace','Earring1','Earring2','Ring1','Ring2','Bracelet1','Bracelet2','Amulet','Rune1','Rune2'];
   const _mkGrid = (eq, slots) => {
     const eqMap = {}; (eq||[]).forEach(x => { if(x.slot) eqMap[x.slot]=x; });
-    return '<div style="display:grid;grid-template-columns:repeat(5,22px);grid-template-rows:repeat(2,22px);gap:1px;">'
+    return '<div style="display:grid;grid-template-columns:repeat(5,28px);grid-template-rows:repeat(2,28px);gap:2px;">'
       + slots.map(slot => {
           const x = eqMap[slot];
-          if(!x) return '<div style="width:22px;height:22px;border-radius:3px;background:var(--surface);border:1px solid var(--border);opacity:.2;"></div>';
+          if(!x) return '<div style="width:28px;height:28px;border-radius:3px;background:var(--surface);border:1px solid var(--border);opacity:.2;"></div>';
           const gc = _GC3[x.grade]||'#555';
           const badge = x.exceed>0
             ? '<div style="position:absolute;bottom:-1px;right:-1px;width:13px;height:13px;display:flex;align-items:center;justify-content:center;"><svg viewBox=\'0 0 13 13\' width=\'13\' height=\'13\' style=\'position:absolute;\'><polygon points=\'6.5,1 12,6.5 6.5,12 1,6.5\' fill=\'#003850\' stroke=\'#60c8ff\' stroke-width=\'1.5\'/></svg><span style=\'position:relative;font-size:6px;font-weight:700;color:#60c8ff;\'>'+x.exceed+'</span></div>'
             : x.enchant>0
             ? '<div style="position:absolute;bottom:-1px;right:-1px;font-size:6px;font-weight:700;color:var(--gold-l);background:rgba(0,0,0,.9);border-radius:2px;padding:0 1px;line-height:1.4;">+'+x.enchant+'</div>'
             : '';
-          return '<div style="position:relative;width:22px;height:22px;" title="'+(x.name||'')+'">'
-            +'<img src="'+x.icon+'" style="width:22px;height:22px;border-radius:3px;border:1px solid '+gc+';display:block;" onerror="this.style.opacity=0.1">'
+          return '<div style="position:relative;width:28px;height:28px;" title="'+(x.name||'')+'">'
+            +'<img src="'+x.icon+'" style="width:28px;height:28px;border-radius:3px;border:1px solid '+gc+';display:block;" onerror="this.style.opacity=0.1">'
             +badge+'</div>';
         }).join('') + '</div>';
   };
-  const equips = eq => '<div style="display:flex;gap:4px;align-items:flex-start;">'
+  const equips = eq => '<div style="display:flex;gap:10px;align-items:flex-start;">'
     + _mkGrid(eq, _SLOTS1) + _mkGrid(eq, _SLOTS2) + '</div>'
 
   const rowHTML = (m, isSub, extraHTML='') => {
@@ -2096,7 +2095,33 @@ function renderRecruit() {
         <div class="rc">
           <div class="rc-head"><span class="rc-title">${r.title}</span><span class="rc-tag tag-${r.type}">${r.type}</span></div>
           <div class="rc-meta">${r.schedule||'일정 미정'} · 최소 ${r.min_cp||'제한 없음'}</div>
-          <div class="rc-reqs">${(r.reqs||[]).map(x=>`<span class="req-item">${x}</span>`).join('')||'<span class="req-item">제한 없음</span>'}</div>
+          <div class="rc-reqs">${(function(){
+            var reqs = r.reqs||[];
+            var applies = r.applies||[];
+            if(!reqs.length) return '<span class="req-item">제한 없음</span>';
+            // 신청자 직업 목록
+            var appliedCls = applies.map(function(a){
+              var mem = members.find(function(m){ return m.nickname===a.nickname; });
+              return mem ? (CLASS_MAP[mem.class]||mem.class||'') : '';
+            }).filter(Boolean);
+            // 슬롯 채우기
+            var usedIdx = [];
+            return reqs.map(function(req){
+              // 이 슬롯이 채워졌는지
+              var filled = false;
+              var filledCls = '';
+              for(var i=0;i<appliedCls.length;i++){
+                if(usedIdx.indexOf(i)>=0) continue;
+                if(req==='상관없음' || req===appliedCls[i]){
+                  filled=true; filledCls=appliedCls[i]; usedIdx.push(i); break;
+                }
+              }
+              if(filled){
+                return '<span class="req-item" style="background:rgba(0,200,138,.15);border-color:#00c88a;color:#00c88a;text-decoration:line-through;">'+(filledCls||req)+' ✓</span>';
+              }
+              return '<span class="req-item">'+req+'</span>';
+            }).join('');
+          })()}</div>
           <div class="rc-foot">
             <span class="rc-author">by ${r.author}</span>
             <div style="display:flex;align-items:center;gap:8px">
@@ -2180,21 +2205,30 @@ async function updateMember() {
 async function saveRecruit() {
   const title=document.getElementById('m-title').value.trim(), author=document.getElementById('m-author').value.trim();
   if(!title) { toast('제목을 입력해주세요'); return; }
-  if(!author){ toast('작성자를 입력해주세요'); return; }
+  if(!author){ toast('작성자 닉네임을 입력해주세요'); return; }
   const reqs=[];
   ['상관없음','검성','수호성','살성','궁성','마도성','정령성','치유성','호법성'].forEach(cls=>{
-    const cnt = parseInt(document.getElementById('req-'+cls)?.value)||0;
+    const cnt = parseInt((document.getElementById('req-'+cls)||{}).value)||0;
     for(let i=0;i<cnt;i++) reqs.push(cls);
   });
-  await db.collection('recruits').add({
-    title, type:document.getElementById('m-type').value, author, reqs,
-    min_cp:   document.getElementById('m-cp').value.trim(),
-    slots:    parseInt(document.getElementById('m-slots').value)||4,
-    schedule: document.getElementById('m-schedule').value.trim(),
-    desc:     document.getElementById('m-desc').value.trim(),
-    created_at: firebase.firestore.FieldValue.serverTimestamp()
-  });
-  closeModal('modal-recruit'); toast('모집 공고 등록 완료 ✓');
+  // 작성자 자동 신청
+  const now = new Date();
+  const time = String(now.getMonth()+1).padStart(2,'0')+'.'+String(now.getDate()).padStart(2,'0')+' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  const authorMember = members.find(function(m){ return m.nickname === author; });
+  const initApply = authorMember ? [{nickname: author, time: time}] : [];
+  try {
+    await db.collection('recruits').add({
+      title, type:document.getElementById('m-type').value, author, reqs,
+      min_cp:   document.getElementById('m-cp').value.trim(),
+      slots:    parseInt(document.getElementById('m-slots').value)||4,
+      schedule: document.getElementById('m-schedule').value.trim(),
+      desc:     document.getElementById('m-desc').value.trim(),
+      applies:  initApply,
+      comments: [],
+      created_at: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    closeModal('modal-recruit'); toast('모집 공고 등록 완료 ✓');
+  } catch(err) { toast('등록 실패: ' + err.message); }
 }
 let currentRecruitId = null;
 
@@ -2650,8 +2684,6 @@ setTimeout(() => {
   const el = document.getElementById('sort-rank');
   if(el) el.textContent = '▲';
 }, 100);
-
-
 </script>
 </body>
 </html>
