@@ -34,6 +34,9 @@ CREATE TABLE IF NOT EXISTS members (
   updated_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 기존 테이블에 누락된 컬럼 추가 (이미 있으면 무시)
+ALTER TABLE members ADD COLUMN IF NOT EXISTS titles JSONB DEFAULT '[]';
+
 -- recruits 테이블
 CREATE TABLE IF NOT EXISTS recruits (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -92,9 +95,9 @@ ALTER TABLE war_surveys ENABLE ROW LEVEL SECURITY;
 ALTER TABLE boss_timers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE config      ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "public_all" ON members     FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "public_all" ON recruits    FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "public_all" ON notices     FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "public_all" ON war_surveys FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "public_all" ON boss_timers FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "public_all" ON config      FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "public_all" ON members     FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "public_all" ON recruits    FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "public_all" ON notices     FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "public_all" ON war_surveys FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "public_all" ON boss_timers FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "public_all" ON config      FOR ALL TO anon USING (true) WITH CHECK (true);
