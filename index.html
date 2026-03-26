@@ -393,7 +393,7 @@
   <th><span onclick="setSortBy('rank')" style="cursor:pointer;user-select:none;">계급 <span id="sort-rank"></span></span></th>
   <th><span onclick="setSortBy('combat_power')" style="cursor:pointer;user-select:none;">전투력 <span id="sort-combat_power"></span></span></th>
   <th style="white-space:nowrap;"><span onclick="setSortBy('item_level')" style="cursor:pointer;user-select:none;">아이템레벨 <span id="sort-item_level"></span></span></th>
-  <th>장비</th><th>갱신</th><th>관리</th>
+  <th style="white-space:nowrap;"><span onclick="setSortBy('abyss_rank')" style="cursor:pointer;user-select:none;">어비스 <span id="sort-abyss_rank"></span></span></th><th>장비</th><th>갱신</th><th>관리</th>
 </tr></thead>
         <tbody id="member-body"></tbody>
       </table>
@@ -596,7 +596,12 @@
   <div class="modal" style="max-width:600px;max-height:85vh;overflow-y:auto;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
       <div class="modal-title" style="margin:0" id="rd-title">파티 모집 상세</div>
-      <button class="btn btn-sm" onclick="closeModal('modal-recruit-detail')">닫기</button>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <span id="rd-close-btn" style="display:none;"><button class="btn btn-sm" id="rd-close-btn-inner" onclick="completeRecruit()">모집 완료</button></span>
+        <span id="rd-edit-btn" style="display:none;"><button class="btn btn-sm" onclick="openRecruitEdit()">수정</button></span>
+        <span id="rd-delete-btn" style="display:none;"><button class="btn btn-sm btn-danger" onclick="deleteCurrentRecruit()">삭제</button></span>
+        <button class="btn btn-sm" onclick="closeModal('modal-recruit-detail')">닫기</button>
+      </div>
     </div>
     <div id="rd-body"></div>
 
@@ -1218,7 +1223,8 @@ function initFirebase() {
     .onSnapshot(snap => {
       members = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       renderAll();
-      const isFirstLoad = !sessionStorage.getItem("_loginInit");
+var loadEl=document.getElementById('loading-screen'); if(loadEl) loadEl.style.display='none';
+            const isFirstLoad = !sessionStorage.getItem("_loginInit");
       if(isFirstLoad){ sessionStorage.setItem("_loginInit","1"); initLoginScreen(); }
     });
   db.collection('recruits').orderBy('created_at','desc')
@@ -1535,7 +1541,7 @@ function openDetail(m) {
       <img src="${e.icon}" style="width:32px;height:32px;border-radius:4px;border:2px solid ${gc};flex-shrink:0;">
       <div style="flex:1;min-width:0;">
         <div style="font-size:12px;font-weight:600;color:${gc};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.name}</div>
-        <div style="font-size:10px;color:var(--muted);">${SN[slot]||slot} <span style="color:var(--gold-l);">+${e.enchant||0}</span>${e.exceed?`<span style="color:#60c8ff;"> 돌파${e.exceed}</span>`:''}</div>
+        <div style="font-size:10px;color:var(--muted);">${SN[slot]||slot} <span style="color:var(--gold-l);">+${e.enchant||0}</span>${e.exceed?`<div style="position:absolute;bottom:-1px;right:-1px;width:16px;height:16px;display:flex;align-items:center;justify-content:center;"><svg viewBox='0 0 16 16' width='16' height='16' style='position:absolute;'><polygon points='8,1 15,8 8,15 1,8' fill='#003850' stroke='#60c8ff' stroke-width='1.5'/></svg><span style='position:relative;font-size:8px;font-weight:700;color:#60c8ff;line-height:1;'>${e.exceed}</span></div>`:''}</div>
       </div>
       <span style="font-size:10px;padding:1px 5px;border-radius:3px;background:${gc}22;color:${gc};border:1px solid ${gc}44;flex-shrink:0;">${GN[e.grade]||e.grade}</span>
     </div>`;
@@ -1807,7 +1813,8 @@ function renderMembers() {
       <td style="white-space:nowrap;"><span class="cls cls-${CLASS_MAP[m.class]||m.class||''}">${(CLS_ICON[CLASS_MAP[m.class]||m.class]||'')} ${CLASS_MAP[m.class]||m.class||'?'}</span></td>
       <td style="white-space:nowrap;">${isSub ? '' : `<span class="rank ${rankCls(m.rank||'군단병')}">${rankLabel(m.rank||'군단병')}</span>`}</td>
       <td>${cpBar(m.combat_power)}</td>
-      <td style="white-space:nowrap;">${m.item_level||'—'}</td>
+      <td style="white-space:nowrap;">${m.item_level?(+m.item_level).toLocaleString():'—'}</td>
+      <td style="white-space:nowrap;">${(()=>{const r=(m.ranking||[]).find(r=>r.rankingContentsName&&r.rankingContentsName.includes('어비스'));return r?(r.gradeIcon?'<img src="'+r.gradeIcon+'" style="width:20px;height:20px;vertical-align:middle;margin-right:2px;">'+(r.gradeName||''):(r.gradeName||'')):'—';})()}</td>
       <td><div class="equip-list">${equips(m.equipment)}</div></td>
       <td style="white-space:nowrap;vertical-align:middle;">${syncBtn}${lastSync}</td>
       <td style="white-space:nowrap;vertical-align:middle;">
@@ -2273,7 +2280,7 @@ initFirebase();
 let shugoRunning = false;
 let shugoInterval = null;
 let ttsEnabled = true;
-let shugoVolume = 0.8;
+let shugoVolume = 0.8; window._volBoost = 2.0;
 
 function toggleTTS() {
   ttsEnabled = !ttsEnabled;
