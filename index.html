@@ -1845,7 +1845,7 @@ function openDetail(m) {
       }
     } catch(err) { console.error('[item-tooltip] 오류:', err); }
 
-    console.log('[item-tooltip] raw:', raw, '/ e.itemStats:', e.itemStats);
+    console.log('[item-tooltip] raw:', raw, '/ e(장비):', JSON.stringify(e));
 
     // ── NC API 실제 필드 파싱 ──
     // NC API 응답: mainStats(흰색), subStats(파란색), soulStats(영혼각인)
