@@ -646,7 +646,10 @@ window.onerror = function(msg, src, line, col, err) {
         <div class="section-title" style="margin:0;">⚔ 쟁 참여조사</div>
         <div style="font-size:12px;color:var(--muted);margin-top:4px;">레기온 쟁 참여 의사를 남겨주세요</div>
       </div>
-      <button id="war-create-btn" class="btn btn-primary btn-sm" onclick="openWarSurveyCreate()" style="display:none;">+ 쟁 준비 생성</button>
+      <div style="display:flex;gap:8px;align-items:center;">
+      <button id="war-reset-btn" class="btn btn-sm" onclick="resetWarSurveys()" style="display:none;border-color:var(--red);color:var(--red);">🗑 초기화</button>
+      <button id="war-create-btn" class="btn btn-primary btn-sm" onclick="openWarSurveyCreate()" style="display:none;">+ 생성</button>
+    </div>
     </div>
 
     <!-- 조사 목록 -->
@@ -1037,7 +1040,9 @@ function showTab(id) {
   }
   if(id==='war') {
     const wb = document.getElementById('war-create-btn');
+    const wrb = document.getElementById('war-reset-btn');
     if(wb) wb.style.display = isAdmin() ? 'inline-block' : 'none';
+    if(wrb) wrb.style.display = isAdmin() ? 'inline-block' : 'none';
     renderWarSurveys();
   }
   localStorage.setItem('activeTab', id);
@@ -1468,7 +1473,7 @@ function openDetail(m) {
     const tooltip = content2.querySelector('#item-tooltip');
     if(!tooltip) return;
     tooltip.style.display='flex';
-  const tooltipBody = document.getElementById('item-tooltip-body') || tooltip;
+  const tooltipBody = tooltip.querySelector('#item-tooltip-body') || tooltip;
   tooltipBody.innerHTML = '<div style="padding:14px;min-width:260px;">'
       +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">'
       +'<img src="'+e.icon+'" style="width:44px;height:44px;border-radius:6px;border:2px solid '+gc2+';flex-shrink:0;">'
@@ -1533,7 +1538,7 @@ function _renderItemTooltip2(tooltip, e, d, gc, gradeColor, isAccessory) {
     }).join('');
     if(godList) godStoneHTML = '<div style="border-top:1px solid var(--border);margin:8px 0;padding-top:8px;"><div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600;">신석</div>'+godList+'</div>';
   }
-  (document.getElementById('item-tooltip-body')||tooltip).innerHTML = '<div style="padding:16px;max-width:340px;min-width:260px;">'
+  (tooltip.querySelector('#item-tooltip-body')||tooltip).innerHTML = '<div style="padding:16px;max-width:340px;min-width:260px;">'
     +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">'
     +'<img src="'+e.icon+'" style="width:44px;height:44px;border-radius:6px;border:2px solid '+gc+';flex-shrink:0;">'
     +'<div><div style="font-size:15px;font-weight:700;color:'+gc+';">'+e.name+'</div>'
@@ -2694,7 +2699,7 @@ function renderWarSurveys() {
       )
 
       // ── 명단 헤더 + 내용 (2열)
-      +'<div style="display:grid;grid-template-columns:1fr 1fr;">'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;align-items:stretch;">'
       +'<div style="border-right:1px solid var(--border);">'
       +'<div style="padding:8px 12px;background:rgba(0,200,138,.06);font-size:12px;font-weight:700;color:#00c88a;border-bottom:1px solid var(--border);text-align:center;">✔ 참가 '+attendList.length+'명</div>'
       +attendList.map(renderMemberRow).join('')
@@ -2813,24 +2818,41 @@ function getNextWarDate() {
   };
 }
 
-function autoInitWarSurvey() {
-  var info = getNextWarDate();
-  if(info.inProgress) {
-    showWarInProgress();
-    return;
-  }
+// 기존 전체 삭제 후 오늘 날짜 1개 재생성
+async function resetWarSurveys() {
+  if(!confirm('기존 쟁 참여조사를 모두 삭제하고 새로 1개 생성할까요?')) return;
+  const snap = await db.collection('war_surveys').get();
+  const batch = db.batch();
+  snap.docs.forEach(function(doc){ batch.delete(doc.ref); });
+  await batch.commit();
+  _warSurveyCreating = false;
+  autoInitWarSurvey();
+  toast('초기화 완료!');
+}
 
-  // Firebase에서 같은 날짜 survey 있는지 확인
-  var existing = warSurveys.find(function(s){ return s.title && s.title.indexOf(info.dateStr) !== -1; });
-  if(!existing) {
-    // 없으면 누구나 접근 시 자동 생성
-    db.collection('war_surveys').add({
-      title: info.title,
-      deadline: info.dateStr + ' 21:00',
-      responses: [],
-      created_at: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(function(){ toast('📋 ' + info.title + ' 생성됨'); });
-  }
+var _warSurveyCreating = false;
+function autoInitWarSurvey() {
+  if(_warSurveyCreating) return;
+  var info = getNextWarDate();
+  if(info.inProgress) { showWarInProgress(); return; }
+
+  var existing = warSurveys.find(function(s){
+    return s.title && s.title.indexOf(info.dateStr) !== -1;
+  });
+  if(existing) return; // 이미 있음
+
+  _warSurveyCreating = true;
+  db.collection('war_surveys').add({
+    title: info.title,
+    deadline: info.dateStr + ' 21:00',
+    responses: [],
+    created_at: firebase.firestore.FieldValue.serverTimestamp()
+  }).then(function(){
+    _warSurveyCreating = false;
+    toast('📋 ' + info.title + ' 생성됨');
+  }).catch(function(){
+    _warSurveyCreating = false;
+  });
 }
 
 function showWarInProgress() {
