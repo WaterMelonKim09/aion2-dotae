@@ -2199,7 +2199,7 @@ function openDetail(m) {
         <div style="font-size:11px;color:var(--muted);">펫 없음</div>
       </div>`;
   const effectWingHTML = (() => {
-    if(equipMap['Wing']) {
+    if(false && equipMap['Wing']) {  // equipMap['Wing']은 외형 날개이므로 스킵
       const e = equipMap['Wing'], gc = GC[e.grade]||'#e8a030';
       return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);">
         <div style="position:relative;width:32px;height:32px;flex-shrink:0;">
@@ -2228,13 +2228,14 @@ function openDetail(m) {
       <div style="font-size:11px;color:var(--muted);">효과 날개 없음</div>
     </div>`;
   })();
-  const skinWingHTML = (m.wing && m.wing.skin)
+  const _skinWingSrc = (m.wing && m.wing.skin) ? m.wing.skin : equipMap['Wing'] ? { name: equipMap['Wing'].name, icon: equipMap['Wing'].icon } : null;
+  const skinWingHTML = _skinWingSrc
     ? `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);">
         <div style="width:32px;height:32px;flex-shrink:0;">
-          <img src="${m.wing.skin.icon||''}" style="width:32px;height:32px;border-radius:4px;border:2px solid #9060d0;" onerror="this.style.opacity=.3">
+          <img src="${_skinWingSrc.icon||''}" style="width:32px;height:32px;border-radius:4px;border:2px solid #9060d0;" onerror="this.style.opacity=.3">
         </div>
         <div style="flex:1;min-width:0;">
-          <div style="font-size:12px;font-weight:600;color:#c090ff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.wing.skin.name||'외형 날개'}</div>
+          <div style="font-size:12px;font-weight:600;color:#c090ff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${_skinWingSrc.name||'외형 날개'}</div>
           <div style="font-size:10px;color:var(--muted);">외형 날개</div>
         </div>
       </div>`
