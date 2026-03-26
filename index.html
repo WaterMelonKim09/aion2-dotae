@@ -2168,11 +2168,12 @@ function openDetail(m) {
     return a.localeCompare(b);
   });
   const skillCardHTML = s => `
-    <div style="display:flex;align-items:center;gap:8px;padding:6px;background:var(--surface);border:1px solid var(--border);border-radius:8px;">
-      <img src="${s.icon||''}" style="width:32px;height:32px;border-radius:6px;border:1px solid var(--border);" onerror="this.style.display='none'">
+    <div style="display:flex;align-items:flex-start;gap:8px;padding:6px;background:var(--surface);border:1px solid var(--border);border-radius:8px;">
+      <img src="${s.icon||''}" style="width:32px;height:32px;border-radius:6px;border:1px solid var(--border);flex-shrink:0;" onerror="this.style.display='none'">
       <div style="flex:1;min-width:0;">
         <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.name||''}</div>
         <div style="font-size:10px;color:var(--muted);">Lv.${s.level||0}</div>
+        ${s.effect ? `<div style="font-size:10px;color:var(--text);opacity:.75;margin-top:3px;line-height:1.4;white-space:pre-wrap;">${s.effect}</div>` : ''}
       </div>
     </div>`;
   const stigmaHTML = skillGroupEntries.length
@@ -2556,31 +2557,49 @@ function renderMembers() {
     return;
   }
 
-  // 본캐 먼저, 본캐 아래 부캐 그룹핑
-  const mains = filtered.filter(m => m.is_main !== false);
-  const subs  = members.filter(m => m.is_main === false); // 검색 필터 무관하게 전체 부캐
   let rows = '';
 
-  mains.forEach(main => {
-    const mainSubs = subs.filter(s => s.player_id === main.nickname);
-    const subToggle = mainSubs.length > 0
-      ? `<div style="margin-top:3px;"><span id="sub-toggle-${main.id}" onclick="toggleSubs('${main.id}')" style="font-size:11px;color:var(--gold);cursor:pointer;user-select:none;">▶ 부캐 보기 (${mainSubs.length})</span></div>`
-      : '';
-    rows += rowHTML(main, false, subToggle);
-    mainSubs.forEach(s => {
-      rows += rowHTML(s, true).replace(
-        /^<tr style="/,
-        `<tr id="sub-row-${s.id}" style="display:none;`
-      );
+  if(mFilter !== 'all') {
+    // 직업 필터 활성: 본캐 먼저 → 절취선 → 부캐
+    const mainFiltered = sortMembers(filtered.filter(m => m.is_main !== false));
+    mainFiltered.forEach(main => { rows += rowHTML(main, false, ''); });
+
+    const subFiltered = sortMembers(members.filter(m =>
+      m.is_main === false &&
+      (CLASS_MAP[m.class]||m.class) === mFilter &&
+      (m.nickname||'').toLowerCase().includes(search)
+    ));
+    if(subFiltered.length) {
+      rows += `<tr><td colspan="9" style="padding:2px 0;"><div style="display:flex;align-items:center;gap:8px;margin:4px 0;"><div style="flex:1;border-top:1px dashed var(--border);"></div><span style="font-size:11px;color:var(--muted);white-space:nowrap;">부캐</span><div style="flex:1;border-top:1px dashed var(--border);"></div></div></td></tr>`;
+      subFiltered.forEach(s => { rows += rowHTML(s, true); });
+    }
+  } else {
+    // 전체: 본캐 먼저, 본캐 아래 부캐 그룹핑
+    const mains = filtered.filter(m => m.is_main !== false);
+    const subs  = members.filter(m => m.is_main === false); // 검색 필터 무관하게 전체 부캐
+
+    mains.forEach(main => {
+      const mainSubs = subs.filter(s => s.player_id === main.nickname);
+      const subToggle = mainSubs.length > 0
+        ? `<div style="margin-top:3px;"><span id="sub-toggle-${main.id}" onclick="toggleSubs('${main.id}')" style="font-size:11px;color:var(--gold);cursor:pointer;user-select:none;">▶ 부캐 보기 (${mainSubs.length})</span></div>`
+        : '';
+      rows += rowHTML(main, false, subToggle);
+      mainSubs.forEach(s => {
+        rows += rowHTML(s, true).replace(
+          /^<tr style="/,
+          `<tr id="sub-row-${s.id}" style="display:none;`
+        );
+      });
     });
-  });
 
-  // 본캐 없는 부캐
-  subs.filter(s => !mains.find(m => m.nickname === s.player_id)).forEach(s => rows += rowHTML(s, true));
+    // 본캐 없는 부캐
+    subs.filter(s => !mains.find(m => m.nickname === s.player_id)).forEach(s => rows += rowHTML(s, true));
 
-  // is_main 필드 없는 기존 멤버 (항상 표시)
-  const legacy = filtered.filter(m => m.is_main === undefined);
-  legacy.forEach(m => rows += rowHTML(m, false));
+    // is_main 필드 없는 기존 멤버 (항상 표시)
+    const legacy = filtered.filter(m => m.is_main === undefined);
+    legacy.forEach(m => rows += rowHTML(m, false));
+  }
+
   document.getElementById('member-body').innerHTML = rows ||
     `<tr><td colspan="8"><div class="empty"><div class="empty-icon">⚔</div><p>검색 결과가 없어요</p></div></td></tr>`;
 }

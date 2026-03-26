@@ -115,10 +115,11 @@ module.exports = async function handler(req, res) {
     var skillList = allRawSkills.map(function(item) {
       var s = item._s;
       return {
-        name:  s.skillName  || s.name  || '',
-        icon:  s.skillIcon  || s.icon  || '',
-        level: s.skillLevel || s.level || 0,
-        type:  s.skillType  || s.type  || s.category || s.skillCategory || s.typeName || item._defaultType || '',
+        name:   s.skillName   || s.name   || '',
+        icon:   s.skillIcon   || s.icon   || '',
+        level:  s.skillLevel  || s.level  || 0,
+        type:   s.skillType   || s.type   || s.category || s.skillCategory || s.typeName || item._defaultType || '',
+        effect: s.skillEffect || s.effect || s.description || s.tooltip || s.skillDescription || s.skillDesc || '',
       };
     });
     var statList = (infoData && infoData.stat && infoData.stat.statList) ? infoData.stat.statList : [];
