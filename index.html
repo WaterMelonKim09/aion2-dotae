@@ -14,6 +14,11 @@
     --text:#e8e2d4; --muted:#7a7a8a; --green:#4a9a6a; --red:#c14a4a;
   }
   * { box-sizing:border-box; margin:0; padding:0; }
+  ::-webkit-scrollbar { width:6px; height:6px; }
+  ::-webkit-scrollbar-track { background:var(--bg); }
+  ::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+  ::-webkit-scrollbar-thumb:hover { background:var(--gold-d); }
+  * { scrollbar-width:thin; scrollbar-color:var(--border) var(--bg); }
   body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
 
   /* 헤더 */
@@ -457,7 +462,7 @@
 
   <!-- 파티 모집 -->
   <div id="tab-recruit" class="tab-content">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
       <div class="filter-row" style="margin:0">
         <button class="chip active" onclick="setRFilter('all',this)">전체</button>
         <button class="chip" onclick="setRFilter('원정',this)">원정</button>
@@ -469,6 +474,12 @@
         <button class="chip" onclick="setRFilter('토벌전',this)">토벌전</button>
       </div>
       <button class="btn btn-primary" onclick="openModal('recruit');setTimeout(function(){if(currentUser){var el=document.getElementById('m-author');if(el&&!el.value)el.value=currentUser.nickname;}},50);">+ 모집 등록</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
+      <input class="form-input" id="r-keyword" placeholder="🔍 키워드 검색 (제목·작성자·내용)" style="flex:1;min-width:160px;" oninput="renderRecruit()">
+      <input type="date" class="form-input" id="r-date-from" style="width:140px;color-scheme:dark;" onchange="renderRecruit()">
+      <span style="font-size:12px;color:var(--muted);flex-shrink:0;">~</span>
+      <input type="date" class="form-input" id="r-date-to" style="width:140px;color-scheme:dark;" onchange="renderRecruit()">
     </div>
     <div class="recruit-grid" id="recruit-grid"></div>
   </div>
@@ -686,7 +697,7 @@
       <div id="comment-list" style="margin-bottom:10px;display:flex;flex-direction:column;gap:8px;"></div>
       <div style="display:flex;gap:8px;align-items:flex-start;">
         <div style="position:relative;">
-          <input class="form-input" id="comment-nickname" placeholder="닉네임" style="width:120px;" oninput="nickPreview(this,'comment-nick-preview','comment-nick-card')" onblur="setTimeout(function(){var p=document.getElementById('comment-nick-preview');if(p)p.style.display='none';},200)">
+          <input class="form-input" id="comment-nickname" placeholder="닉네임" style="width:120px;" oninput="nickPreviewCompact(this,'comment-nick-preview','comment-nick-card')" onblur="setTimeout(function(){var p=document.getElementById('comment-nick-preview');if(p)p.style.display='none';},200)">
           <div id="comment-nick-preview" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--border);border-radius:6px;z-index:100;max-height:160px;overflow-y:auto;"></div>
         </div>
         <input class="form-input" id="comment-text" placeholder="댓글 내용..." style="flex:1;" onkeydown="if(event.key==='Enter')addComment()">
@@ -1158,9 +1169,20 @@ function logoutUser() {
 }
 
 async function completeRecruit() {
-  if(!confirm('모집을 완료할까요? (슬롯이 0으로 변경돼요)')) return;
+  const r = recruits.find(x => x.id === currentRecruitId);
+  if(!r || !canManageRecruit(r)) { toast('권한이 없습니다'); return; }
+  if(!confirm('모집을 완료할까요?')) return;
   await db.from('recruits').update({ slots: 0 }).eq('id', currentRecruitId);
+  r.slots = 0;
+  renderRecruit();
+  closeModal('modal-recruit-detail');
   toast('모집 완료됐어요 ✓');
+}
+
+function canManageRecruit(r) {
+  if(!currentUser || !r) return false;
+  if(currentUser.nickname === r.author) return true;
+  return isAdmin();
 }
 
 async function reopenRecruit() {
@@ -1376,6 +1398,25 @@ function fmtTime(val) {
       +String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
   } catch(e) { return '—'; }
 }
+function nickPreviewCompact(inputEl, previewId, cardId) {
+  var val = (inputEl.value||'').trim();
+  var preview = document.getElementById(previewId);
+  if(!preview) return;
+  if(!val) { preview.style.display='none'; return; }
+  var matches = members.filter(function(m){ return m.nickname.toLowerCase().indexOf(val.toLowerCase())===0; });
+  if(!matches.length) { preview.style.display='none'; return; }
+  preview.style.display='block';
+  preview.innerHTML = matches.slice(0,6).map(function(m){
+    var cls = CLASS_MAP[m.class]||m.class||'';
+    return '<div style="display:flex;align-items:center;gap:6px;padding:5px 10px;cursor:pointer;border-bottom:1px solid var(--border);white-space:nowrap;" '
+      +'onmousedown="event.preventDefault();nickSelect(this,\''+inputEl.id+'\',\''+previewId+'\',\''+(cardId||'')+'\',\''+m.id+'\');">'
+      +(CLS_ICON[cls]||'<span>👤</span>')
+      +'<span style="font-size:13px;font-weight:600;">'+m.nickname+'</span>'
+      +(cls?'<span style="font-size:11px;color:var(--muted);">'+cls+'</span>':'')
+      +'</div>';
+  }).join('');
+}
+
 function nickPreview(inputEl, previewId, cardId) {
   var val = (inputEl.value||'').trim();
   var preview = document.getElementById(previewId);
@@ -2546,7 +2587,15 @@ function renderMembers() {
 
 
 function renderRecruit() {
-  const filtered = recruits.filter(r => rFilter==='all'||r.type===rFilter);
+  const keyword = ((document.getElementById('r-keyword')||{}).value||'').toLowerCase().trim();
+  const dateFrom = (document.getElementById('r-date-from')||{}).value||'';
+  const dateTo   = (document.getElementById('r-date-to')||{}).value||'';
+  const filtered = recruits.filter(r => {
+    if(rFilter !== 'all' && r.type !== rFilter) return false;
+    if(keyword && !((r.title||'').toLowerCase().includes(keyword)||(r.author||'').toLowerCase().includes(keyword)||(r.description||'').toLowerCase().includes(keyword))) return false;
+    if(dateFrom||dateTo){ const d=(r.created_at||'').substring(0,10); if(dateFrom&&d<dateFrom) return false; if(dateTo&&d>dateTo) return false; }
+    return true;
+  });
   document.getElementById('recruit-grid').innerHTML = filtered.length
     ? filtered.map(r=>`
         <div class="rc">
@@ -2596,7 +2645,6 @@ function renderRecruit() {
             <div style="display:flex;align-items:center;gap:8px">
               <span class="${r.slots>0?'slots-open':'slots-full'}">${r.slots>0?'모집중 '+r.slots+'자리':'마감'}</span>
               <button class="btn btn-sm" onclick="openRecruit('${r.id}')">상세보기</button>
-              <button class="btn btn-sm btn-danger" onclick="deleteRecruit('${r.id}')">삭제</button>
             </div>
           </div>
         </div>`).join('')
@@ -2733,6 +2781,12 @@ async function openRecruit(id) {
     })()}</div>` : ''}
   `;
 
+  // 권한 버튼 표시
+  const _canMgr = canManageRecruit(r);
+  document.getElementById('rd-close-btn').style.display = (_canMgr && r.slots > 0) ? '' : 'none';
+  document.getElementById('rd-edit-btn').style.display  = _canMgr ? '' : 'none';
+  document.getElementById('rd-delete-btn').style.display = _canMgr ? '' : 'none';
+
   // 신청자 목록
   renderApplyList(id);
   // 댓글 목록
@@ -2744,8 +2798,13 @@ async function openRecruit(id) {
 function renderApplyList(recruitId) {
   const r = recruits.find(x => x.id === recruitId);
   const applies = r?.applies || [];
+  const cpList = applies.map(a => { const mem = members.find(m => m.nickname === a.nickname); return mem && mem.combat_power ? +mem.combat_power : null; }).filter(x => x !== null);
+  const avgCp = cpList.length ? Math.round(cpList.reduce((s,v) => s+v, 0) / cpList.length) : null;
   document.getElementById('apply-list').innerHTML = applies.length
-    ? `<div style="font-size:12px;color:var(--muted);margin-bottom:6px;">신청자 ${applies.length}명</div>` +
+    ? `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span style="font-size:12px;color:var(--muted);">신청자 ${applies.length}명</span>
+        ${avgCp ? `<span style="font-size:12px;color:var(--gold-l);">평균 전투력 ${avgCp.toLocaleString()}</span>` : ''}
+      </div>` +
       applies.map(a => {
         const mem = members.find(m => m.nickname === a.nickname);
         const cls = mem ? (CLASS_MAP[mem.class]||mem.class||'') : '';
@@ -2761,7 +2820,7 @@ function renderApplyList(recruitId) {
               <span style="font-size:13px;font-weight:600;">${a.nickname}</span>
               ${cls?`<span style="font-size:11px;color:var(--muted);">${cls}</span>`:''}
             </div>
-            ${cp?`<div style="font-size:11px;color:var(--muted);">${(+cp).toLocaleString()} CP</div>`:''}
+            ${cp?`<div style="font-size:11px;color:var(--muted);">${(+cp).toLocaleString()} 전투력</div>`:''}
           </div>
           <span style="font-size:11px;color:var(--muted);flex-shrink:0;">${a.time||''}</span>
         </div>`;
@@ -2818,7 +2877,66 @@ async function addComment() {
 
 async function deleteRecruit(id) {
   if(!confirm('삭제할까요?')) return;
-  await db.from('recruits').delete().eq('id', id); toast('삭제 완료');
+  await db.from('recruits').delete().eq('id', id);
+  recruits = recruits.filter(x => x.id !== id);
+  renderRecruit();
+  toast('삭제 완료');
+}
+
+async function deleteCurrentRecruit() {
+  const r = recruits.find(x => x.id === currentRecruitId);
+  if(!r || !canManageRecruit(r)) { toast('권한이 없습니다'); return; }
+  if(!confirm('삭제할까요?')) return;
+  await db.from('recruits').delete().eq('id', currentRecruitId);
+  recruits = recruits.filter(x => x.id !== currentRecruitId);
+  renderRecruit();
+  closeModal('modal-recruit-detail');
+  toast('삭제 완료');
+}
+
+function openRecruitEdit() {
+  const r = recruits.find(x => x.id === currentRecruitId);
+  if(!r || !canManageRecruit(r)) { toast('권한이 없습니다'); return; }
+  document.getElementById('m-title').value    = r.title||'';
+  document.getElementById('m-type').value     = r.type||'원정';
+  document.getElementById('m-slots').value    = r.slots||4;
+  document.getElementById('m-schedule').value = r.schedule||'';
+  document.getElementById('m-cp').value       = r.min_cp||'';
+  document.getElementById('m-desc').value     = r.description||r.desc||'';
+  document.getElementById('m-author').value   = r.author||'';
+  ['상관없음','검성','수호성','살성','궁성','마도성','정령성','치유성','호법성'].forEach(cls => {
+    const el = document.getElementById('req-'+cls);
+    if(el) el.value = (r.reqs||[]).filter(x => x===cls).length;
+  });
+  const titleEl = document.querySelector('#modal-recruit .modal-title');
+  const saveBtn = document.querySelector('#modal-recruit .btn-primary');
+  if(titleEl) titleEl.textContent = '파티 모집 수정';
+  if(saveBtn) { saveBtn.textContent = '수정 완료'; saveBtn.onclick = updateRecruit; }
+  closeModal('modal-recruit-detail');
+  openModal('recruit');
+}
+
+async function updateRecruit() {
+  const r = recruits.find(x => x.id === currentRecruitId);
+  if(!r) return;
+  const title = document.getElementById('m-title').value.trim();
+  if(!title) { toast('제목을 입력해주세요'); return; }
+  const reqs = [];
+  ['상관없음','검성','수호성','살성','궁성','마도성','정령성','치유성','호법성'].forEach(cls => {
+    const cnt = parseInt((document.getElementById('req-'+cls)||{}).value)||0;
+    for(let i=0;i<cnt;i++) reqs.push(cls);
+  });
+  const updates = { title, type:document.getElementById('m-type').value, slots:parseInt(document.getElementById('m-slots').value)||4, schedule:document.getElementById('m-schedule').value.trim(), min_cp:document.getElementById('m-cp').value.trim(), description:document.getElementById('m-desc').value.trim(), reqs };
+  await db.from('recruits').update(updates).eq('id', currentRecruitId);
+  Object.assign(r, updates);
+  renderRecruit();
+  closeModal('recruit');
+  // 모달 원상복구
+  const titleEl = document.querySelector('#modal-recruit .modal-title');
+  const saveBtn = document.querySelector('#modal-recruit .btn-primary');
+  if(titleEl) titleEl.textContent = '파티 모집 등록';
+  if(saveBtn) { saveBtn.textContent = '등록'; saveBtn.onclick = saveRecruit; }
+  toast('수정 완료 ✓');
 }
 
 // ─── 유틸 ──────────────────────────────
