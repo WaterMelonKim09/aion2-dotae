@@ -95,9 +95,27 @@ ALTER TABLE war_surveys ENABLE ROW LEVEL SECURITY;
 ALTER TABLE boss_timers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE config      ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY IF NOT EXISTS "public_all" ON members     FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "public_all" ON recruits    FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "public_all" ON notices     FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "public_all" ON war_surveys FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "public_all" ON boss_timers FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "public_all" ON config      FOR ALL TO anon USING (true) WITH CHECK (true);
+-- Policy 생성 (이미 존재하면 건너뜀)
+DO $$ BEGIN
+  CREATE POLICY "public_all" ON members     FOR ALL TO anon USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE POLICY "public_all" ON recruits    FOR ALL TO anon USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE POLICY "public_all" ON notices     FOR ALL TO anon USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE POLICY "public_all" ON war_surveys FOR ALL TO anon USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE POLICY "public_all" ON boss_timers FOR ALL TO anon USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE POLICY "public_all" ON config      FOR ALL TO anon USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
