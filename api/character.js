@@ -95,7 +95,17 @@ module.exports = async function handler(req, res) {
       };
     }
 
-    var skillList = (skillData && skillData.skillList) ? skillData.skillList : [];
+    var rawSkills = (skillData && skillData.skillList)
+      || (infoData && infoData.skill && infoData.skill.skillList)
+      || (infoData && infoData.stigma && infoData.stigma.skillList)
+      || [];
+    var skillList = rawSkills.map(function(s) {
+      return {
+        name:  s.skillName  || s.name  || '',
+        icon:  s.skillIcon  || s.icon  || '',
+        level: s.skillLevel || s.level || 0,
+      };
+    });
     var statList = (infoData && infoData.stat && infoData.stat.statList) ? infoData.stat.statList : [];
     var itemLevelStat = statList.find(function(s) { return s.type === 'ItemLevel'; });
     var itemLevel = itemLevelStat ? (itemLevelStat.value || 0) : 0;
