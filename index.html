@@ -820,7 +820,7 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.0';
+const BUILD_VERSION = '1.5.1';
 
 // 시맨틱 버전 비교 (날짜형 구버전 호환)
 function _semverGte(a, b) {
@@ -1571,6 +1571,17 @@ function initFirebase() {
         if(error) return;
         renderNotices(data || []);
       });
+
+    // notices 실시간 구독: 새 공지/패치노트 즉시 반영
+    db.channel('notices-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notices' }, () => {
+        db.from('notices').select('*').order('created_at', { ascending: false })
+          .then(function({ data, error }) {
+            if(error) return;
+            renderNotices(data || []);
+          });
+      })
+      .subscribe();
 
     db.from('war_surveys').select('*').order('created_at', { ascending: false })
       .then(({ data, error }) => {
