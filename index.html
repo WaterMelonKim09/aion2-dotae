@@ -30,7 +30,7 @@
   .nav-btn.active { color:var(--gold-l); border-bottom-color:var(--gold); }
 
   /* 본문 */
-  .content { padding:24px; max-width:1100px; margin:0 auto; }
+  .content { padding:24px; max-width:none; }
   .tab-content { display:none; }
   .tab-content.active { display:block; }
 
@@ -84,9 +84,9 @@
 
   /* 등급 배지 */
   .rank { font-size:11px; padding:2px 8px; border-radius:10px; }
-  .rank-군단장     { background:linear-gradient(135deg,#002a1a,#003a22); color:var(--gold-l); border:1px solid var(--gold-d); font-weight:700; }
-  .rank-엘리트장교 { background:linear-gradient(135deg,#141a2e,#1a2238); color:#7aacec; border:1px solid #2a3a6a; font-weight:600; }
-  .rank-군단병     { background:#181818; color:#8a8a9a; border:1px solid #2a2a3a; }
+  .rank-총사령관,.rank-사령관,.rank-대장군,.rank-장군 { background:linear-gradient(135deg,#002a1a,#003a22); color:var(--gold-l); border:1px solid var(--gold-d); font-weight:700; }
+  .rank-5성장교,.rank-4성장교,.rank-3성장교,.rank-2성장교,.rank-1성장교 { background:linear-gradient(135deg,#141a2e,#1a2238); color:#7aacec; border:1px solid #2a3a6a; font-weight:600; }
+  .rank-1급병,.rank-2급병,.rank-3급병,.rank-4급병,.rank-5급병,.rank-6급병,.rank-7급병,.rank-8급병,.rank-9급병,.rank-훈련병 { background:#181818; color:#8a8a9a; border:1px solid #2a2a3a; }
 
   /* 필터 */
   .filter-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
@@ -295,6 +295,33 @@
 </head>
 <body>
 
+<div id="loading-screen" style="display:flex;position:fixed;inset:0;background:var(--bg);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:16px;">
+  <div style="font-size:48px;">⚙</div>
+  <div class="spinner" style="width:40px;height:40px;border-width:4px;"></div>
+  <div style="font-size:14px;color:var(--muted);">데이터 불러오는 중...</div>
+</div>
+
+<div id="login-screen" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:9998;align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border:1px solid var(--gold-d);border-radius:14px;padding:32px;width:90%;max-width:380px;">
+    <div style="text-align:center;margin-bottom:24px;">
+      <div style="font-size:28px;margin-bottom:8px;">⚔</div>
+      <div style="font-size:20px;font-weight:700;color:var(--gold-l);">아이온2 도태</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:4px;">레기온 관리 시스템</div>
+    </div>
+    <div style="margin-bottom:12px;">
+      <input id="login-nickname" class="form-input" placeholder="닉네임 입력..." autocomplete="off"
+        oninput="loginNicknameInput(this.value)" style="font-size:15px;padding:12px;">
+    </div>
+    <div id="login-preview" style="display:none;margin-bottom:12px;padding:10px;background:var(--card);border:1px solid var(--border);border-radius:8px;"></div>
+    <button onclick="tryLogin()" class="btn btn-primary" style="width:100%;padding:12px;font-size:15px;">입장</button>
+    <div style="margin-top:12px;text-align:center;">
+      <button onclick="showTab('register')" class="btn btn-sm" style="color:var(--muted);">멤버 등록하러 가기</button>
+    </div>
+  </div>
+</div>
+
+
+
 <div class="header">
   <div class="logo" style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
     <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAUyklEQVR4nKWZeXRd1X3vP3ufcydd3aurq9GSZdkyljE2NqNbKAVTwhimlEhAWiBpSWjWKknTNH0vL2mu9NZLyGsSkrxm0RBK2mQlKZECoWE0YHAYbYMxnuTZsubhztO5Z97vD+PyEmwj+vafZ9j7+/1N+zcIFrCUSkkhBv0nnk9tMIzi4NTo1FphWFPLO3t+dsOd3/2uEMJSqZQUg4P+h9lv409/Gm1a495umJW7PNdflZ2fO1TNiYG7PvONjQqEAPVBe4kP+iCVSsnBwUH/safvvwqZ/tXIjtditdF55lybBi3CmmVrXr7yY/d+ZvGqSw6c+HYh4EdH31g6Orl5aGr28IW2bdKxaCWeF2bi4E5Tr3Xf++ny13+sBlBCiNOSkKc/TMnBwUH/ySd/eGmyIfLrQyN7Y8XRgptoP/v+nKd/+bBRqmw99valz/7HD36pjOluGEQpdUqhpFIpCYNq167fnLnr4NO/fO2NZy58Y9Mrxs7Xjn7v4IEdTwpVoy7REnasQ/+4c8PmDiGEOv7Pf5HA8PCwAGhvb1yPlHXZo2P+yq41j/y3+5784mM/OfjN3t71N48alSM7ju5Y9/i/3fc/Bwfxt2+/R3/ppZQ+NNSnKaWEUgilUvKll1L6wAakEEJN5N/+x0Oj29YfeOtoesO5d/b/nwe2fOGu6/71Ts9UL0WjzSpdmI4e2/Hz8wFWj4yc1kr0073s6+v3AfKloxeOje0jnS7RFDF/7Ds12de3OPSt1KObvnb/bT8/dGTbV7cf3HLz5kf/6coLLrj3+fd2OHH2oAJ8gK1vPnLv3olN1x3dfdj96B/f/tX+e776VCrVHU50J/I/+tHdD7hULrOtWrCQmWl6V4yng3h6AgMDKQGD6tChkY0HDuy+xg61jy278LYjSj2qBv5tQDE8KBrF+U5PjyEnjozExye3/mDvwQcftqxSj45cJFwvoUlN4riVsBQz5ZrIH83uuXvi8AFNGvX/cvu93/pRXx/a6tWf9FMppNKYHT30mm+XrZzW1HwAYO9ZKQWDp8T4gU4Mx33hW98aaG1vv7h8151XV5UAFPT1DWlf+or9w6nM9rt/+eST3oq6Ru2Wu26kIhTKdvFdD+UrwkIS1QQBTefV/WPsfPFF9dc3/OlIorX3gcvvm/6XkeFBWwD/8eBv6t6Z2La8rcvP3HPPfTMLCEILI/AeEYQQKBBseec7d8iQ87euMs+p1gy16fUtYnL/tH/Ruev8QEczQrkiGNLRNYkEfMdRIS3Grn17NDk3I2655gqatAC6HdxZtiM/WP6Rr/wYxP8bwd4V0+nXaZ34BGilhjQAIVCvbHu4561933kq2OD+1JTGOTmjhukHRXNzK1p9UG7dcVBPTxX0QCCgBQO6Fgpomuf52nyhrBeqhp6ZnRNFQ/HEtn3+U2/v8Y5mjq2L6/mHsq98/YW3n/3ndSfOHRrqk0p9sIBP6wNKKXE8Dvd7Dw09lFyzOnCry/RXrYDdUc47HoSFEpqsWSZC09EjAeaLZaLxOurrYyhsfOVjOQ6FYoVctsz0XB5RCVDy0rIQC5FJl/yJhrT6k7VnXt6VDLxwbOTx/9G96rJhIRoL8N49dCqMp2R4Avz37/1+6E++tOjzMhT4XCisdTqOQ7GY8wqFWc13BboexXAMsoV5puYmiUUa6Vm8gkDAx1ElDLNCNpNjer6A4/p4lk1jIort2FSyJp3JJMvOaMOTrlc1qprnQMDUJttF/OGrzv7st8WaNZX3BLlAAicuo83bf9EUac78ZCJ/7Lq9B0Yp5U0vEW+RZy1fJZa0L6ZQTFPMZ2mMLMbTHGpemZph0xBqoSEWo2hNUCjPMDE1h1HzaEomCIWhWC5RKVt0L11OqAEO7T/IyPZjZKYrynEdv74hqK07o421yeWvdcQuvu3yOz4/eSoS7yPwnqMiXtj7v57ePrb1mqcff9spp+u05lirbEwmcPQiy1e0cOn6S5DSY3pqksXxldTHoxQq80g/QGNDCwVrnExhnJnZDMFQhFgsQr6UplyxWXXmWZSsPK88v5VDO2YpFYJIvw5dSlAV348UvAvOawtcteKPnteSX7+pr2+JKY6j/R0S73PigYGUUErJLfv++TPb9r9+9eO/2O6Ra9GvuuBaOXjvAF+84++46pwbOXwgwy9+/Siz2TkSi5Lsn9tFOV+mPhIHDSpWHsuu4fkekboQddEgNaeKYXlcuO4S8rV5fv3z53jzpQzVWoJgfZxIUz2hhhjhUJP8WO96XTpBb+f0nis73J9dKQRqqK/vfXh/58EJh6mOVdsMUfz2/sNjoifULnuWdIv+G/uIx2KAz0XrLuLPrv4L1i35CEf25fFsl0RHhG1HXmU+l8bDpmJmMawKruchNYHpGMxlM6xefgEZY4qNj20lezRJZ9tZdLevoDHajOs7ELSxgg6mpcSdF24QB2dnVcab/CullNY/POz/vtWcNIzmrKflrmM7nKQX5c8vP5fe3jMI6kFqtRrNzc2EQ3VIM8Rbb+1n69YpHv/VG2hI6lqDvHNoB6VKBsMqYdQMapaJ5VjMZeZY1n4WMuLym8ee453NJWrVIOm5ErlMmaVtnazpXoln+UTqdN4cmyCqECuXLhYHpw+vn9u0pfm4e/6uG5yUQFdvQuXKhqj3ouRch6JjUKsZtLY041gu4VAdi9qbMbNFZsfm2LJlnFc272FxRysi6nFobJRypYRhFjEsk3QhQ1O8i+6ly9i64w0mttf41Mc+zo1XXIxXMZifmuO113agO4LVS5YjNBc7CkcmZ+ht62AyP6valmdPGnBOSiCDQSwS4WCxzKaxacbmj5AvZ3FrNr7rsqRrEe1NjQjPQdUsdFvnza0T5LIlFi9pQ9V5zOezVEyTslEhHmtj1cp17J/dwY7XRjl/5Xpu67uBG6+9jDA+wrIRAt7evZvOxjhtiTi+7jObLRIPhDEcC6rpk0E99UUW1kJYUiGFwlUmetDkqc1PIZSOUSkwsn+EtpYm9o2Og1Dk5zwOH55jzbrFJFsSCASaErQGumhqaGE0s59jk9NkjvkkkzW279zF5MQM3UsXsXvXAXQlcQKKYibN8kQL4/PT+Ah0XSegSahWF07AyBjE6xoI14XwfJvmxiThoM5vd27BMeE3v34WpflIXcdXHiiF8iGdM1HKw3ZNdKkjpI7hlEhPTuMqh1LWpFJ0eGf+IG/u2UUkEKI5EQfh4BkKvSlE1SjQ09aBAJoSESq2RSgQUCxdunACW1/aIxp7WlnS1sh0Ok8sHMazHQIRnxomc6UMSvMxagZ6WGKaFoGITiCs43keru/geS5l28b3HRQgNYnreJiuiS4UBBSGU2V8Jk84BFI4dHY2EQgodOnSFAySKReYG58jEYwHxjeVTmruJyVQLrfZzWFNLe1qo5wroGk+SJ/2lkbWtSfxu87hkWefoj4ZxrEd2tvaSC4P0docxXVdKpUqxw7MkJ4pEK4P0rNyEcnmevSgIBTXCCJxTY9AWEM6ISJCcMN1GygEM4RzNSxh0xTWOZIrqFmzJm5adcmR4Fm3F+ET78P6O6wGBwd9pZS4+y+/kJaI73Uu6nLqYxHleiZZM8fZPb0I4dF5Vph4i8TDQWkW5/5hJ+ev76a1MYphV3n7jX3M7zNZ0dFLMpxk6mCOWtWmsSVErClIsD5AJB4APHzpEO0M0dRbh12pEovXMVMp0RjWSOuOaIpGneXJzu8sOkdUU6mU/P104nSpRPC5Xd/eNp6eXDeyd4+/qHWZXNt5Nlv37sSuK1Jfr5FL5wlHNLSgwLXrWNrTzMYXN5M/pPhU/x0QKZEuTTE+Nku2UqLrzAT7dmYY2Zqhq6eROl0SjgZZtCRByPBQWY+gLhgbn8UUrm+1Ii9r7dn9Nxc+u15cLsyTtVpOYlfH3z+YmtLHDs6yctlKupesIF2cZmRqN8s724nUGjCKgmRzC46rYxQa6F2+jHd272RsV45P3HwrXV3tSAERXae1OU4IjaljOZb0NtC9IkEhbSICYUJ1UaozJk7WA03j0MQsGafGTJ1Hb6Rexel+kw3YqRTyZH2i9/mAEEIplZLQURt+suHBuak9D6xYtkwkG5sZnx7ncGGUUDSKV9HIzXl0tC5j6YokL2/fxPaXD/NnN9zBmjNXUTTm0HTQdY1AQNLaGmdiOkfWzdOzrp62RTEKUza5iSIB4ZNWPpVqFTesCC2LqrOEK27pWSGaV1//tBDCHxoa0qD/feI+ZTothFBzc3vqN23/3781/Np5dQ1dfjzeJm3Hw1c+UgqUskiXJnjpldfJT3rc8pGPce6atZiWieUVyBszVKo5SlWDYrFCtWKTzZcpmAUiiQDRSBzXlVimg+v5CA0036EuV/U/nqiXK1euHz3c+/nLrzh/9dip0umTRiEhhEqplGwTayqPbLznnZa6wLmTR46qMecAjq5whYdh1pjP5Cmka/Q09nLzjWupa5Sky6OE9AimU8Jxa3iei+86uLaNZRjUBzVCspnpyQxpZ4JgRBIMB9CVRKv5hPMmPUpTnV1xNZp3nrvi/NVjKoUUQpy0Kjt1STlwvJVhFmPj4dacWNG2CLcgyJZMiraFDfR09NJ4ToK6Bp29B3Yz9sYMF12yjkSyAcd18D0T37VxLROnUmX6wByWUpx5ThfLQy0U5mqUchXssoVnuQgXogGdZGeIgoyIucAZs0opMTBw6tL4NCUlQggYGhqKlrXHN7aGxcUxo84LakFNBQK4EqrSIetXyFbyzE4X6Ez0Uh/SKdZm8HwLy3YoVwwKmQrpqTL5jENrTzOdK2LYhomsKgIWqIqHV3FQtkNYd7wVHbrWseqy3dEND11xaa/IqONgTlpSnlIDQqBSqZTs7++v/OujX/jifOnYRtMyYiFb+UoiLamoaj5F4VF1bZItCRrbNSJ6lFChm+zMHIXsPJWCi12ThKNR2pM+0YROrebgVG1UyUKvuUhbIV0BmueHoq4MNC0z9K7LPndpr0i/G/s/fFF/YvX19WnDw8Pe9x6681O+Pftw2PGE9JTna2imBlXhY+sQrgsTjUSQQuG5Lk7Nx6gYlIoGhWKVqmECAj2oIyQoy0OYLtJ2CTogFF407Gk97d3qjPP+9NPX9f/9w0N9H9f6h4e90+FbUGNraKhP6+8f9r77wzturVSnH/K8aqxmur4C5WpIFRAiFAkRjYbRdYnjeBiVGpWygVE2qVkunqPwXA/f91AopALdF0r3lR/wPdFcH5Rt8cXFlas/+tmb7vjKvw/1Ka1/mNOCXzABgFQKOTiI//0H7j03Xdz3zapbvMoSJkbNQaGhBSShgIaua4DCc30sy8UybEzTxrE9PN9HAkKIdwm4tEUC1IsozckzXv7jq/7q839wyfXvnDhrIbg+VGuxrw9teBhPKSUG7u+/eiY3ca2t27fUXKtTelLpGgKljodOz8V1fXzXR/FuEoBAKNAsV8VcVzRFk1NK1Q/1tK99+rNf/dGLQgj/hMkuFNNpO3O/v4aH8fr6+jQhhAc8e/+/fyJ0cPuOKxOW2bEjbeIBUpcEAsftHBTK9/FdhW0qXNNBr1j8QTTA+Uta1Uie6n//9O3PxDb8zQtz//CQfHd6s2Dw8CE1AAilUmLz5g3Biv/Ul8eyU1+rpQ06okm1J1MS+XyVfLZIsVSlUjGoGSaW7eHaHsqDoBAkNMFFXXHO713EL17fxU3n9XDxJdd/+cybB795Yvz0YQB9KA0MDfVJIQa9F18RtyZjrV+rr1vpZ+szVG1TntsWQigPx7GxbAvDqFKpVDEtC9dz8YGgHiAYCKCkz5iUXHPbmf62F3/L0kPbv1He98SEEDf8/MOSWDCBExvv2f+TS7KVI9/xvIQ/m50lk83KM5auoGrVcBwHX4IMCOrjIZKJZhzPxqjV8D2PdK5IrlzD9XxidRG6lrfJlX90iffcls2ya+nz/6CUegJE+XS90P8ygYEBAKGK1aN3B0Kxpkw+71WrOW3tmauYLVT4p0ceIxmNIZTC9GxaG+r58+uv4NEXX+XI+BTN8Sjxuhhz6Tx+AJYtaiEWjVJJ1GvPZA1/zY63Vur1A3+97FrxDaUGJAuZbiyUgFIpKRhUr1zzzWt9Yd+azpb8XDkjw6EmpISSUUYH/v6T/Xj+ce17novQFEcnZulu7+DKi89l39ExyqaF0CXhYJhgKIiuCywBLx6dZUX3gXvePrj9ISHOSy9kZAsLGHAAAgYVQqiKnf+CFo6F0+V5CtWMQEp8FEJAtlRk47YdvLxzhKff2M7rO0cQQtCQqGff2BQvvfk2gUCQQxPTjBwZJRQOogV0pBZASCVHa64/Mj65JLL70btAvKvxD14LmNCkhBCoxx770qpAJLCuUDbVfGlcFCtVNKHhuT5dLS30X3UZ47Oz/GrjJkyrguvZhIIhLNfm0vPW0nfNlXgeLG5vYcniDlzfJRgMITQN23fwdHh9fJZScfrv9hw5vESIQV99wIwYPtiEBAwqdVCFflu+7z5P+q3ZbNYpVHJS2TEhhJCu51KsmZy/ZhXRaJzRySmuvPgPMS2DbLlEY12M19/ZxZGJCaKROpKNDViui5QSTR4vvi3b9fR6nwnXd49MH238aOGFc4Dx4dWnnxF/IIFUKiWEGPRfffVnS81A8XqC9VS8dKBsV9CdIChwlc8zr20jW6ygCUEiFufhx57GtE0uPvss/uKmj5Iu5EjG4mzfd5i39u/DUz6uG0fTJT5g+7YW1XycgOBgPseKXa/e/eCD6pm+PuH+/2oAACs4je3oGyslM1rImpQzmt8UjjR5vrtW+PifvP5K4fvHfUEIgfdu/FC+wvc9mhoaEELQs7iN9uYGcWxmVrU0xJRlO4RDYRnUEm8KJ1QJhaNioiTlRN4xGhcPx4Qg90Eh9cPexP/5m1J+ePiZb7zR1dV2juP6KN9D0yS+r1BIpDg+JfUVKN/H8310/XhfQUqJrxTBsE5xznvl6g2fuUYIaQgkCp8FRlBgYVEIOJ6NplRKplLIviGlCSFMIWKfK1fMJxxXHbNsMkbNGzVtNVurOXOGaR+pme6oUbOOGpYzWrPcXL5YyxYrdjlfqs2Xq9aB7Fz5J7v2TvcLIYy+PqUpPJlCyVRq4bj+L+2YB/AQ7O9kAAAAAElFTkSuQmCC" style="width:44px;height:44px;object-fit:contain;flex-shrink:0;">
@@ -304,7 +331,7 @@
     </div>
   </div>
   <div style="display:flex;align-items:center;gap:8px;">
-    <button onclick="location.reload()" class="btn btn-sm" style="font-size:12px;padding:6px 10px;white-space:nowrap;">⟳ 새로고침</button>
+    <button onclick="location.reload()" class="btn btn-sm" style="font-size:12px;padding:6px 10px;white-space:nowrap;">⟳ 시스템 업데이트</button>
     <div id="header-avatar" style="width:32px;height:32px;border-radius:50%;background:var(--surface);border:2px solid var(--gold-d);overflow:hidden;cursor:pointer;flex-shrink:0;display:none;" onclick="openMyProfile()"></div>
     <button id="btn-myprofile" onclick="openMyProfile()" class="btn btn-primary btn-sm" style="display:none;font-size:12px;white-space:nowrap;">👤 내 정보</button>
     <button id="btn-logout" onclick="logoutUser()" class="btn btn-sm" style="display:none;font-size:12px;color:var(--muted);white-space:nowrap;">로그아웃</button>
@@ -333,7 +360,19 @@
     <div id="notice-list"><div class="empty"><div class="empty-icon">📢</div><p>불러오는 중...</p></div></div>
   </div>
 
-  <!-- 대시보드 -->
+  
+  <!-- 내정보 모달 -->
+  <div class="overlay" id="modal-myprofile" onclick="closeOverlay(event,'modal-myprofile')">
+    <div class="modal" style="max-width:580px;max-height:85vh;overflow-y:auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div class="modal-title" style="margin:0;">👤 내 정보</div>
+        <button class="btn btn-sm" onclick="closeModal('modal-myprofile')">닫기</button>
+      </div>
+      <div id="myprofile-body"></div>
+    </div>
+  </div>
+
+<!-- 대시보드 -->
   <div id="tab-dashboard" class="tab-content active">
     <div class="stats-row">
       <div class="stat-card"><div class="stat-label">총 길드원</div><div class="stat-value" id="stat-total">—</div><div class="stat-sub">등록된 멤버</div></div>
@@ -562,6 +601,7 @@
     <div class="form-group">
       <label class="form-label">요구 직업</label>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
+        <div style="display:flex;align-items:center;gap:4px;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:4px 8px;"><span style="font-size:12px;flex:1;">상관없음</span><input type="number" id="req-상관없음" min="0" max="40" value="0" style="width:36px;background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);text-align:center;font-size:13px;padding:2px;"></div>
         <div style="display:flex;align-items:center;gap:4px;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:4px 8px;"><span style="font-size:12px;flex:1;">검성</span><input type="number" id="req-검성" min="0" max="9" value="0" style="width:36px;background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);text-align:center;font-size:13px;padding:2px;"></div>
         <div style="display:flex;align-items:center;gap:4px;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:4px 8px;"><span style="font-size:12px;flex:1;">수호성</span><input type="number" id="req-수호성" min="0" max="9" value="0" style="width:36px;background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);text-align:center;font-size:13px;padding:2px;"></div>
         <div style="display:flex;align-items:center;gap:4px;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:4px 8px;"><span style="font-size:12px;flex:1;">살성</span><input type="number" id="req-살성" min="0" max="9" value="0" style="width:36px;background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);text-align:center;font-size:13px;padding:2px;"></div>
@@ -632,19 +672,61 @@
   <div class="modal">
     <div class="modal-title">멤버 관리</div>
     <input type="hidden" id="edit-id">
-    <div class="form-group"><label class="form-label">등급 변경</label><select class="form-select" id="edit-rank"><option>일반</option><option>부마스터</option><option>마스터</option></select></div>
+    <div class="form-group"><label class="form-label">본캐/부캐</label>
+      <select class="form-select" id="edit-is-main"><option value="true">본캐</option><option value="false">부캐</option></select>
+    </div>
+    <div class="form-group"><label class="form-label">등급 변경</label>
+      <select class="form-select" id="edit-rank">
+        <option>총사령관</option><option>사령관</option><option>대장군</option><option>장군</option>
+        <option>5성장교</option><option>4성장교</option><option>3성장교</option><option>2성장교</option><option>1성장교</option>
+        <option>1급병</option><option>2급병</option><option>3급병</option><option>4급병</option>
+        <option>5급병</option><option>6급병</option><option>7급병</option><option>8급병</option><option>9급병</option>
+        <option>훈련병</option>
+      </select>
+    </div>
     <div class="modal-foot">
-      <button class="btn btn-danger" onclick="deleteMember()">멤버 삭제</button>
       <button class="btn" onclick="closeModal('modal-edit')">취소</button>
-      <button class="btn btn-primary" onclick="updateMember()">저장</button>
+      <button class="btn btn-danger" onclick="deleteMember()">탈퇴</button>
+      <button class="btn btn-primary" onclick="saveManual()">저장</button>
     </div>
   </div>
 </div>
 
-<div id="toast"></div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
+function loginNicknameInput(val) {
+  var preview = document.getElementById('login-preview');
+  if(!val.trim()) { preview.style.display='none'; return; }
+  var matches = members.filter(function(m){ return m.is_main!==false && m.nickname.indexOf(val) === 0; });
+  if(!matches.length) { preview.style.display='none'; return; }
+  preview.style.display='block';
+  preview.innerHTML = matches.slice(0,5).map(function(m){
+    var cls = CLASS_MAP[m.class]||m.class||'';
+    var clsIcon = CLS_ICON[cls]||'';
+    return '<div style="display:flex;align-items:center;gap:8px;padding:6px;cursor:pointer;border-radius:6px;" onclick="selectLoginNick(\'' + m.nickname + '\')">'
+      +clsIcon
+      +'<span style="font-weight:600;">' + m.nickname + '</span>'
+      +'<span style="font-size:11px;color:var(--muted);">' + cls + '</span>'
+      +'</div>';
+  }).join('');
+}
+
+
+function selectLoginNick(nick) {
+  var ni = document.getElementById('login-nickname');
+  if(ni) { ni.value = nick; loginNicknameInput(nick); }
+}
+
+function tryLogin() {
+  var ni = document.getElementById('login-nickname');
+  var val = (ni ? ni.value : '').trim();
+  if(!val) { toast('닉네임을 입력해주세요'); return; }
+  var m = members.find(function(x){ return x.nickname === val; });
+  if(!m) { toast('등록되지 않은 닉네임이에요. 멤버 등록 후 이용해주세요.'); return; }
+  currentUser = { nickname: m.nickname, rank: m.rank||'군단병', id: m.id, class: m.class };
+  localStorage.setItem('dotae_user', JSON.stringify(currentUser));
+  applyLogin();
+}
+
 // ════════════════════════════════════════
 // ✅ Firebase 설정 — 아래 값을 교체하세요!
 // ════════════════════════════════════════
@@ -1223,6 +1305,7 @@ function initFirebase() {
     .onSnapshot(snap => {
       members = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       renderAll();
+      var _loadEl=document.getElementById('loading-screen'); if(_loadEl) _loadEl.style.display='none';
 var loadEl=document.getElementById('loading-screen'); if(loadEl) loadEl.style.display='none';
             const isFirstLoad = !sessionStorage.getItem("_loginInit");
       if(isFirstLoad){ sessionStorage.setItem("_loginInit","1"); initLoginScreen(); }
@@ -1251,13 +1334,13 @@ var loadEl=document.getElementById('loading-screen'); if(loadEl) loadEl.style.di
 }
 
 // 계급 순서
-const RANK_ORDER = {'군단장':0,'엘리트장교':1,'군단병':2,'':3};
+const RANK_ORDER = {'총사령관':0,'사령관':1,'대장군':2,'장군':3,'5성장교':4,'4성장교':5,'3성장교':6,'2성장교':7,'1성장교':8,'1급병':9,'2급병':10,'3급병':11,'4급병':12,'5급병':13,'6급병':14,'7급병':15,'8급병':16,'9급병':17,'훈련병':18,'':19};
 
 function setSortBy(col) {
   if(sortBy === col) sortAsc = !sortAsc;
   else { sortBy = col; sortAsc = col === 'nickname'; }
   // 아이콘 업데이트
-  ['nickname','class','rank','combat_power','item_level'].forEach(c => {
+  ['nickname','class','rank','combat_power','item_level','abyss_rank'].forEach(c => {
     const el = document.getElementById('sort-'+c);
     if(!el) return;
     if(c === sortBy) el.textContent = sortAsc ? '▲' : '▼';
@@ -1275,6 +1358,9 @@ function sortMembers(arr) {
     } else if(sortBy === 'nickname') {
       av = (a.nickname||'').localeCompare(b.nickname||'', 'ko');
       return sortAsc ? av : -av;
+    } else if(sortBy === 'abyss_rank') {
+      const getAbyss = m => { const r=(m.ranking||[]).find(r=>r.rankingContentsName&&r.rankingContentsName.includes('어비스')); return r?r.rank:99999; };
+      av = getAbyss(a); bv = getAbyss(b);
     } else if(sortBy === 'class') {
       av = (CLASS_MAP[a.class]||a.class||'').localeCompare(CLASS_MAP[b.class]||b.class||'', 'ko');
       return sortAsc ? av : -av;
@@ -1789,7 +1875,7 @@ function renderMembers() {
     (m.nickname||'').toLowerCase().includes(search)
   ));
   const rankMigrate = r => RANK_MIGRATE[r] || r;
-  const rankCls = r => { const rr = rankMigrate(r); return rr==='군단장'?'rank-군단장':rr==='엘리트장교'?'rank-엘리트장교':'rank-군단병'; };
+  const rankCls = r => { const rr = rankMigrate(r)||r||'훈련병'; return 'rank-'+rr; };
   const rankLabel = r => rankMigrate(r) || '군단병';
   const fmtTime = iso => { if(!iso) return '—'; const d=new Date(iso); return `${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
   const gradeColors = {Common:'#aaaaaa',Rare:'#4a90e8',Hero:'#d44040',Epic:'#d44040',Unique:'#e8c030',Legendary:'#ff6a20',Special:'#40d4c0'};
@@ -1924,13 +2010,15 @@ function drawPie() {
 
 function renderDistList() {
   const counts = {};
-  members.forEach(m => m.class && (counts[m.class]=(counts[m.class]||0)+1));
-  document.getElementById('dist-list').innerHTML = Object.entries(counts).map(([cls,cnt])=>
-    `<div class="card" style="padding:12px 20px;display:flex;align-items:center;gap:10px">
-      <span class="cls cls-${cls}">${CLS_ICON[cls]} ${cls}</span>
+  members.forEach(m => { if(m.is_main!==false && m.class) counts[m.class]=(counts[m.class]||0)+1; });
+  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0],'ko'));
+  document.getElementById('dist-list').innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:8px;">`
+    + sorted.map(([cls,cnt])=>
+    `<div class="card" style="padding:10px 16px;display:flex;align-items:center;gap:8px;flex-shrink:0;">
+      <span class="cls cls-${cls}" style="min-width:auto;">${CLS_ICON[cls]} ${cls}</span>
       <span style="font-size:18px;font-weight:700;color:${CLS_COLOR[cls]}">${cnt}</span>
       <span style="font-size:12px;color:var(--muted)">명</span>
-    </div>`).join('');
+    </div>`).join('') + '</div>';
 }
 
 function setDistView(v) {
@@ -1959,7 +2047,7 @@ async function saveRecruit() {
   if(!title) { toast('제목을 입력해주세요'); return; }
   if(!author){ toast('작성자를 입력해주세요'); return; }
   const reqs=[];
-  ['검성','수호성','살성','궁성','마도성','정령성','치유성','호법성'].forEach(cls=>{
+  ['상관없음','검성','수호성','살성','궁성','마도성','정령성','치유성','호법성'].forEach(cls=>{
     const cnt = parseInt(document.getElementById('req-'+cls)?.value)||0;
     for(let i=0;i<cnt;i++) reqs.push(cls);
   });
@@ -2314,7 +2402,7 @@ function speakShugo() {
   speechSynthesis.speak(utter);
 
   if(Notification.permission === 'granted') {
-    new Notification('🐹 슈고 시간입니다!', { body: '슈고 상인이 등장했어요!' });
+    new Notification('🐹 슈고 시간입니다!', { body: '찬란한 오드가 나오길 기도할게요!' });
   }
   // 상태 표시
   const st = document.getElementById('shugo-status');
@@ -2369,6 +2457,33 @@ function updateShugoDisplay() {
   // 정각 :15, :45 TTS 알림
   if(s === 0 && (m === 15 || m === 45)) speakShugo();
 }
+
+function toggleShugoTimer() {
+  const btn = document.getElementById('shugo-start-btn');
+  if(!shugoRunning) {
+    shugoRunning = true;
+    shugoInterval = setInterval(updateShugoDisplay, 1000);
+    updateShugoDisplay();
+    if(btn) { btn.textContent = '⏹ 정지'; btn.classList.add('btn-primary'); }
+    const st = document.getElementById('shugo-status');
+    if(st) { st.textContent = '타이머 실행 중'; st.style.background='rgba(0,200,138,.1)'; st.style.borderColor='var(--gold-d)'; st.style.color='var(--gold-l)'; }
+    // 알림 권한 자동 요청
+    if(Notification.permission === 'default') Notification.requestPermission();
+  } else {
+    shugoRunning = false;
+    clearInterval(shugoInterval);
+    if(btn) { btn.textContent = '▶ 시작'; }
+    const st = document.getElementById('shugo-status');
+    if(st) { st.textContent = '대기 중'; st.style.background='var(--surface)'; st.style.borderColor='var(--border)'; st.style.color='var(--muted)'; }
+  }
+}
+
+// 마지막 탭 복원// 마지막 탭 복원
+// 초기 정렬 아이콘
+setTimeout(() => {
+  const el = document.getElementById('sort-rank');
+  if(el) el.textContent = '▲';
+}, 100);
 
 function toggleShugoTimer() {
   const btn = document.getElementById('shugo-start-btn');
