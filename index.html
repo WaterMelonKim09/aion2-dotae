@@ -1828,22 +1828,20 @@ function openDetail(m) {
       if([...params.keys()].filter(k=>k!=='lang').length > 0) {
         const res = await fetch('/api/item?' + params.toString());
         const json = await res.json();
-        console.log('[item-tooltip] API 응답:', JSON.stringify(json).substring(0, 500));
-        // _source가 있거나, 아이템 관련 필드가 있으면 유효한 응답으로 처리
-        const _hasData = json && (json._source || json.name || json.itemStat || json.equipmentList || json.itemLevel || json.grade || json.slotPos !== undefined);
+        console.log('[item-tooltip] API 응답:', JSON.stringify(json).substring(0, 800));
+        // 200 응답이면서 string 에러가 없으면 유효한 응답 (mainStats, name, slotPos 등 확인)
+        const _hasData = json && json._httpStatus === 200 && typeof json.error !== 'string';
         if(_hasData) {
-          // _source='equip-list': 장비 목록에서 찾은 아이템 (NC API의 원본 필드 그대로)
-          // _source='item-endpoint': 아이템 상세 엔드포인트 응답
           raw = json;
-          // 래퍼 객체인 경우 언래핑
-          if(raw && !raw.name && !raw.itemStat && !raw.statList && !raw.itemLevel) {
-            const candidate = raw.item || raw.equipment || raw.result?.item || raw.result?.equipment || raw.result;
-            if(candidate) raw = candidate;
+          // 래퍼 객체인 경우 언래핑 (mainStats 또는 name이 없으면 래퍼 의심)
+          if(raw && !raw.name && !raw.mainStats && !raw.itemStat && !raw.statList && !raw.itemLevel) {
+            const candidate = raw.item || raw.data || raw.equipment || raw.result?.item || raw.result?.data || raw.result?.equipment || raw.result;
+            if(candidate && typeof candidate === 'object') raw = candidate;
             else {
               for(const key of Object.keys(raw)) {
                 if(key.startsWith('_')) continue;
                 const v = raw[key];
-                if(v && typeof v === 'object' && (v.name || v.itemStat || v.statList || v.itemLevel)) {
+                if(v && typeof v === 'object' && !Array.isArray(v) && (v.name || v.mainStats || v.itemStat || v.statList || v.itemLevel)) {
                   raw = v; break;
                 }
               }
@@ -1858,8 +1856,9 @@ function openDetail(m) {
 
     // ── NC API 실제 필드 파싱 (네트워크 탭 확인 완료) ──
     const allMainStats  = (raw && raw.mainStats) || e.itemStats || [];
-    const whiteStats    = allMainStats.filter(s => !s.exceed);   // exceed:false → 흰색 기본 옵션
-    const exceedStats   = allMainStats.filter(s => s.exceed);    // exceed:true  → 파란색 돌파 보너스
+    // raw가 있으면 exceed 필드로 분리, 없으면(Supabase 캐시) 전부 흰색으로
+    const whiteStats  = raw ? allMainStats.filter(s => !s.exceed) : allMainStats;
+    const exceedStats = raw ? allMainStats.filter(s =>  s.exceed) : [];
     const soulStatsList = (raw && raw.subStats)         || e.itemOptions || []; // 영혼 각인 스탯
     const soulBindRate  = (raw && raw.soulBindRate)     || 0;   // 영혼 각인율 "96.8"
     const magicStones   = (raw && raw.magicStoneStat)   || [];  // 마법석
