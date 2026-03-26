@@ -19,45 +19,46 @@ module.exports = async function handler(req, res) {
       const text = await r.text();
       if (!text || !text.trim()) return null;
       const data = JSON.parse(text);
-      // 유효한 아이템 데이터인지 확인 (name 또는 mainStats가 있어야 함)
-      if (data && (data.name || data.mainStats || data.id)) return data;
+      // 래퍼 구조 언래핑 시도
+      const item = data?.result || data?.data || data?.item || data;
+      // 유효한 아이템 응답 여부 (name, mainStats, id 중 하나라도 있으면 OK)
+      if (item && (item.name || item.mainStats || item.id || item.grade)) return item;
       return null;
     } catch(_) { return null; }
   }
 
-  // 1) characterId + slotPos 있으면 아이템 상세 엔드포인트 (서브스탯 포함)
+  // 1) characterId + slotPos + id (가장 정확)
   if (characterId && slotPos !== undefined && id) {
-    const params = new URLSearchParams({ lang, id, enchantLevel: enchantLevel||0, characterId, serverId, slotPos });
-    const data = await tryFetch(`https://aion2.plaync.com/api/character/equipment/item?${params}`);
+    const p = new URLSearchParams({ lang, id, enchantLevel: enchantLevel||0, characterId, serverId, slotPos });
+    const data = await tryFetch(`https://aion2.plaync.com/api/character/equipment/item?${p}`);
     if (data) return res.status(200).json(data);
   }
 
-  // 2) characterId만 있으면 slotPos 없이 시도
+  // 2) characterId + id
   if (characterId && id) {
-    const params = new URLSearchParams({ lang, id, enchantLevel: enchantLevel||0, characterId, serverId });
-    const data = await tryFetch(`https://aion2.plaync.com/api/character/equipment/item?${params}`);
+    const p = new URLSearchParams({ lang, id, enchantLevel: enchantLevel||0, characterId, serverId });
+    const data = await tryFetch(`https://aion2.plaync.com/api/character/equipment/item?${p}`);
     if (data) return res.status(200).json(data);
   }
 
-  // 3) id만 있어도 기본 아이템 정보 조회 (characterId 없이)
+  // 3) id만으로 기본 아이템 정보 (characterId 없이)
   if (id) {
-    const params = new URLSearchParams({ lang, id, enchantLevel: enchantLevel||0 });
-    if (serverId) params.append('serverId', serverId);
-    const data = await tryFetch(`https://aion2.plaync.com/api/character/equipment/item?${params}`);
+    const p = new URLSearchParams({ lang, id, enchantLevel: enchantLevel||0, serverId });
+    const data = await tryFetch(`https://aion2.plaync.com/api/character/equipment/item?${p}`);
     if (data) return res.status(200).json(data);
   }
 
-  // 4) 폴백: 캐릭터 장비 목록에서 해당 슬롯 아이템 조회
+  // 4) characterId로 장비 목록에서 슬롯 찾기
   if (characterId) {
     try {
       const equipUrl = `https://aion2.plaync.com/api/character/equipment?lang=${lang}&characterId=${encodeURIComponent(characterId)}&serverId=${serverId}`;
       const equipRes = await fetch(equipUrl, { headers });
       if (equipRes.ok) {
         const equipData = await equipRes.json();
-        const equipList = (equipData && equipData.equipment && equipData.equipment.equipmentList) || [];
+        const equipList = (equipData?.equipment?.equipmentList) || [];
         let found = null;
         if (slotPos !== undefined) found = equipList.find(e => String(e.slotPos) === String(slotPos));
-        if (!found && id) found = equipList.find(e => String(e.itemId || e.id) === String(id));
+        if (!found && id)         found = equipList.find(e => String(e.itemId || e.id) === String(id));
         if (found) return res.status(200).json(found);
       }
     } catch(err) {
@@ -65,5 +66,5 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  res.status(200).json({ error: 'itemId가 필요합니다' });
+  res.status(200).json({ error: 'NC API 조회 실패 (characterId 또는 itemId 필요)' });
 }
