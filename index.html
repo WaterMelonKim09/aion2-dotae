@@ -1504,8 +1504,12 @@ function initFirebase() {
     }).catch(function(){});
   }
   checkVersion();
-  // 3분마다 최신 버전 폴링
-  setInterval(checkVersion, 3 * 60 * 1000);
+  // config 실시간 구독: 버전 업데이트 즉시 반영
+  db.channel('config-realtime')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'config', filter: 'key=eq.system' }, () => {
+      checkVersion();
+    })
+    .subscribe();
 
   migrateRanks(); // 구버전 계급 자동 변환
   initBossTimers(); // 슈고 타이머 폴링
