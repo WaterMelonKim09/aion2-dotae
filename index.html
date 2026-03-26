@@ -2681,6 +2681,9 @@ async function saveRecruit() {
       comments:    [],
       created_at:  new Date().toISOString()
     });
+    const { data: newData } = await db.from('recruits').select('*').order('created_at', { ascending: false });
+    recruits = newData || recruits;
+    renderRecruit();
     closeModal('modal-recruit'); toast('모집 공고 등록 완료 ✓');
   } catch(err) { toast('등록 실패: ' + err.message); }
 }
