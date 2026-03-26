@@ -735,14 +735,15 @@ function selectLoginNick(nick) {
   if(ni) { ni.value = nick; loginNicknameInput(nick); }
 }
 
-function setFirebaseStatus(state) {
+function setFirebaseStatus(state, errCode) {
   var el = document.getElementById('firebase-status');
   if(!el) return;
   if(state === 'ok') {
     el.style.display = 'none';
   } else if(state === 'error') {
     el.style.color = 'var(--red)';
-    el.innerHTML = '⚠ 서버 연결 실패&nbsp;&nbsp;<button onclick="location.reload()" style="background:none;border:1px solid var(--red);color:var(--red);padding:3px 10px;border-radius:5px;font-size:12px;cursor:pointer;">새로고침</button>';
+    var codeHint = errCode ? ' (' + errCode + ')' : '';
+    el.innerHTML = '⚠ 서버 연결 실패' + codeHint + '&nbsp;&nbsp;<button onclick="location.reload()" style="background:none;border:1px solid var(--red);color:var(--red);padding:3px 10px;border-radius:5px;font-size:12px;cursor:pointer;">새로고침</button>';
   }
 }
 
@@ -1445,7 +1446,7 @@ function initFirebase() {
       var _loadEl=document.getElementById('loading-screen'); if(_loadEl) _loadEl.style.display='none';
       const isFirstLoad = !sessionStorage.getItem("_loginInit");
       if(isFirstLoad){ sessionStorage.setItem("_loginInit","1"); initLoginScreen(); }
-      setFirebaseStatus('error');
+      setFirebaseStatus('error', err.code || err.message);
       console.error('Firebase 연결 오류:', err);
     });
   db.collection('recruits').orderBy('created_at','desc')
