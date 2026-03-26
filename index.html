@@ -318,7 +318,7 @@
     <div id="login-preview" style="display:none;margin-bottom:12px;padding:10px;background:var(--card);border:1px solid var(--border);border-radius:8px;"></div>
     <button onclick="tryLogin()" class="btn btn-primary" style="width:100%;padding:12px;font-size:15px;">입장</button>
     <div style="margin-top:12px;text-align:center;">
-      <button onclick="showTab('register')" class="btn btn-sm" style="color:var(--muted);">멤버 등록하러 가기</button>
+      <button onclick="gotoRegister()" class="btn btn-sm" style="color:var(--muted);">멤버 등록하러 가기</button>
     </div>
     <div id="firebase-status" style="margin-top:14px;text-align:center;font-size:12px;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:6px;">
       <span class="spinner"></span><span>서버 연결 중...</span>
@@ -750,12 +750,21 @@ function tryLogin() {
   var ni = document.getElementById('login-nickname');
   var val = (ni ? ni.value : '').trim();
   if(!val) { toast('닉네임을 입력해주세요'); return; }
-  if(!members || members.length === 0) { toast('⚠ 서버에 연결할 수 없어요. 새로고침 후 다시 시도해주세요.'); setFirebaseStatus('error'); return; }
+  if(!supabaseConnected) { toast('⚠ 서버에 연결할 수 없어요. 새로고침 후 다시 시도해주세요.'); setFirebaseStatus('error'); return; }
   var m = members.find(function(x){ return x.nickname === val; });
   if(!m) { toast('등록되지 않은 닉네임이에요. 멤버 등록 후 이용해주세요.'); return; }
   currentUser = { nickname: m.nickname, rank: m.rank||'군단병', id: m.id, class: m.class };
   try { localStorage.setItem('dotae_user', JSON.stringify(currentUser)); } catch(e) {}
   applyLogin();
+}
+
+function gotoRegister() {
+  var ls = document.getElementById('login-screen');
+  if(ls) ls.style.display = 'none';
+  var h = document.querySelector('.header'); if(h) h.style.display = '';
+  var n = document.querySelector('.nav'); if(n) n.style.display = '';
+  var c = document.querySelector('.content'); if(c) c.style.display = '';
+  showTab('register');
 }
 
 // ════════════════════════════════════════
@@ -796,6 +805,7 @@ let recruits = [];
 let warSurveys = [];
 let currentUser = null;
 let currentRecruitId = null;
+let supabaseConnected = false;
 var _warInitDone = false, _warSurveyCreating = false;
 let mFilter  = 'all';
 let rFilter  = 'all';
@@ -1438,6 +1448,7 @@ function initFirebase() {
       .then(function(result) {
         if(result && result.error) throw result.error;
         members = result.data || [];
+        supabaseConnected = true;
         renderAll();
         setFirebaseStatus('ok');
         clearTimeout(window.loadingTimeout); var _loadEl=document.getElementById('loading-screen'); if(_loadEl) _loadEl.style.display='none';
