@@ -119,3 +119,11 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN
   CREATE POLICY "public_all" ON config      FOR ALL TO anon USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- ================================================================
+-- 컬럼/테이블 정보 확인용 쿼리
+-- ================================================================
+SELECT column_name, data_type
+FROM information_schema.columns
+WHERE table_name IN ('members', 'boss_timers')
+AND column_name = 'id';
