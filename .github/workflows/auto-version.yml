@@ -1,0 +1,55 @@
+name: Auto Version Increment
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  increment-version:
+    runs-on: ubuntu-latest
+    # [auto-version] 커밋은 다시 트리거하지 않음 (무한 루프 방지)
+    if: ${{ !contains(github.event.head_commit.message, '[auto-version]') }}
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 1
+
+      - name: Increment BUILD_VERSION
+        id: version
+        run: |
+          TODAY=$(date +%Y%m%d)
+
+          # 현재 BUILD_VERSION 읽기 (예: 20260326.3)
+          CURRENT=$(grep -oP "const BUILD_VERSION = '\K[^']*" index.html)
+          CURRENT_DATE="${CURRENT%%.*}"
+          CURRENT_NUM="${CURRENT##*.}"
+
+          # 오늘 날짜면 카운터 +1, 새 날짜면 1로 초기화
+          if [ "$CURRENT_DATE" = "$TODAY" ]; then
+            NEW_NUM=$((CURRENT_NUM + 1))
+          else
+            NEW_NUM=1
+          fi
+
+          NEW_VERSION="${TODAY}.${NEW_NUM}"
+
+          # index.html 내 BUILD_VERSION 교체
+          sed -i "s/const BUILD_VERSION = '${CURRENT}'/const BUILD_VERSION = '${NEW_VERSION}'/" index.html
+
+          echo "old=${CURRENT}" >> $GITHUB_OUTPUT
+          echo "new=${NEW_VERSION}" >> $GITHUB_OUTPUT
+          echo "Bumped: ${CURRENT} → ${NEW_VERSION}"
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet && echo "No version change" && exit 0
+          git commit -m "chore: ${{ steps.version.outputs.old }} → ${{ steps.version.outputs.new }} [auto-version]"
+          git push origin main

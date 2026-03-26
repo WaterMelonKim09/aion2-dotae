@@ -784,6 +784,14 @@ const CLASS_MAP = {
 
 const BUILD_VERSION = '20260326.3';
 
+// 버전 비교: YYYYMMDD.N 형식 (N이 10 이상일 때도 올바르게 비교)
+function compareVersion(a, b) {
+  const [aDate, aNum] = a.split('.');
+  const [bDate, bNum] = b.split('.');
+  if(aDate !== bDate) return aDate > bDate ? 1 : -1;
+  return (parseInt(aNum)||0) - (parseInt(bNum)||0);
+}
+
 let members  = [];
 let recruits = [];
 let warSurveys = [];
@@ -1403,7 +1411,7 @@ function initFirebase() {
   const versionRef = db.collection('config').doc('system');
   versionRef.get().then(doc => {
     const stored = doc.exists ? (doc.data().latest_version || '') : '';
-    if(BUILD_VERSION >= stored) {
+    if(!stored || compareVersion(BUILD_VERSION, stored) >= 0) {
       versionRef.set({ latest_version: BUILD_VERSION, updated_at: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
     }
   });
