@@ -625,7 +625,6 @@
     <div class="form-group">
       <label class="form-label">요구 직업</label>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
-        <div style="display:flex;align-items:center;gap:4px;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:4px 8px;"><span style="font-size:12px;flex:1;">상관없음</span><input type="number" id="req-상관없음" min="0" max="40" value="0" style="width:36px;background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);text-align:center;font-size:13px;padding:2px;"></div>
         <div style="display:flex;align-items:center;gap:4px;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:4px 8px;"><span style="font-size:12px;flex:1;">검성</span><input type="number" id="req-검성" min="0" max="9" value="0" style="width:36px;background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);text-align:center;font-size:13px;padding:2px;"></div>
         <div style="display:flex;align-items:center;gap:4px;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:4px 8px;"><span style="font-size:12px;flex:1;">수호성</span><input type="number" id="req-수호성" min="0" max="9" value="0" style="width:36px;background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);text-align:center;font-size:13px;padding:2px;"></div>
         <div style="display:flex;align-items:center;gap:4px;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:4px 8px;"><span style="font-size:12px;flex:1;">살성</span><input type="number" id="req-살성" min="0" max="9" value="0" style="width:36px;background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);text-align:center;font-size:13px;padding:2px;"></div>
@@ -634,6 +633,7 @@
         <div style="display:flex;align-items:center;gap:4px;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:4px 8px;"><span style="font-size:12px;flex:1;">정령성</span><input type="number" id="req-정령성" min="0" max="9" value="0" style="width:36px;background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);text-align:center;font-size:13px;padding:2px;"></div>
         <div style="display:flex;align-items:center;gap:4px;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:4px 8px;"><span style="font-size:12px;flex:1;">치유성</span><input type="number" id="req-치유성" min="0" max="9" value="0" style="width:36px;background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);text-align:center;font-size:13px;padding:2px;"></div>
         <div style="display:flex;align-items:center;gap:4px;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:4px 8px;"><span style="font-size:12px;flex:1;">호법성</span><input type="number" id="req-호법성" min="0" max="9" value="0" style="width:36px;background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);text-align:center;font-size:13px;padding:2px;"></div>
+        <div style="display:flex;align-items:center;gap:4px;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:4px 8px;"><span style="font-size:12px;flex:1;">상관없음</span><input type="number" id="req-상관없음" min="0" max="40" value="0" style="width:36px;background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);text-align:center;font-size:13px;padding:2px;"></div>
       </div>
     </div>
     <div class="form-group"><label class="form-label">작성자 닉네임 *</label>
@@ -2729,10 +2729,14 @@ async function saveRecruit() {
   if(!title) { toast('제목을 입력해주세요'); return; }
   if(!author){ toast('작성자 닉네임을 입력해주세요'); return; }
   const reqs=[];
-  ['상관없음','검성','수호성','살성','궁성','마도성','정령성','치유성','호법성'].forEach(cls=>{
+  ['검성','수호성','살성','궁성','마도성','정령성','치유성','호법성','상관없음'].forEach(cls=>{
     const cnt = parseInt((document.getElementById('req-'+cls)||{}).value)||0;
     for(let i=0;i<cnt;i++) reqs.push(cls);
   });
+  const slots = parseInt(document.getElementById('m-slots').value)||4;
+  if(reqs.length > 0 && reqs.length !== slots) {
+    toast(`요구 직업 수(${reqs.length}명)와 모집 인원(${slots}명)이 일치해야 합니다`); return;
+  }
   // 작성자 자동 신청
   const now = new Date();
   const time = String(now.getMonth()+1).padStart(2,'0')+'.'+String(now.getDate()).padStart(2,'0')+' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
@@ -2864,6 +2868,29 @@ async function applyRecruit() {
   if(!r) return;
   const applies = r.applies || [];
   if(applies.find(a => a.nickname === nickname)) { toast('이미 신청했어요'); return; }
+  // 직업 요구 조건 체크
+  const reqs = r.reqs || [];
+  if(reqs.length > 0) {
+    const mem = members.find(m => m.nickname === nickname);
+    const myCls = mem ? (CLASS_MAP[mem.class]||mem.class||'') : '';
+    const hasAny = reqs.includes('상관없음');
+    const alreadyFilledCls = (applies).map(a => { const am=members.find(m=>m.nickname===a.nickname); return am?(CLASS_MAP[am.class]||am.class||''):''; }).filter(Boolean);
+    // 내 직업이 아직 안 채워진 슬롯에 맞는지 확인
+    const usedIdx = [];
+    const hasSlot = reqs.some((req, i) => {
+      if(usedIdx.includes(i)) return false;
+      // 이미 채워진 슬롯인지
+      let filled = false;
+      for(let j=0;j<alreadyFilledCls.length;j++){
+        if(!usedIdx.includes(j) && (req==='상관없음'||req===alreadyFilledCls[j])){ usedIdx.push(j); filled=true; break; }
+      }
+      if(filled) return false;
+      return req === '상관없음' || req === myCls;
+    });
+    if(!hasSlot) {
+      toast(`요구 직업(${reqs.filter(x=>x!=='상관없음').filter((v,i,a)=>a.indexOf(v)===i).join(', ')})에 해당하지 않아 신청할 수 없습니다`); return;
+    }
+  }
   const now = new Date();
   const time = `${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
   applies.push({nickname, time});
