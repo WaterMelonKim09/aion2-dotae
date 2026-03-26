@@ -14,20 +14,21 @@ export async function onRequest(context) {
     return new Response(null, { status: 200, headers: corsHeaders });
   }
 
-  // 클래스명 → guidebook categoryId 매핑
-  const CLASS_CATEGORY = {
-    '검성': '4253', 'Gladiator': '4253',
-    '수호성': '4254', 'Templar': '4254',
-    '살성': '4255', 'Assassin': '4255',
-    '궁성': '4256', 'Ranger': '4256',
-    '마도성': '4257', 'Sorcerer': '4257',
-    '정령성': '4258', 'Spiritmaster': '4258',
-    '치유성': '4259', 'Cleric': '4259',
-    '호법성': '4260', 'Chanter': '4260',
+  // 클래스명 → { categoryId, guidebookId } 매핑
+  // guidebookId: 가이드북 view API의 id 파라미터 (검성=6205 확인됨, 나머지 추정)
+  const CLASS_MAP = {
+    '검성':   { catId: '4253', gbId: '6205' }, 'Gladiator':    { catId: '4253', gbId: '6205' },
+    '수호성': { catId: '4254', gbId: '6206' }, 'Templar':      { catId: '4254', gbId: '6206' },
+    '살성':   { catId: '4255', gbId: '6207' }, 'Assassin':     { catId: '4255', gbId: '6207' },
+    '궁성':   { catId: '4256', gbId: '6208' }, 'Ranger':       { catId: '4256', gbId: '6208' },
+    '마도성': { catId: '4257', gbId: '6209' }, 'Sorcerer':     { catId: '4257', gbId: '6209' },
+    '정령성': { catId: '4258', gbId: '6210' }, 'Spiritmaster': { catId: '4258', gbId: '6210' },
+    '치유성': { catId: '4259', gbId: '6211' }, 'Cleric':       { catId: '4259', gbId: '6211' },
+    '호법성': { catId: '4260', gbId: '6212' }, 'Chanter':      { catId: '4260', gbId: '6212' },
   };
 
-  const catId = categoryId || CLASS_CATEGORY[className] || '';
-  if (!catId) {
+  const info = CLASS_MAP[className] || (categoryId ? { catId: categoryId, gbId: null } : null);
+  if (!info) {
     return new Response(JSON.stringify({ error: 'categoryId 또는 class 파라미터가 필요합니다' }), { status: 400, headers: corsHeaders });
   }
 
@@ -39,84 +40,70 @@ export async function onRequest(context) {
     'Origin': 'https://aion2.plaync.com',
   };
 
-  // 시도할 URL 패턴 목록
-  const listUrls = [
-    `https://aion2.plaync.com/ko-kr/api/guidebook/list?categoryId=${catId}&page=1&size=10`,
-    `https://aion2.plaync.com/api/guidebook/list?categoryId=${catId}&page=1&size=10`,
-    `https://aion2.plaync.com/ko-kr/api/guidebook/list?categoryId=${catId}`,
-    `https://aion2.plaync.com/ko-kr/api/board/list?categoryId=${catId}&page=1&size=10`,
-  ];
+  async function tryJson(fetchUrl) {
+    try {
+      const r = await fetch(fetchUrl, { headers: ncHeaders });
+      const text = await r.text();
+      return { status: r.status, text: text.slice(0, 200), data: (r.ok && text.trim().startsWith('{')) ? JSON.parse(text) : null };
+    } catch(e) {
+      return { status: 0, text: e.message, data: null };
+    }
+  }
+
+  // 시도할 URL 목록 (직접 view 먼저, 그 다음 list 다양한 형태)
+  const attempts = [];
+
+  if (info.gbId) {
+    attempts.push(`https://aion2.plaync.com/ko-kr/api/guidebook/view?id=${info.gbId}`);
+    attempts.push(`https://aion2.plaync.com/api/guidebook/view?id=${info.gbId}`);
+  }
+  attempts.push(`https://aion2.plaync.com/ko-kr/api/guidebook/list?categoryId=${info.catId}`);
+  attempts.push(`https://aion2.plaync.com/ko-kr/api/guidebook/list?categoryId=${info.catId}&page=1&size=10`);
+  attempts.push(`https://aion2.plaync.com/api/guidebook/list?categoryId=${info.catId}`);
 
   try {
-    let listData = null;
-    let usedListUrl = '';
-    let listStatus = 0;
-    let listRawText = '';
+    const results = [];
+    let paragraphList = null;
 
-    for (const listUrl of listUrls) {
-      try {
-        const r = await fetch(listUrl, { headers: ncHeaders });
-        listStatus = r.status;
-        listRawText = await r.text();
-        if (r.ok && listRawText && listRawText.trim().startsWith('{')) {
-          listData = JSON.parse(listRawText);
-          usedListUrl = listUrl;
-          break;
+    for (const fetchUrl of attempts) {
+      const res = await tryJson(fetchUrl);
+      results.push({ url: fetchUrl, status: res.status, preview: res.text });
+
+      if (!res.data) continue;
+
+      // view 응답: 바로 paragraphList 있음
+      if (res.data.paragraphList) {
+        paragraphList = res.data.paragraphList;
+        if (!debug) break;
+      }
+
+      // list 응답: 첫 번째 엔트리에서 paragraphList 또는 id 추출
+      const entries = res.data.list || res.data.items || res.data.data || res.data.result?.list || (Array.isArray(res.data) ? res.data : []);
+      if (entries.length) {
+        const entry = entries[0];
+        if (entry.paragraphList) {
+          paragraphList = entry.paragraphList;
+          if (!debug) break;
         }
-      } catch(e) { /* try next */ }
-    }
-
-    if (debug) {
-      return new Response(JSON.stringify({
-        _debug: true,
-        catId,
-        usedListUrl,
-        listStatus,
-        listRawPreview: listRawText ? listRawText.slice(0, 500) : null,
-        listData: listData,
-      }, null, 2), { headers: corsHeaders });
-    }
-
-    if (!listData) {
-      return new Response(JSON.stringify({ skills: {}, _err: `listStatus=${listStatus}` }), { headers: corsHeaders });
-    }
-
-    // 첫 번째 엔트리에서 paragraphList 또는 id 추출
-    const entries = listData.list || listData.items || listData.data || listData.result?.list || (Array.isArray(listData) ? listData : []);
-    if (!entries.length) {
-      return new Response(JSON.stringify({ skills: {} }), { headers: corsHeaders });
-    }
-    const entry = entries[0];
-
-    let paragraphList = entry.paragraphList || null;
-
-    // 목록에 내용이 없으면 개별 엔트리 조회
-    if (!paragraphList && entry.id) {
-      const viewUrls = [
-        `https://aion2.plaync.com/ko-kr/api/guidebook/view?id=${entry.id}`,
-        `https://aion2.plaync.com/api/guidebook/view?id=${entry.id}`,
-        `https://aion2.plaync.com/ko-kr/api/board/view?id=${entry.id}`,
-      ];
-      for (const viewUrl of viewUrls) {
-        try {
-          const vr = await fetch(viewUrl, { headers: ncHeaders });
-          if (vr.ok) {
-            const vt = await vr.text();
-            if (vt && vt.trim().startsWith('{')) {
-              const viewData = JSON.parse(vt);
-              paragraphList = viewData.paragraphList || viewData.result?.paragraphList || viewData.data?.paragraphList || null;
-              if (paragraphList) break;
-            }
+        // 엔트리에 id만 있으면 view 조회
+        if (!paragraphList && entry.id && !debug) {
+          const viewRes = await tryJson(`https://aion2.plaync.com/ko-kr/api/guidebook/view?id=${entry.id}`);
+          if (viewRes.data?.paragraphList) {
+            paragraphList = viewRes.data.paragraphList;
+            break;
           }
-        } catch(e) { /* try next */ }
+        }
       }
     }
 
-    if (!paragraphList) {
-      return new Response(JSON.stringify({ skills: {}, _info: 'no paragraphList', entryId: entry.id }), { headers: corsHeaders });
+    if (debug) {
+      return new Response(JSON.stringify({ _debug: true, info, attempts: results, hasParagraphList: !!paragraphList }, null, 2), { headers: corsHeaders });
     }
 
-    // 모든 단락의 HTML 합치기
+    if (!paragraphList) {
+      return new Response(JSON.stringify({ skills: {} }), { headers: corsHeaders });
+    }
+
     let allHTML = '';
     const keys = Object.keys(paragraphList).sort((a, b) => Number(a) - Number(b));
     for (const k of keys) {
@@ -124,26 +111,19 @@ export async function onRequest(context) {
       if (p && p.content) allHTML += p.content;
     }
 
-    const skills = parseSkillTable(allHTML);
-    return new Response(JSON.stringify({ skills }), { headers: corsHeaders });
+    return new Response(JSON.stringify({ skills: parseSkillTable(allHTML) }), { headers: corsHeaders });
   } catch (err) {
     return new Response(JSON.stringify({ error: '스킬 가이드 조회 실패', detail: err.message }), { status: 500, headers: corsHeaders });
   }
 }
 
-/**
- * HTML 테이블에서 스킬명 → 설명 맵 파싱
- * 테이블 구조: <td>아이콘</td> <td>스킬명</td> <td>설명</td> <td>비고</td>
- */
 function parseSkillTable(html) {
   const skills = {};
-
   const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
   let rowMatch;
   while ((rowMatch = rowRegex.exec(html)) !== null) {
     const rowHTML = rowMatch[1];
     const cells = [];
-
     const cellRegex = /<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi;
     let cellMatch;
     while ((cellMatch = cellRegex.exec(rowHTML)) !== null) {
@@ -158,27 +138,20 @@ function parseSkillTable(html) {
         .trim();
       cells.push(text);
     }
-
     let name = '', desc = '';
     if (cells.length >= 3) {
-      const firstMeaningful = cells[0].length < 2 || /^\d+$/.test(cells[0]);
-      name = firstMeaningful ? cells[1] : cells[0];
-      desc = firstMeaningful ? cells[2] : cells[1];
+      const skip = cells[0].length < 2 || /^\d+$/.test(cells[0]);
+      name = skip ? cells[1] : cells[0];
+      desc = skip ? cells[2] : cells[1];
     } else if (cells.length === 2) {
-      name = cells[0];
-      desc = cells[1];
+      name = cells[0]; desc = cells[1];
     }
-
     if (!name || !desc || name.length > 60) continue;
-    if (['스킬명', '이름', '명칭', 'Skill', '스킬', '아이콘', '효과', '설명'].includes(name)) continue;
-
-    // 스킬 체인 "A - B - C" 형태 처리
-    const parts = name.split(/\s*[-–—]\s*/);
-    for (const part of parts) {
+    if (['스킬명','이름','명칭','Skill','스킬','아이콘','효과','설명'].includes(name)) continue;
+    for (const part of name.split(/\s*[-–—]\s*/)) {
       const n = part.trim();
       if (n) skills[n] = desc;
     }
   }
-
   return skills;
 }
