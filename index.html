@@ -66,10 +66,10 @@
   tr:hover td { background:rgba(201,147,42,.04); }
 
   /* 직업 배지 */
-  .cls { font-size:12px; padding:3px 8px; border-radius:4px; white-space:nowrap; min-width:80px; display:inline-flex; align-items:center; justify-content:flex-start; gap:6px; line-height:1; }
-  .cls img { margin:0 !important; vertical-align:middle !important; }
+  .cls { font-size:12px; padding:3px 8px; border-radius:4px; white-space:nowrap; min-width:80px; display:inline-block; vertical-align:middle; line-height:22px; }
+  .cls img { vertical-align:middle !important; margin:0 !important; margin-right:4px !important; }
   /* 내정보·아바타 원형 컨테이너 내 엠블렘 중앙 정렬 */
-  .cls-icon-circle img { margin:0 !important; vertical-align:middle !important; }
+  .cls-icon-circle img { margin:0 !important; }
   /* 아이온2 8개 직업 배지 */
   .cls-검성   { background:#1a2a30; color:#7ab8cc; border:1px solid #7ab8cc55; }
   .cls-수호성   { background:#1a1e30; color:#7a90d0; border:1px solid #7a90d055; }
@@ -785,7 +785,7 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '20260326.2';
+const BUILD_VERSION = '20260326.3';
 
 let members  = [];
 let recruits = [];
@@ -1819,9 +1819,9 @@ function openDetail(m) {
       <div style="position:relative;width:32px;height:32px;flex-shrink:0;">
         <img src="${e.icon}" style="width:32px;height:32px;border-radius:4px;border:2px solid ${gc};">
         ${e.exceed>0
-          ? `<div style="position:absolute;bottom:-1px;right:-1px;width:14px;height:14px;display:flex;align-items:center;justify-content:center;pointer-events:none;"><svg viewBox='0 0 13 13' width='14' height='14' style='position:absolute;'><polygon points='6.5,1 12,6.5 6.5,12 1,6.5' fill='#003850' stroke='#60c8ff' stroke-width='1.5'/></svg><span style='position:relative;font-size:7px;font-weight:700;color:#60c8ff;'>${e.exceed}</span></div>`
+          ? `<div style="position:absolute;bottom:-2px;right:-2px;width:18px;height:18px;display:flex;align-items:center;justify-content:center;pointer-events:none;"><svg viewBox='0 0 13 13' width='18' height='18' style='position:absolute;'><polygon points='6.5,1 12,6.5 6.5,12 1,6.5' fill='#003850' stroke='#60c8ff' stroke-width='1.5'/></svg><span style='position:relative;font-size:9px;font-weight:700;color:#60c8ff;'>${e.exceed}</span></div>`
           : e.enchant>0
-          ? `<div style="position:absolute;bottom:-1px;right:-1px;font-size:7px;font-weight:700;color:var(--gold-l);background:rgba(0,0,0,.9);border-radius:2px;padding:0 2px;line-height:1.4;pointer-events:none;">+${e.enchant}</div>`
+          ? `<div style="position:absolute;bottom:-2px;right:-2px;font-size:9px;font-weight:700;color:var(--gold-l);background:rgba(0,0,0,.9);border-radius:2px;padding:0 2px;line-height:1.4;pointer-events:none;">+${e.enchant}</div>`
           : ''}
       </div>
       <div style="flex:1;min-width:0;">
@@ -2134,18 +2134,18 @@ function renderMembers() {
   const _SLOTS2 = ['Necklace','Earring1','Earring2','Ring1','Ring2','Bracelet1','Bracelet2','Amulet','Rune1','Rune2'];
   const _mkGrid = (eq, slots) => {
     const eqMap = {}; (eq||[]).forEach(x => { if(x.slot) eqMap[x.slot]=x; });
-    return '<div style="display:grid;grid-template-columns:repeat(5,28px);grid-template-rows:repeat(2,28px);gap:2px;">'
+    return '<div style="display:grid;grid-template-columns:repeat(5,36px);grid-template-rows:repeat(2,36px);gap:3px;">'
       + slots.map(slot => {
           const x = eqMap[slot];
-          if(!x) return '<div style="width:28px;height:28px;border-radius:3px;background:var(--surface);border:1px solid var(--border);opacity:.2;"></div>';
+          if(!x) return '<div style="width:36px;height:36px;border-radius:4px;background:var(--surface);border:1px solid var(--border);opacity:.2;"></div>';
           const gc = _GC3[x.grade]||'#555';
           const badge = x.exceed>0
-            ? '<div style="position:absolute;bottom:-1px;right:-1px;width:13px;height:13px;display:flex;align-items:center;justify-content:center;"><svg viewBox=\'0 0 13 13\' width=\'13\' height=\'13\' style=\'position:absolute;\'><polygon points=\'6.5,1 12,6.5 6.5,12 1,6.5\' fill=\'#003850\' stroke=\'#60c8ff\' stroke-width=\'1.5\'/></svg><span style=\'position:relative;font-size:6px;font-weight:700;color:#60c8ff;\'>'+x.exceed+'</span></div>'
+            ? '<div style="position:absolute;bottom:-2px;right:-2px;width:17px;height:17px;display:flex;align-items:center;justify-content:center;"><svg viewBox=\'0 0 13 13\' width=\'17\' height=\'17\' style=\'position:absolute;\'><polygon points=\'6.5,1 12,6.5 6.5,12 1,6.5\' fill=\'#003850\' stroke=\'#60c8ff\' stroke-width=\'1.5\'/></svg><span style=\'position:relative;font-size:9px;font-weight:700;color:#60c8ff;\'>'+x.exceed+'</span></div>'
             : x.enchant>0
-            ? '<div style="position:absolute;bottom:-1px;right:-1px;font-size:6px;font-weight:700;color:var(--gold-l);background:rgba(0,0,0,.9);border-radius:2px;padding:0 1px;line-height:1.4;">+'+x.enchant+'</div>'
+            ? '<div style="position:absolute;bottom:-2px;right:-2px;font-size:9px;font-weight:700;color:var(--gold-l);background:rgba(0,0,0,.9);border-radius:2px;padding:0 2px;line-height:1.4;">+'+x.enchant+'</div>'
             : '';
-          return '<div style="position:relative;width:28px;height:28px;" title="'+(x.name||'')+'">'
-            +'<img src="'+x.icon+'" style="width:28px;height:28px;border-radius:3px;border:1px solid '+gc+';display:block;" onerror="this.style.opacity=0.1">'
+          return '<div style="position:relative;width:36px;height:36px;" title="'+(x.name||'')+'">'
+            +'<img src="'+x.icon+'" style="width:36px;height:36px;border-radius:4px;border:1px solid '+gc+';display:block;" onerror="this.style.opacity=0.1">'
             +badge+'</div>';
         }).join('') + '</div>';
   };
