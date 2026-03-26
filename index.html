@@ -1851,71 +1851,63 @@ function openDetail(m) {
     console.log('[item-tooltip] raw keys:', raw ? Object.keys(raw).join(', ') : 'null');
     console.log('[item-tooltip] raw full:', raw ? JSON.stringify(raw).substring(0, 1000) : 'null');
 
-    // ── NC API 실제 필드 파싱 ──
-    // NC API 응답: mainStats(흰색), subStats(파란색), soulStats(영혼각인)
-    // 각 stat: { id, name, minValue, value, extra, exceed }
-    const mainStats = (raw && (raw.mainStats || raw.itemStat?.statList || raw.statList || raw.stats)) || e.itemStats || [];
-    const subStats  = (raw && (raw.subStats  || raw.randomStats || raw.itemOption?.optionList || raw.optionList)) || e.itemOptions || [];
-    const soulStats = (raw && (raw.soulStats || raw.soulCrystal?.crystalList || raw.crystalList)) || e.itemSouls || [];
-    const soulPct   = (raw && (raw.soulCrystal?.totalPct || raw.soulTotalPct || raw.soulPct)) || 0;
-    const typeName  = (raw && (raw.categoryName || raw.typeName || raw.itemTypeName)) || '';
+    // ── NC API 실제 필드 파싱 (네트워크 탭 확인 완료) ──
+    const allMainStats  = (raw && raw.mainStats) || e.itemStats || [];
+    const whiteStats    = allMainStats.filter(s => !s.exceed);   // exceed:false → 흰색 기본 옵션
+    const exceedStats   = allMainStats.filter(s => s.exceed);    // exceed:true  → 파란색 돌파 보너스
+    const soulStatsList = (raw && raw.subStats)         || e.itemOptions || []; // 영혼 각인 스탯
+    const soulBindRate  = (raw && raw.soulBindRate)     || 0;   // 영혼 각인율 "96.8"
+    const magicStones   = (raw && raw.magicStoneStat)   || [];  // 마법석
+    const godStones     = (raw && raw.godStoneStat)     || [];  // 신석
+    const costumeList   = (raw && raw.costumes)         || [];  // 외형
+    const typeName  = (raw && raw.categoryName) || '';
     const itemLvl   = (raw && (raw.level || raw.itemLevel)) || e.itemLevel || 0;
-    const bonusLvl  = (raw && (raw.levelValue || raw.enchantBonusItemLevel || raw.bonusItemLevel)) || 0;
-    const raceName  = (raw && (raw.raceName || raw.raceTypeName || raw.raceType)) || '';
-    const clsName   = (raw && (Array.isArray(raw.classNames) ? raw.classNames.join(', ') : (raw.classNames || raw.classTypeName || raw.className))) || '';
-    const reqLevel  = (raw && (raw.equipLevel || raw.requiredLevel || raw.equipLimitLevel)) || 0;
+    const bonusLvl  = (raw && raw.levelValue)   || 0;
+    const raceName  = (raw && raw.raceName)     || '';
+    const clsName   = (raw && Array.isArray(raw.classNames) ? raw.classNames.join(', ') : '') || '';
+    const reqLevel  = (raw && raw.equipLevel)   || 0;
     const setName   = (raw && (raw.setItemName || raw.setName)) || e.setName || '';
-    const setFx     = (raw && (raw.setEffect?.effectList || raw.setEffectList || raw.setEffects)) || [];
-    const acqList   = (raw && (raw.acquisitionInfoList || raw.acquisitionInfo || raw.acqList)) || [];
+    const setFx     = (raw && (raw.setEffect?.effectList || raw.setEffectList)) || [];
+    const acqSources= (raw && raw.sources)      || [];  // 획득처 ["제작"] 형태
 
     // 아이템 정보 행
     const infoRows = [
       typeName  && ['분류',           typeName],
-      itemLvl   && ['아이템 레벨',     `${itemLvl}${bonusLvl?` <span style="color:var(--gold-l);">(+${bonusLvl})</span>`:''}`],
+      itemLvl   && ['아이템 레벨',     `${itemLvl}${bonusLvl?` <span style="color:#d4a843;">(+${bonusLvl})</span>`:''}`],
       raceName  && ['종족 제한',        raceName],
       clsName   && ['직업 제한',        clsName],
       reqLevel  && ['장착 제한 레벨',   String(reqLevel)],
     ].filter(Boolean);
 
-    const infoRowsHTML = infoRows.map(([lbl, val]) => `
-      <div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05);">
-        <span style="font-size:12px;color:#778;flex-shrink:0;min-width:80px;">${lbl}</span>
-        <span style="font-size:12px;color:#ddd;">${val}</span>
-      </div>`).join('');
-
-    // 흰색 스탯 (mainStats): minValue~value 범위 표시, extra=인챈트 보너스
-    const statsHTML = mainStats.map(s => {
-      const label = s.name || s.statName || s.displayName || s.type || '';
-      const extra = s.extra || s.enchantValue || s.bonusValue || '';
+    // 흰색 기본 옵션 (exceed:false): minValue~value (+extra)
+    const statsHTML = whiteStats.map(s => {
+      const label = s.name || '';
+      const extra = (s.extra && s.extra !== '0' && s.extra !== '0%') ? s.extra : '';
       let val = '';
       if(s.minValue && s.value && String(s.minValue) !== String(s.value)) {
         val = `${s.minValue} ~ ${s.value}`;
       } else {
-        val = s.value || s.statValue || s.val || '';
+        val = s.value || '';
       }
       if(!label && !val) return '';
       return `<div style="font-size:12px;color:#d0d0d0;padding:2px 0;">${label} ${val}${extra?` <span style="color:#d4a843;">(+${extra})</span>`:''}</div>`;
     }).join('');
 
-    // 파란색 옵션 (subStats) — NC 공홈 색상 #5fb0ff
-    const optionsHTML = subStats.map(o => {
-      const label = o.name || o.optionName || o.displayName || o.typeName || o.desc || '';
-      const val   = o.value || o.optionValue || o.val || '';
+    // 파란색 돌파 보너스 (exceed:true): extra가 실제 값
+    const exceedHTML = exceedStats.map(s => {
+      const label = s.name || '';
+      const val   = (s.extra && s.extra !== '0' && s.extra !== '0%') ? s.extra : s.value || '';
       if(!label && !val) return '';
       return `<div style="font-size:12px;color:#5fb0ff;padding:2px 0;">${label} ${val}</div>`;
     }).join('');
 
-    // 영혼 각인 — 살짝 파란 회색
-    const soulsHTML = soulStats.map(s => {
-      const label = s.name || s.crystalName || s.skillName || s.displayName || '';
+    // 영혼 각인 스탯 (subStats): { id, name, value }
+    const soulsHTML = soulStatsList.map(s => {
+      const label = s.name || '';
+      const val   = s.value || '';
       if(!label) return '';
-      return `<div style="font-size:12px;color:#b8ccd8;padding:2px 0;">${label}</div>`;
+      return `<div style="font-size:12px;color:#b8ccd8;padding:2px 0;">${label} ${val}</div>`;
     }).join('');
-
-    // 추가 NC API 필드
-    const costumeList = (raw && (raw.costumes || raw.costume)) || [];
-    const godStoneList  = (raw && (raw.godStoneList  || raw.godStones  || [])) || [];
-    const magicStoneList= (raw && (raw.magicStoneList || raw.magicStones || [])) || [];
 
     // NC 공홈 스타일 헬퍼
     const ncSec = (txt) =>
@@ -1928,9 +1920,9 @@ function openDetail(m) {
       ? setFx.map(se=>`<div style="font-size:12px;color:#c8c8c8;padding:2px 0;">${se.name||se.desc||se.effectName||''}</div>`).join('')
       : `<span style="font-size:12px;color:#444;">없음</span>`;
 
-    // 획득처
-    const acqHTML = acqList.length
-      ? acqList.map(a=>`<div style="font-size:12px;color:#c8c8c8;padding:2px 0;">${a.name||a.zoneName||a.infoName||a.type||''}</div>`).join('')
+    // 획득처 (acqSources는 문자열 배열 ["제작"] 형태)
+    const acqHTML = acqSources.length
+      ? acqSources.map(a=>`<div style="font-size:12px;color:#c8c8c8;padding:2px 0;">${typeof a === 'string' ? a : (a.name||a.zoneName||a.infoName||a.type||'')}</div>`).join('')
       : `<span style="font-size:12px;color:#444;">—</span>`;
 
     scrollEl.innerHTML = `
@@ -1968,40 +1960,35 @@ function openDetail(m) {
               ${infoRows.map(([lbl,val])=>ncRow(lbl,val)).join('')}
             </table>` : ''}
 
-          ${statsHTML ? `
+          ${(statsHTML || exceedHTML) ? `
             ${ncSec('옵션')}
             <table style="width:100%;border-collapse:collapse;">
-              <tr>
+              ${statsHTML ? `<tr>
                 <td style="width:110px;padding:10px 20px;font-size:12px;color:#666;vertical-align:top;white-space:nowrap;">옵션</td>
                 <td style="padding:10px 20px 10px 0;">${statsHTML}</td>
-              </tr>
-            </table>` : ''}
-
-          ${optionsHTML ? `
-            ${ncSec('서브 옵션')}
-            <table style="width:100%;border-collapse:collapse;">
-              <tr>
-                <td style="width:110px;padding:10px 20px;font-size:12px;color:#666;vertical-align:top;white-space:nowrap;">서브 옵션</td>
-                <td style="padding:10px 20px 10px 0;">${optionsHTML}</td>
-              </tr>
+              </tr>` : ''}
+              ${exceedHTML ? `<tr>
+                <td style="width:110px;padding:6px 20px 10px;font-size:12px;color:#5fb0ff;vertical-align:top;white-space:nowrap;">돌파 보너스</td>
+                <td style="padding:6px 20px 10px 0;">${exceedHTML}</td>
+              </tr>` : ''}
             </table>` : ''}
 
           ${soulsHTML ? `
-            ${ncSec(`영혼 각인${soulPct ? ` (${soulPct}%)` : ''}`)}
+            ${ncSec(`영혼 각인${soulBindRate ? ` <span style="color:#7ab8d8;font-weight:400;">(${soulBindRate}%)</span>` : ''}`)}
             <table style="width:100%;border-collapse:collapse;">
               <tr>
-                <td style="width:110px;padding:10px 20px;font-size:12px;color:#666;vertical-align:top;white-space:nowrap;">영혼 각인${soulPct?`<span style="color:#7ab8d8;font-size:11px;"> (${soulPct}%)</span>`:''}</td>
+                <td style="width:110px;padding:10px 20px;font-size:12px;color:#666;vertical-align:top;white-space:nowrap;">영혼 각인${soulBindRate?`<br><span style="color:#7ab8d8;font-size:11px;">${soulBindRate}%</span>`:''}</td>
                 <td style="padding:10px 20px 10px 0;">${soulsHTML}</td>
               </tr>
             </table>` : ''}
 
-          ${magicStoneList.length ? `
+          ${magicStones.length ? `
             ${ncSec('마법석')}
-            <div style="padding:8px 20px;">${magicStoneList.map(s=>`<div style="font-size:12px;color:#a0c8ff;padding:2px 0;">🔷 ${s.name||''} ${s.value?'+'+s.value:''}</div>`).join('')}</div>` : ''}
+            <div style="padding:8px 20px;">${magicStones.map(s=>`<div style="display:flex;align-items:center;gap:8px;padding:3px 0;">${s.icon?`<img src="${s.icon}" style="width:22px;height:22px;border-radius:3px;">`:'<div style="width:22px;height:22px;border-radius:3px;background:#2a3850;flex-shrink:0;"></div>'}<span style="font-size:12px;color:#a0c8ff;">${s.name||''}</span>${s.value?`<span style="font-size:11px;color:#7ab8d8;">+${s.value}</span>`:''}</div>`).join('')}</div>` : ''}
 
-          ${godStoneList.length ? `
+          ${godStones.length ? `
             ${ncSec('신석')}
-            <div style="padding:8px 20px;">${godStoneList.map(s=>`<div style="margin-bottom:8px;"><div style="font-size:12px;color:#a0c8ff;font-weight:600;margin-bottom:2px;">🔮 ${s.name||''}</div>${s.description?`<div style="font-size:11px;color:#778;line-height:1.5;">${s.description}</div>`:''}</div>`).join('')}</div>` : ''}
+            <div style="padding:8px 20px;">${godStones.map(s=>`<div style="margin-bottom:8px;display:flex;align-items:flex-start;gap:8px;">${s.icon?`<img src="${s.icon}" style="width:22px;height:22px;border-radius:3px;flex-shrink:0;">`:'<div style="width:22px;height:22px;border-radius:3px;background:#2a2850;flex-shrink:0;"></div>'}<div><div style="font-size:12px;color:#c8a0ff;font-weight:600;">${s.name||''}</div>${s.description?`<div style="font-size:11px;color:#778;line-height:1.5;margin-top:2px;">${s.description}</div>`:''}</div></div>`).join('')}</div>` : ''}
 
           ${costumeList.length ? `
             ${ncSec('외형 정보')}
