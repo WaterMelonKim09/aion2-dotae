@@ -2,7 +2,9 @@ module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const { id, enchantLevel, characterId, serverId = '2001', slotPos, lang = 'ko' } = req.query;
+  const { id, enchantLevel, serverId = '2001', slotPos, lang = 'ko' } = req.query;
+  // characterId는 이중 인코딩 방지를 위해 decodeURIComponent로 처리 (character.js와 동일)
+  const characterId = req.query.characterId ? decodeURIComponent(req.query.characterId) : undefined;
 
   const headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',

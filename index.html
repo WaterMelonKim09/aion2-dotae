@@ -1599,7 +1599,9 @@ async function fetchCharacterData(nickname, serverId) {
   const charData = await charRes.json();
   if (charData.error) throw new Error(charData.error);
 
-  return { ...charData, characterId: found.characterId };
+  // characterId를 clean하게 반환 (URL 인코딩 제거)
+  const cleanCharId = found.characterId ? decodeURIComponent(String(found.characterId)) : '';
+  return { ...charData, characterId: cleanCharId };
 }
 
 // ─── 자동 불러오기 + 등록 ──────────────
