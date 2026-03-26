@@ -821,6 +821,10 @@ const CLASS_MAP = {
 };
 
 const BUILD_VERSION = '1.5.1';
+const BUILD_PATCHNOTE = {
+  title: '실시간 업데이트 개선',
+  content: '• 파티 모집 카드가 다른 길드원이 신청하면 새로고침 없이 바로 반영됩니다.\n• 새 버전이 배포되면 버전 알림이 즉시 표시됩니다.\n• 공지/패치노트도 작성 즉시 모든 접속자에게 바로 보입니다.\n• 스킬 탭에서 각 스킬 설명이 표시되도록 개선되었습니다.'
+};
 
 // 시맨틱 버전 비교 (날짜형 구버전 호환)
 function _semverGte(a, b) {
@@ -1153,6 +1157,20 @@ function isAdmin() {
   const m = members.find(x => x.nickname === currentUser.nickname);
   const rank = (m && m.rank) || currentUser.rank || '';
   return rank === '군단장' || rank === '엘리트장교';
+}
+
+async function autoInsertPatchNote() {
+  if(!isAdmin()) return;
+  try {
+    const { data } = await db.from('notices').select('id').eq('version', BUILD_VERSION).maybeSingle();
+    if(data) return; // 이미 등록된 버전
+    await db.from('notices').insert({
+      type: '패치노트',
+      version: BUILD_VERSION,
+      title: BUILD_PATCHNOTE.title,
+      content: BUILD_PATCHNOTE.content,
+    });
+  } catch(e) {}
 }
 
 function logoutUser() {
@@ -1532,6 +1550,7 @@ function initFirebase() {
         }
         renderAll();
         setFirebaseStatus('ok');
+        autoInsertPatchNote();
         clearTimeout(window.loadingTimeout); var _loadEl=document.getElementById('loading-screen'); if(_loadEl) _loadEl.style.display='none';
         const isFirstLoad = !sessionStorage.getItem("_loginInit");
         if(isFirstLoad){ sessionStorage.setItem("_loginInit","1"); initLoginScreen(); }
