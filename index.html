@@ -1449,6 +1449,11 @@ function initFirebase() {
         if(result && result.error) throw result.error;
         members = result.data || [];
         supabaseConnected = true;
+        // 페이지 새로고침 후 currentUser 복원 (sessionStorage 가드로 initLoginScreen이 재실행되지 않는 경우 대비)
+        if(!currentUser) {
+          var _saved = localStorage.getItem('dotae_user');
+          if(_saved) { try { currentUser = JSON.parse(_saved); } catch(e) {} }
+        }
         renderAll();
         setFirebaseStatus('ok');
         clearTimeout(window.loadingTimeout); var _loadEl=document.getElementById('loading-screen'); if(_loadEl) _loadEl.style.display='none';
