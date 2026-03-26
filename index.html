@@ -834,7 +834,7 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.8';
+const BUILD_VERSION = '1.5.9';
 const BUILD_PATCHNOTE = {
   title: '업데이트 알림 말풍선 추가',
   content: '• 새 버전이 배포되면 시스템 업데이트 버튼 위에 말풍선 알림이 표시됩니다.'
@@ -1568,8 +1568,8 @@ function initFirebase() {
       });
   }
   checkVersion();
-  // 3초마다 폴링 (구버전 사용자 배포 즉시 감지)
-  setInterval(checkVersion, 3 * 1000);
+  // 1초마다 폴링 (구버전 사용자 배포 즉시 감지)
+  setInterval(checkVersion, 1000);
   // config realtime: 다른 채널에서 업데이트 시 즉시 반영
   db.channel('config-realtime')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'config', filter: 'key=eq.system' }, () => {
