@@ -1563,6 +1563,7 @@ function initFirebase() {
           if(_saved) { try { currentUser = JSON.parse(_saved); } catch(e) {} }
         }
         renderAll();
+        renderRecruit(); // members 로드 후 재렌더링 (아바타/직업 체크 반영)
         setFirebaseStatus('ok');
         autoInsertPatchNote();
         clearTimeout(window.loadingTimeout); var _loadEl=document.getElementById('loading-screen'); if(_loadEl) _loadEl.style.display='none';
