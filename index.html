@@ -1794,11 +1794,16 @@ function openDetail(m) {
   const ilvl = statMap['ItemLevel'] ? statMap['ItemLevel'].value : (m.item_level||0);
 
   // 아이템 클릭 시 툴팁 (공식 홈 스타일)
+  const _ARMOR_SLOTS = new Set(['MainHand','SubHand','Helmet','Shoulder','Torso','Gloves','Pants','Boots','Cape','Belt']);
+  const _ACCESSORY_SLOTS = new Set(['Necklace','Earring1','Earring2','Ring1','Ring2','Bracelet1','Bracelet2','Amulet','Rune1','Rune2']);
   window._showItemTooltip = async function(slotKey) {
     const e = equipMap[slotKey];
     if(!e) return;
     const gc = GC[e.grade]||'#888';
     const gn = GN[e.grade]||e.grade||'';
+    // 슬롯 분류: 무기/방어구 → 마석, 장신구 → 영석
+    const _isAccessory = _ACCESSORY_SLOTS.has(slotKey);
+    const _magicStoneLabel = _isAccessory ? '영석' : '마석';
 
     const scrollEl = document.getElementById('item-tooltip-scroll');
     document.getElementById('item-tooltip').style.display = 'flex';
@@ -1983,12 +1988,12 @@ function openDetail(m) {
             </table>` : ''}
 
           ${magicStones.length ? `
-            ${ncSec('마법석')}
-            <div style="padding:8px 20px;">${magicStones.map(s=>`<div style="display:flex;align-items:center;gap:8px;padding:3px 0;">${s.icon?`<img src="${s.icon}" style="width:22px;height:22px;border-radius:3px;">`:'<div style="width:22px;height:22px;border-radius:3px;background:#2a3850;flex-shrink:0;"></div>'}<span style="font-size:12px;color:#a0c8ff;">${s.name||''}</span>${s.value?`<span style="font-size:11px;color:#7ab8d8;">+${s.value}</span>`:''}</div>`).join('')}</div>` : ''}
+            ${ncSec(_magicStoneLabel)}
+            <div style="padding:8px 20px;">${magicStones.map(s=>`<div style="display:flex;align-items:center;gap:8px;padding:3px 0;">${s.icon?`<img src="${s.icon}" style="width:22px;height:22px;border-radius:3px;flex-shrink:0;">`:'<div style="width:22px;height:22px;border-radius:3px;background:#2a3040;flex-shrink:0;"></div>'}<span style="font-size:12px;color:#e0c97a;">${s.name||''}</span>${s.value?`<span style="font-size:11px;color:#e0c97a;margin-left:2px;">${s.value}</span>`:''}</div>`).join('')}</div>` : ''}
 
           ${godStones.length ? `
             ${ncSec('신석')}
-            <div style="padding:8px 20px;">${godStones.map(s=>`<div style="margin-bottom:8px;display:flex;align-items:flex-start;gap:8px;">${s.icon?`<img src="${s.icon}" style="width:22px;height:22px;border-radius:3px;flex-shrink:0;">`:'<div style="width:22px;height:22px;border-radius:3px;background:#2a2850;flex-shrink:0;"></div>'}<div><div style="font-size:12px;color:#c8a0ff;font-weight:600;">${s.name||''}</div>${s.description?`<div style="font-size:11px;color:#778;line-height:1.5;margin-top:2px;">${s.description}</div>`:''}</div></div>`).join('')}</div>` : ''}
+            <div style="padding:8px 20px;">${godStones.map(s=>`<div style="margin-bottom:8px;display:flex;align-items:flex-start;gap:8px;">${s.icon?`<img src="${s.icon}" style="width:22px;height:22px;border-radius:3px;flex-shrink:0;">`:'<div style="width:22px;height:22px;border-radius:3px;background:#2a2038;flex-shrink:0;"></div>'}<div><div style="font-size:12px;color:#e0c97a;font-weight:600;">${s.name||''}</div>${s.description?`<div style="font-size:11px;color:#a09060;line-height:1.5;margin-top:2px;">${s.description}</div>`:''}</div></div>`).join('')}</div>` : ''}
 
           ${costumeList.length ? `
             ${ncSec('외형 정보')}
