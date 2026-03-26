@@ -1804,6 +1804,7 @@ function openDetailById(id) {
 }
 
 function openDetail(m) {
+  window._currentDetailMember = m;
   const el = document.getElementById('modal-detail');
   if(!el) return;
   const GC = {Common:'#aaaaaa',Rare:'#4a90e8',Hero:'#d44040',Epic:'#d44040',Unique:'#e8c030',Legendary:'#ff6a20',Special:'#40d4c0'};
@@ -2119,11 +2120,12 @@ function openDetail(m) {
     return a.localeCompare(b);
   });
   const skillCardHTML = s => `
-    <div style="display:flex;align-items:center;gap:8px;padding:6px;background:var(--surface);border:1px solid var(--border);border-radius:8px;">
-      <img src="${s.icon||''}" style="width:32px;height:32px;border-radius:6px;border:1px solid var(--border);" onerror="this.style.display='none'">
+    <div data-skill-name="${(s.name||'').replace(/"/g,'&quot;')}" style="display:flex;align-items:flex-start;gap:8px;padding:6px;background:var(--surface);border:1px solid var(--border);border-radius:8px;">
+      <img src="${s.icon||''}" style="width:32px;height:32px;border-radius:6px;border:1px solid var(--border);flex-shrink:0;" onerror="this.style.display='none'">
       <div style="flex:1;min-width:0;">
         <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.name||''}</div>
         <div style="font-size:10px;color:var(--muted);">Lv.${s.level||0}</div>
+        <div class="skill-desc" style="font-size:10px;color:var(--muted);margin-top:2px;line-height:1.4;white-space:normal;display:none;"></div>
       </div>
     </div>`;
   const stigmaHTML = skillGroupEntries.length
@@ -2381,6 +2383,41 @@ function switchDetailTab(tab) {
       b.style.color = t===tab ? 'var(--gold-l)' : 'var(--muted)';
       b.style.borderBottom = t===tab ? '2px solid var(--gold)' : '2px solid transparent';
       b.style.fontWeight = t===tab ? '600' : '400';
+    }
+  });
+  if(tab === 'skill') _loadSkillDescriptions();
+}
+
+// ─── 스킬 설명 가이드북 로딩 ───────────────
+const _skillGuideCache = {};
+function _loadSkillDescriptions() {
+  const m = window._currentDetailMember;
+  if(!m) return;
+  const cls = m.class || '';
+  if(!cls) return;
+  if(_skillGuideCache[cls] !== undefined) {
+    if(_skillGuideCache[cls]) _applySkillDescriptions(_skillGuideCache[cls]);
+    return;
+  }
+  _skillGuideCache[cls] = null; // 로딩 중 표시
+  fetch('/api/skillguide?class=' + encodeURIComponent(cls))
+    .then(r => r.json())
+    .then(data => {
+      const skills = data.skills || {};
+      _skillGuideCache[cls] = skills;
+      _applySkillDescriptions(skills);
+    })
+    .catch(() => { _skillGuideCache[cls] = null; });
+}
+function _applySkillDescriptions(skills) {
+  const skillTab = document.getElementById('detail-skill');
+  if(!skillTab) return;
+  skillTab.querySelectorAll('[data-skill-name]').forEach(card => {
+    const name = card.getAttribute('data-skill-name');
+    const desc = skills[name];
+    if(desc) {
+      const descEl = card.querySelector('.skill-desc');
+      if(descEl) { descEl.textContent = desc; descEl.style.display = ''; }
     }
   });
 }
