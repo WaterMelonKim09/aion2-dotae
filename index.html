@@ -2509,8 +2509,8 @@ function drawPie() {
   if(typeof Chart === 'undefined') { setTimeout(drawPie, 200); return; }
   const counts = {};
   members.forEach(m => {
-    if(!m.class) return;
-    const cls = CLASS_MAP[m.class] || m.class; // 영어 직업명 → 한국어 변환
+    if(m.is_main === false || !m.class) return;
+    const cls = CLASS_MAP[m.class] || m.class;
     counts[cls] = (counts[cls]||0) + 1;
   });
   const labels = Object.keys(counts), data = Object.values(counts);
