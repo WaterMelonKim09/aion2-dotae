@@ -801,7 +801,11 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.0';
+const BUILD_VERSION = '1.5.10';
+const BUILD_PATCHNOTE = {
+  title: '모바일 접속 안정성 개선',
+  content: '• 아이폰 등 모바일 환경에서 서버 연결 실패(network-timeout) 오류가 발생하던 문제를 수정했습니다.\n• 초기 데이터 로딩이 완료된 후 버전 체크를 시작하도록 개선하여 모바일 네트워크 연결이 안정적으로 이루어집니다.\n• 접속 타임아웃 시간을 8초에서 15초로 늘려 느린 네트워크 환경에서도 접속이 잘 되도록 했습니다.'
+};
 
 // 시맨틱 버전 비교 (날짜형 구버전 호환)
 function _semverGte(a, b) {
@@ -1455,15 +1459,20 @@ function initFirebase() {
     }).catch(function(){});
   }
   checkVersion();
-  // 3분마다 최신 버전 폴링
-  setInterval(checkVersion, 3 * 60 * 1000);
+  // 1초 폴링은 데이터 로드 완료 후 시작 (모바일 초기 연결 경쟁 방지)
+  // config realtime: 다른 채널에서 업데이트 시 즉시 반영
+  db.channel('config-realtime')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'config', filter: 'key=eq.system' }, () => {
+      checkVersion();
+    })
+    .subscribe();
 
   migrateRanks(); // 구버전 계급 자동 변환
   initBossTimers(); // 슈고 타이머 폴링
 
   // Supabase REST 기반 데이터 로딩
   function loadAllData() {
-    var membersTimeout = new Promise(function(_, reject){ setTimeout(function(){ reject(new Error('network-timeout')); }, 8000); });
+    var membersTimeout = new Promise(function(_, reject){ setTimeout(function(){ reject(new Error('network-timeout')); }, 15000); });
     Promise.race([
       db.from('members').select('*').order('combat_power', { ascending: false }),
       membersTimeout
@@ -1478,8 +1487,16 @@ function initFirebase() {
           if(_saved) { try { currentUser = JSON.parse(_saved); } catch(e) {} }
         }
         renderAll();
+        renderRecruit(); // members 로드 후 재렌더링 (아바타/직업 체크 반영)
         setFirebaseStatus('ok');
-        clearTimeout(window.loadingTimeout); var _loadEl=document.getElementById('loading-screen'); if(_loadEl) _loadEl.style.display='none';
+        if(!window._versionPollingStarted) {
+          window._versionPollingStarted = true;
+          setInterval(checkVersion, 1000);
+        }
+        autoInsertPatchNote();
+        if(window._loadingBarDone) window._loadingBarDone();
+        clearTimeout(window.loadingTimeout);
+        setTimeout(function() { var _loadEl=document.getElementById('loading-screen'); if(_loadEl) _loadEl.style.display='none'; }, 300);
         const isFirstLoad = !sessionStorage.getItem("_loginInit");
         if(isFirstLoad){ sessionStorage.setItem("_loginInit","1"); initLoginScreen(); }
       })
