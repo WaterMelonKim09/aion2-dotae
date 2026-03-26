@@ -119,11 +119,38 @@ export async function onRequest(context) {
     }
 
     if (debug) {
+      // HTML에서 API endpoint 패턴 탐색
+      const apiHints = [];
+      if (htmlContent) {
+        // script src 목록
+        const scriptSrcs = [...htmlContent.matchAll(/<script[^>]+src="([^"]+)"/gi)].map(m => m[1]);
+        // 인라인 스크립트에서 guidebook 관련 API 경로 탐색
+        const inlineScripts = [...htmlContent.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi)].map(m => m[1]);
+        const apiPatterns = [];
+        for (const s of inlineScripts) {
+          const matches = [...s.matchAll(/["'`](\/[^"'`]*guidebook[^"'`]*|\/api\/[^"'`]{3,60})["'`]/g)];
+          for (const m of matches) apiPatterns.push(m[1]);
+          // window 설정 객체에서 baseUrl 등 탐색
+          const cfgMatch = s.match(/baseURL?\s*[:=]\s*["'`]([^"'`]+)["'`]/);
+          if (cfgMatch) apiPatterns.push('baseURL:' + cfgMatch[1]);
+          const apiMatch = s.match(/apiUrl\s*[:=]\s*["'`]([^"'`]+)["'`]/);
+          if (apiMatch) apiPatterns.push('apiUrl:' + apiMatch[1]);
+        }
+        apiHints.push(...[...new Set(apiPatterns)].slice(0, 30));
+
+        // __nuxt__ 또는 서버 데이터 포함 여부
+        const hasNuxt = htmlContent.includes('__nuxt');
+        const hasNextData = htmlContent.includes('__NEXT_DATA__');
+        const hasInitState = htmlContent.includes('__INITIAL_STATE__');
+        const tableCount = (htmlContent.match(/<table/gi) || []).length;
+        apiHints.unshift(`hasNuxt:${hasNuxt} hasNext:${hasNextData} hasInitState:${hasInitState} tables:${tableCount} scriptSrcs:${scriptSrcs.length}`);
+        apiHints.push(...scriptSrcs.filter(s => s.includes('guidebook') || s.includes('api')).slice(0, 10));
+      }
       return new Response(JSON.stringify({
         _debug: true, title,
         hasParagraphList: !!paragraphList,
         hasHtml: !!htmlContent,
-        htmlPreview: htmlContent ? htmlContent.slice(0, 500) : null,
+        apiHints,
         log: debugLog,
       }, null, 2), { headers: corsHeaders });
     }
