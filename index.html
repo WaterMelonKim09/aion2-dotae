@@ -1411,9 +1411,18 @@ function initFirebase() {
     var el = document.getElementById('loading-screen');
     if(el) el.style.display='none';
     initLoginScreen();
-    // 10초 후에도 데이터 없으면 연결 실패로 간주
+    // 10초 후에도 데이터 없으면 연결 실패 표시 (에러 코드 덮어쓰지 않음)
     setTimeout(function() {
-      if(!members || members.length === 0) setFirebaseStatus('error');
+      if(!members || members.length === 0) {
+        var el = document.getElementById('firebase-status');
+        if(el && el.style.display !== 'none' && !el.innerHTML.includes('(')) {
+          setFirebaseStatus('error', 'network-timeout');
+        } else if(el && el.style.display === 'none') {
+          // 이미 ok 상태면 무시
+        } else if(!el || !el.innerHTML) {
+          setFirebaseStatus('error', 'network-timeout');
+        }
+      }
     }, 500);
   }, 10000);
   window.loadingTimeout = _loadTimeout;
