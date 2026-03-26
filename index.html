@@ -1468,6 +1468,26 @@ function sortMembers(arr) {
   });
 }
 
+function refreshHeaderUser() {
+  if(!currentUser) return;
+  var ub = document.getElementById('header-user-btn');
+  if(ub) ub.style.display = 'flex';
+  var lo = document.getElementById('btn-logout');
+  if(lo) lo.style.display = '';
+  var nk = document.getElementById('header-nick');
+  var rk = document.getElementById('header-rank');
+  if(nk) nk.textContent = currentUser.nickname;
+  if(rk) rk.textContent = currentUser.rank || '군단병';
+  var av = document.getElementById('header-avatar');
+  if(av) {
+    var m2 = members.find(function(x){ return x.id===currentUser.id; });
+    var cls = CLASS_MAP[(m2||currentUser).class]||(m2||currentUser).class||'';
+    av.innerHTML = (m2&&m2.profile_img)
+      ? '<img src="'+m2.profile_img+'" style="width:100%;height:100%;object-fit:cover;">'
+      : (CLS_ICON[cls]||'<span>👤</span>');
+  }
+}
+
 function renderAll() {
   const mainMembers = members.filter(m => m.is_main !== false);
   const total = mainMembers.length;
@@ -1477,6 +1497,7 @@ function renderAll() {
   document.getElementById('stat-avgcp').textContent = avgCp ? Math.round(avgCp/1000)+'K' : '—';
   renderTop5(); renderRecentRecruit(); renderMembers();
   if(distView==='pie') drawPie(); else renderDistList();
+  refreshHeaderUser();
 }
 
 // ─── NC 공홈 API 호출 ──────────────────
