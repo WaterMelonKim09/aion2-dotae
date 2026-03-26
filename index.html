@@ -1266,7 +1266,7 @@ function openMyProfile() {
         </div>
         <div style="text-align:center;padding:8px 14px;background:var(--card);border:1px solid var(--border);border-radius:8px;">
           <div style="font-size:10px;color:var(--muted);">\uc544\uc774\ud15c\ub808\ubca8</div>
-          <div style="font-size:17px;font-weight:700;color:var(--gold-l);">${m.item_level||'\u2014'}</div>
+          <div style="font-size:17px;font-weight:700;color:var(--gold-l);">${m.item_level?(+m.item_level).toLocaleString():'—'}</div>
         </div>
       </div>`:''}
     </div>
@@ -1797,6 +1797,7 @@ function openDetail(m) {
   const statMap = {};
   (m.stats||[]).forEach(s => { statMap[s.type] = s; });
   const ilvl = statMap['ItemLevel'] ? statMap['ItemLevel'].value : (m.item_level||0);
+  const ilvlFmt = ilvl ? (+ilvl).toLocaleString() : '—';
 
   // 아이템 클릭 시 툴팁 (공식 홈 스타일)
   const _ARMOR_SLOTS = new Set(['MainHand','SubHand','Helmet','Shoulder','Torso','Gloves','Pants','Boots','Cape','Belt']);
@@ -1882,7 +1883,7 @@ function openDetail(m) {
     // 아이템 정보 행
     const infoRows = [
       typeName  && ['분류',           typeName],
-      itemLvl   && ['아이템 레벨',     `${itemLvl}${bonusLvl?` <span style="color:#d4a843;">(+${bonusLvl})</span>`:''}`],
+      itemLvl   && ['아이템 레벨',     `${(+itemLvl).toLocaleString()}${bonusLvl?` <span style="color:#d4a843;">(+${(+bonusLvl).toLocaleString()})</span>`:''}`],
       raceName  && ['종족 제한',        raceName],
       clsName   && ['직업 제한',        clsName],
       reqLevel  && ['장착 제한 레벨',   String(reqLevel)],
@@ -2178,7 +2179,7 @@ function openDetail(m) {
         </div>
         <div style="text-align:center;padding:8px 14px;background:var(--card);border:1px solid var(--border);border-radius:8px;">
           <div style="font-size:10px;color:var(--muted);">아이템레벨</div>
-          <div style="font-size:18px;font-weight:700;color:var(--gold-l);">${ilvl}</div>
+          <div style="font-size:18px;font-weight:700;color:var(--gold-l);">${ilvlFmt}</div>
         </div>
       </div>
     </div>
