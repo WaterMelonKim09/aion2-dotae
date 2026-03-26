@@ -1434,8 +1434,9 @@ function initFirebase() {
 
   // onSnapshot → get() 전환: 모바일 WebSocket 차단 환경 대응
   function loadAllData() {
-    db.collection('members').orderBy('combat_power','desc').get()
-      .then(snap => {
+    var membersTimeout = new Promise(function(_, reject){ setTimeout(function(){ reject(new Error('network-timeout')); }, 8000); });
+    Promise.race([db.collection('members').orderBy('combat_power','desc').get(), membersTimeout])
+      .then(function(snap) {
         members = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         renderAll();
         setFirebaseStatus('ok');
