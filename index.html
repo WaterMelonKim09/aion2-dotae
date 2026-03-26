@@ -1461,9 +1461,96 @@ function openDetail(m) {
 
   const content2 = el.querySelector('.modal-detail-content');
   if(!content2) return;
-  content2.innerHTML =
-    '<div id="item-tooltip" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--card);border:1px solid var(--border);border-radius:10px;z-index:200;max-width:340px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.6);max-height:85vh;flex-direction:column;">'    +'<div id="item-tooltip-header" style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--border);border-radius:10px 10px 0 0;flex-shrink:0;">'    +'<span style="font-size:14px;font-weight:700;color:var(--gold-l);">아이템 정보</span>'    +'<button onclick="closeItemTooltip()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:0 4px;line-height:1;">✕</button>'    +'</div>'    +'<div id="item-tooltip-body" style="overflow-y:auto;flex:1;"></div>'    +'</div>';
+  content2.innerHTML = `
+    <!-- 아이템 툴팁 -->
+    <div id="item-tooltip" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--card);border:1px solid var(--border);border-radius:10px;z-index:200;max-width:320px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.6);"></div>
 
+    <!-- 프로필 헤더 -->
+    <div style="display:flex;align-items:center;gap:16px;padding:16px;background:var(--surface);border-radius:10px;margin-bottom:16px;border:1px solid var(--border);">
+      ${m.profile_img?`<img src="${m.profile_img}" style="width:60px;height:60px;border-radius:50%;border:2px solid var(--gold-d);">` : '<div style="width:60px;height:60px;border-radius:50%;background:var(--card);border:2px solid var(--border);"></div>'}
+      <div style="flex:1;">
+        <div style="font-size:20px;font-weight:700;">${m.nickname}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px;">${m.server_name||''} · ${m.race||''} · ${m.class||''} · Lv.${m.level||0}</div>
+        <div style="font-size:12px;color:var(--muted);">레기온: ${m.guild_name||'없음'}</div>
+      </div>
+      <div style="display:flex;gap:10px;flex-shrink:0;">
+        <div style="text-align:center;padding:8px 14px;background:var(--card);border:1px solid var(--border);border-radius:8px;">
+          <div style="font-size:10px;color:var(--muted);">전투력</div>
+          <div style="font-size:18px;font-weight:700;color:var(--gold-l);">${(m.combat_power||0).toLocaleString()}</div>
+        </div>
+        <div style="text-align:center;padding:8px 14px;background:var(--card);border:1px solid var(--border);border-radius:8px;">
+          <div style="font-size:10px;color:var(--muted);">아이템레벨</div>
+          <div style="font-size:18px;font-weight:700;color:var(--gold-l);">${ilvl}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 탭 -->
+    <div style="display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid var(--border);">
+      <button onclick="switchDetailTab('info')" id="dtab-info" style="background:none;border:none;color:var(--gold-l);padding:8px 16px;font-size:13px;cursor:pointer;border-bottom:2px solid var(--gold);margin-bottom:-2px;font-weight:600;">종합정보</button>
+
+      <button onclick="switchDetailTab('skill')" id="dtab-skill" style="background:none;border:none;color:var(--muted);padding:8px 16px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;">스킬</button>
+      <button onclick="switchDetailTab('daeva')" id="dtab-daeva" style="background:none;border:none;color:var(--muted);padding:8px 16px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;">데바니온</button>
+      <button onclick="switchDetailTab('rank')" id="dtab-rank" style="background:none;border:none;color:var(--muted);padding:8px 16px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;">랭킹</button>
+    </div>
+
+    <!-- 종합정보 -->
+    <div id="detail-info">
+      <!-- 스탯 -->
+      <div style="margin-bottom:14px;">
+        <div style="font-size:11px;font-weight:600;color:var(--gold);margin-bottom:8px;">주요 스탯</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:4px;">${mainStatHTML}</div>
+        <div id="extra-stats" style="display:none;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:4px;">${extraStatHTML}</div>
+        ${extraStats.length > 0 ? `<button onclick="toggleExtraStats()" id="stat-more-btn" style="font-size:11px;color:var(--gold);background:none;border:none;cursor:pointer;padding:4px 0;">▼ 더보기 (${extraStats.length})</button>` : ""}
+      </div>
+
+      <!-- 장비 3열 그리드 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;">
+        <!-- 무기/방어구 -->
+        <div>
+          <div style="font-size:11px;font-weight:600;color:var(--gold);margin-bottom:8px;">무기 / 방어구</div>
+          ${equip1.map(equipHTML).join('')}
+        </div>
+        <!-- 장신구/룬 -->
+        <div>
+          <div style="font-size:11px;font-weight:600;color:var(--gold);margin-bottom:8px;">장신구 / 룬</div>
+          ${equip2.map(equipHTML).join('')}
+        </div>
+        <!-- 펫/날개/아르카나 -->
+        <div>
+          <div style="font-size:11px;font-weight:600;color:var(--gold);margin-bottom:8px;">펫 / 날개</div>
+          ${petHTML}
+          ${wingHTML}
+          <div style="font-size:11px;font-weight:600;color:var(--gold);margin:12px 0 8px;">아르카나</div>
+          ${['Arcana1','Arcana2','Arcana3','Arcana4','Arcana5','Arcana6'].map(equipHTML).join('')}
+        </div>
+      </div>
+    </div>
+
+    <!-- 장신구/룬 탭 (별도 탭은 유지) -->
+    <div id="detail-equip2" style="display:none;">
+      ${equip2.map(equipHTML).join('')}
+    </div>
+
+    <!-- 스킬 (스티그마) -->
+    <div id="detail-skill" style="display:none;">
+      ${stigmaHTML ? `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">${stigmaHTML}</div>` : '<div style="color:var(--muted);padding:20px;text-align:center;">스킬 정보 없음 (갱신 필요)</div>'}
+    </div>
+
+    <!-- 데바니온 -->
+    <div id="detail-daeva" style="display:none;">
+      ${daevStatHTML || '<div style="color:var(--muted);padding:20px;text-align:center;">데바니온 정보 없음</div>'}
+    </div>
+
+    <!-- 랭킹 -->
+    <div id="detail-rank" style="display:none;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        ${rankHTML || '<div style="color:var(--muted);padding:20px;grid-column:1/-1;text-align:center;">랭킹 정보 없음</div>'}
+      </div>
+    </div>
+  `;
+
+  // showItemTooltip
   // showItemTooltip 설정
   const showItemTooltip = function(slotKey) {
     const e = equipMap[slotKey];
@@ -1472,9 +1559,8 @@ function openDetail(m) {
     const gc2 = gradeColor[e.grade]||'#888';
     const tooltip = content2.querySelector('#item-tooltip');
     if(!tooltip) return;
-    tooltip.style.display='flex';
-  const tooltipBody = tooltip.querySelector('#item-tooltip-body') || tooltip;
-  tooltipBody.innerHTML = '<div style="padding:14px;min-width:260px;">'
+    tooltip.style.display='block';
+  tooltip.innerHTML = '<div style="padding:14px;min-width:260px;">'
       +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">'
       +'<img src="'+e.icon+'" style="width:44px;height:44px;border-radius:6px;border:2px solid '+gc2+';flex-shrink:0;">'
       +'<div><div style="font-size:15px;font-weight:700;color:'+gc2+';">'+e.name+'</div>'
@@ -1538,7 +1624,7 @@ function _renderItemTooltip2(tooltip, e, d, gc, gradeColor, isAccessory) {
     }).join('');
     if(godList) godStoneHTML = '<div style="border-top:1px solid var(--border);margin:8px 0;padding-top:8px;"><div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600;">신석</div>'+godList+'</div>';
   }
-  (tooltip.querySelector('#item-tooltip-body')||tooltip).innerHTML = '<div style="padding:16px;max-width:340px;min-width:260px;">'
+  tooltip.innerHTML = '<div style="padding:16px;max-width:340px;min-width:260px;">'
     +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">'
     +'<img src="'+e.icon+'" style="width:44px;height:44px;border-radius:6px;border:2px solid '+gc+';flex-shrink:0;">'
     +'<div><div style="font-size:15px;font-weight:700;color:'+gc+';">'+e.name+'</div>'
@@ -2701,12 +2787,12 @@ function renderWarSurveys() {
       // ── 명단 헤더 + 내용 (2열)
       +'<div style="display:grid;grid-template-columns:1fr 1fr;align-items:stretch;">'
       +'<div style="border-right:1px solid var(--border);">'
-      +'<div style="padding:8px 12px;background:rgba(0,200,138,.06);font-size:12px;font-weight:700;color:#00c88a;border-bottom:1px solid var(--border);text-align:center;">✔ 참가 '+attendList.length+'명</div>'
+      +'<div style="padding:10px 12px;background:rgba(0,200,138,.06);font-size:12px;font-weight:700;color:#00c88a;border-bottom:1px solid var(--border);text-align:center;">✔ 참가 '+attendList.length+'명</div>'
       +attendList.map(renderMemberRow).join('')
       +(attendList.length===0?'<div style="padding:16px 0;font-size:12px;color:var(--muted);text-align:center;">없음</div>':'')
       +'</div>'
       +'<div>'
-      +'<div style="padding:8px 12px;background:rgba(220,50,50,.06);font-size:12px;font-weight:700;color:#e06060;border-bottom:1px solid var(--border);text-align:center;">✘ 불참 '+absentList.length+'명</div>'
+      +'<div style="padding:10px 12px;background:rgba(220,50,50,.06);font-size:12px;font-weight:700;color:#e06060;border-bottom:1px solid var(--border);text-align:center;">✘ 불참 '+absentList.length+'명</div>'
       +absentList.map(renderMemberRow).join('')
       +(absentList.length===0?'<div style="padding:16px 0;font-size:12px;color:var(--muted);text-align:center;">없음</div>':'')
       +'</div>'
@@ -2837,9 +2923,12 @@ function autoInitWarSurvey() {
   if(info.inProgress) { showWarInProgress(); return; }
 
   var existing = warSurveys.find(function(s){
-    return s.title && s.title.indexOf(info.dateStr) !== -1;
+    return s.title && (s.title.indexOf(info.dateStr) !== -1 || s.title === info.title);
   });
-  if(existing) return; // 이미 있음
+  if(existing || warSurveys.length > 0 && warSurveys.some(function(s){
+    // 같은 날짜 어떤 형식으로든 이미 존재
+    return s.deadline && s.deadline.indexOf(info.dateStr) !== -1;
+  })) return;
 
   _warSurveyCreating = true;
   db.collection('war_surveys').add({
@@ -2901,7 +2990,7 @@ function initFirebase() {
         return Object.assign({}, data, {id:d.id, abyss_rank_order:rankOrder, sync_failed:data.sync_failed||false});
       });
       renderAll();
-      autoInitWarSurvey();
+      if(!window._warInitDone){ window._warInitDone=true; setTimeout(autoInitWarSurvey, 2000); }
       const loadingEl=document.getElementById('loading-screen');
       if(loadingEl) loadingEl.style.display='none';
       if(isFirstLoad) { sessionStorage.setItem('_loginInit','1'); initLoginScreen(); }
