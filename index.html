@@ -669,10 +669,14 @@
     <!-- 신청 -->
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;margin-top:16px;">
       <div style="font-size:12px;font-weight:600;color:var(--gold);margin-bottom:10px;">✦ 참가 신청</div>
-      <div style="display:flex;gap:8px;">
-        <input class="form-input" id="apply-nickname" placeholder="내 닉네임" style="flex:1;" oninput="nickPreview(this,'apply-nick-preview','apply-nick-card')" onblur="setTimeout(function(){var p=document.getElementById('apply-nick-preview');if(p)p.style.display='none';},200)"><div id="apply-nick-preview" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--border);border-radius:6px;z-index:100;max-height:160px;overflow-y:auto;"></div
+      <div style="display:flex;gap:8px;align-items:flex-start;">
+        <div style="flex:1;position:relative;">
+          <input class="form-input" id="apply-nickname" placeholder="내 닉네임" style="width:100%;" oninput="nickPreview(this,'apply-nick-preview','apply-nick-card')" onblur="setTimeout(function(){var p=document.getElementById('apply-nick-preview');if(p)p.style.display='none';},200)">
+          <div id="apply-nick-preview" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--border);border-radius:6px;z-index:100;max-height:160px;overflow-y:auto;"></div>
+        </div>
         <button class="btn btn-primary btn-sm" onclick="applyRecruit()">신청하기</button>
       </div>
+      <div id="apply-nick-card" style="display:none;margin-top:8px;"></div>
       <div id="apply-list" style="margin-top:10px;"></div>
     </div>
 
@@ -680,11 +684,15 @@
     <div style="margin-top:16px;">
       <div style="font-size:12px;font-weight:600;color:var(--gold);margin-bottom:10px;">💬 댓글</div>
       <div id="comment-list" style="margin-bottom:10px;display:flex;flex-direction:column;gap:8px;"></div>
-      <div style="display:flex;gap:8px;">
-        <input class="form-input" id="comment-nickname" placeholder="닉네임" style="width:120px;" oninput="nickPreview(this,'comment-nick-preview')" onblur="setTimeout(function(){var p=document.getElementById('comment-nick-preview');if(p)p.style.display='none';},200)">
+      <div style="display:flex;gap:8px;align-items:flex-start;">
+        <div style="position:relative;">
+          <input class="form-input" id="comment-nickname" placeholder="닉네임" style="width:120px;" oninput="nickPreview(this,'comment-nick-preview','comment-nick-card')" onblur="setTimeout(function(){var p=document.getElementById('comment-nick-preview');if(p)p.style.display='none';},200)">
+          <div id="comment-nick-preview" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--border);border-radius:6px;z-index:100;max-height:160px;overflow-y:auto;"></div>
+        </div>
         <input class="form-input" id="comment-text" placeholder="댓글 내용..." style="flex:1;" onkeydown="if(event.key==='Enter')addComment()">
         <button class="btn btn-primary btn-sm" onclick="addComment()">등록</button>
       </div>
+      <div id="comment-nick-card" style="display:none;margin-top:8px;"></div>
     </div>
   </div>
 </div>
@@ -2571,6 +2579,18 @@ function renderRecruit() {
               return '<span class="req-item">'+req+'</span>';
             }).join('');
           })()}</div>
+          <div style="display:flex;align-items:center;gap:5px;padding:6px 0;border-top:1px solid var(--border);margin-top:6px;flex-wrap:wrap;">${(function(){
+            var applies = r.applies||[];
+            if(!applies.length) return '<span style="font-size:11px;color:var(--muted);">신청자 없음</span>';
+            var avatars = applies.slice(0,6).map(function(a){
+              var mem = members.find(function(m){ return m.nickname===a.nickname; });
+              var cls = mem?(CLASS_MAP[mem.class]||mem.class||''):'';
+              return (mem&&mem.profile_img)
+                ? '<img src="'+mem.profile_img+'" title="'+a.nickname+'" style="width:22px;height:22px;border-radius:50%;object-fit:cover;border:1px solid var(--border);">'
+                : '<span title="'+a.nickname+'" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--surface);border:1px solid var(--border);font-size:10px;">'+(CLS_ICON[cls]||'👤')+'</span>';
+            }).join('');
+            return '<span style="font-size:11px;color:var(--muted);">신청 '+applies.length+'명</span>'+avatars+(applies.length>6?'<span style="font-size:11px;color:var(--muted);">+'+( applies.length-6)+'</span>':'');
+          })()}</div>
           <div class="rc-foot">
             <span class="rc-author">by ${r.author}</span>
             <div style="display:flex;align-items:center;gap:8px">
@@ -2701,7 +2721,16 @@ async function openRecruit(id) {
     </div>
     <div style="font-size:13px;color:var(--muted);margin-bottom:8px;">📅 ${r.schedule||'일정 미정'} · 최소 ${r.min_cp||'제한 없음'} · by ${r.author}</div>
     ${(r.description||r.desc) ? `<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:13px;line-height:1.6;margin-bottom:12px;white-space:pre-wrap;">${r.description||r.desc}</div>` : ''}
-    ${r.reqs&&r.reqs.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">${r.reqs.map(x=>`<span class="req-item">${x}</span>`).join('')}</div>` : ''}
+    ${r.reqs&&r.reqs.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">${(function(){
+      var reqs=r.reqs||[], applies=r.applies||[];
+      var appliedCls=applies.map(function(a){ var mem=members.find(function(m){ return m.nickname===a.nickname; }); return mem?(CLASS_MAP[mem.class]||mem.class||''):''; }).filter(Boolean);
+      var usedIdx=[];
+      return reqs.map(function(req){
+        var filled=false, filledCls='';
+        for(var i=0;i<appliedCls.length;i++){ if(usedIdx.indexOf(i)>=0) continue; if(req==='상관없음'||req===appliedCls[i]){ filled=true; filledCls=appliedCls[i]; usedIdx.push(i); break; } }
+        return filled ? '<span class="req-item" style="background:rgba(0,200,138,.15);border-color:#00c88a;color:#00c88a;text-decoration:line-through;">'+(filledCls||req)+' ✓</span>' : '<span class="req-item">'+req+'</span>';
+      }).join('');
+    })()}</div>` : ''}
   `;
 
   // 신청자 목록
@@ -2717,10 +2746,26 @@ function renderApplyList(recruitId) {
   const applies = r?.applies || [];
   document.getElementById('apply-list').innerHTML = applies.length
     ? `<div style="font-size:12px;color:var(--muted);margin-bottom:6px;">신청자 ${applies.length}명</div>` +
-      applies.map(a=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;background:var(--card);border-radius:6px;margin-bottom:4px;font-size:13px;">
-        <span>${a.nickname}</span>
-        <span style="font-size:11px;color:var(--muted);">${a.time||''}</span>
-      </div>`).join('')
+      applies.map(a => {
+        const mem = members.find(m => m.nickname === a.nickname);
+        const cls = mem ? (CLASS_MAP[mem.class]||mem.class||'') : '';
+        const cp = mem ? mem.combat_power : null;
+        const avatar = (mem && mem.profile_img)
+          ? `<img src="${mem.profile_img}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:1px solid var(--border);flex-shrink:0;">`
+          : `<div style="width:30px;height:30px;border-radius:50%;background:var(--surface);border:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;">👤</div>`;
+        return `<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--card);border:1px solid var(--border);border-radius:6px;margin-bottom:4px;">
+          ${avatar}
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:5px;">
+              ${CLS_ICON[cls]||''}
+              <span style="font-size:13px;font-weight:600;">${a.nickname}</span>
+              ${cls?`<span style="font-size:11px;color:var(--muted);">${cls}</span>`:''}
+            </div>
+            ${cp?`<div style="font-size:11px;color:var(--muted);">${(+cp).toLocaleString()} CP</div>`:''}
+          </div>
+          <span style="font-size:11px;color:var(--muted);flex-shrink:0;">${a.time||''}</span>
+        </div>`;
+      }).join('')
     : '<div style="font-size:12px;color:var(--muted);">신청자가 없어요</div>';
 }
 
@@ -2749,6 +2794,9 @@ async function applyRecruit() {
   applies.push({nickname, time});
   await db.from('recruits').update({applies}).eq('id', currentRecruitId);
   document.getElementById('apply-nickname').value = '';
+  const applyCard = document.getElementById('apply-nick-card'); if(applyCard) applyCard.style.display='none';
+  renderApplyList(currentRecruitId);
+  renderRecruit();
   toast(`${nickname} 신청 완료! ✓`);
 }
 
@@ -2764,6 +2812,7 @@ async function addComment() {
   comments.push({nickname, text, time});
   await db.from('recruits').update({comments}).eq('id', currentRecruitId);
   document.getElementById('comment-text').value = '';
+  renderCommentList(currentRecruitId);
   toast('댓글 등록 완료 ✓');
 }
 
