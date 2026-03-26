@@ -794,6 +794,8 @@ const BUILD_VERSION = '20260326.4';
 let members  = [];
 let recruits = [];
 let warSurveys = [];
+let currentUser = null;
+let currentRecruitId = null;
 var _warInitDone = false, _warSurveyCreating = false;
 let mFilter  = 'all';
 let rFilter  = 'all';
@@ -1098,6 +1100,13 @@ async function resetWarSurveys() {
   _warSurveyCreating = false;
   autoInitWarSurvey();
   toast('초기화 완료!');
+}
+
+function isAdmin() {
+  if(!currentUser) return false;
+  const m = members.find(x => x.nickname === currentUser.nickname);
+  const rank = (m && m.rank) || currentUser.rank || '';
+  return rank === '군단장' || rank === '엘리트장교';
 }
 
 function logoutUser() {
@@ -1408,7 +1417,7 @@ function initFirebase() {
   window.loadingTimeout = _loadTimeout;
 
   // 버전 관리
-  db.from('config').select('*').eq('key', 'system').single().then(({ data: doc }) => {
+  db.from('config').select('*').eq('key', 'system').maybeSingle().then(({ data: doc }) => {
     const stored = doc ? (doc.latest_version || '') : '';
     if(BUILD_VERSION >= stored) {
       db.from('config').upsert({ key: 'system', latest_version: BUILD_VERSION, updated_at: new Date().toISOString() });
@@ -1529,6 +1538,29 @@ function refreshHeaderUser() {
       ? '<img src="'+m2.profile_img+'" style="width:100%;height:100%;object-fit:cover;">'
       : (CLS_ICON[cls]||'<span>👤</span>');
   }
+}
+
+function renderNotices(notices) {
+  const list = document.getElementById('notice-list');
+  if(!list) return;
+  const gradeColor3 = t => t==='공지사항'?'#e8c030':'var(--gold-l)';
+  const typeBg3 = t => t==='공지사항'?'rgba(232,192,48,.15)':'rgba(0,200,138,.15)';
+  const typeBorder3 = t => t==='공지사항'?'#604010':'var(--gold-d)';
+  const borderLeft3 = t => t==='공지사항'?'#e8c030':'var(--gold)';
+  const dbItems = notices.map(n => {
+    const d = n.created_at ? new Date(n.created_at) : new Date();
+    const dateStr = d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0');
+    return '<div class="card" style="padding:20px;border-left:3px solid '+borderLeft3(n.type)+';margin-bottom:12px;">'
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">'
+      +'<div><span style="font-size:11px;padding:2px 8px;border-radius:10px;background:'+typeBg3(n.type)+';color:'+gradeColor3(n.type)+';border:1px solid '+typeBorder3(n.type)+';margin-right:8px;">'+(n.type||'공지')+'</span>'
+      +'<span style="font-size:16px;font-weight:700;">'+(n.version?n.version+' — ':'')+n.title+'</span></div>'
+      +'<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'
+      +'<span style="font-size:12px;color:var(--muted);">'+dateStr+'</span>'
+      +(isAdmin()?'<button onclick="deleteNotice(\''+n.id+'\')" style="font-size:10px;padding:2px 7px;background:none;border:1px solid var(--red);border-radius:4px;color:var(--red);cursor:pointer;">삭제</button>':'')
+      +'</div></div>'
+      +'<div style="font-size:13px;color:var(--muted);line-height:1.8;white-space:pre-wrap;">'+(n.content||'')+'</div></div>';
+  }).join('');
+  list.innerHTML = dbItems || '<div style="color:var(--muted);font-size:13px;padding:12px">공지사항이 없어요</div>';
 }
 
 function renderAll() {
@@ -2479,7 +2511,6 @@ async function saveRecruit() {
     closeModal('modal-recruit'); toast('모집 공고 등록 완료 ✓');
   } catch(err) { toast('등록 실패: ' + err.message); }
 }
-let currentRecruitId = null;
 
 async function openRecruit(id) {
   currentRecruitId = id;
