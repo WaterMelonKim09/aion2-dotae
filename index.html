@@ -1953,52 +1953,51 @@ function openDetail(m) {
         </div>
       </div>
 
-      <!-- 2컬럼 본문 -->
-      <div style="display:flex;align-items:stretch;">
-        <!-- 왼쪽 -->
-        <div style="flex:1;min-width:0;overflow:hidden;">
+      <!-- 본문 (NC 공홈 스타일: 단일 컬럼) -->
+      <div>
 
-          ${infoRows.length ? `
-            ${ncSec('아이템 정보')}
-            <table style="width:100%;border-collapse:collapse;">
-              ${infoRows.map(([lbl,val])=>ncRow(lbl,val)).join('')}
-            </table>` : ''}
+        <!-- 아이템 정보 + 옵션 + 영혼각인 + 외형 통합 테이블 -->
+        ${(infoRows.length || statsHTML || exceedHTML || soulsHTML || costumeList.length) ? `
+          ${ncSec('아이템 정보')}
+          <table style="width:100%;border-collapse:collapse;">
+            ${infoRows.map(([lbl,val])=>ncRow(lbl,val)).join('')}
+            ${(statsHTML||exceedHTML) ? `<tr>
+              <td style="width:110px;padding:8px 20px;font-size:12px;color:#666;vertical-align:top;white-space:nowrap;">옵션</td>
+              <td style="padding:8px 20px 8px 0;">${statsHTML}${exceedHTML?`<div style="margin-top:3px;">${exceedHTML}</div>`:''}</td>
+            </tr>` : ''}
+            ${soulsHTML ? `<tr>
+              <td style="padding:8px 20px;font-size:12px;color:#666;vertical-align:top;white-space:nowrap;">영혼 각인${soulBindRate?`<br><span style="color:#7ab8d8;font-size:11px;">${soulBindRate}%</span>`:''}</td>
+              <td style="padding:8px 20px 8px 0;">${soulsHTML}</td>
+            </tr>` : ''}
+            ${costumeList.length ? ncRow('외형', costumeList.join(', ')) : ''}
+          </table>` : ''}
 
-          ${(statsHTML || exceedHTML) ? `
-            ${ncSec('옵션')}
-            <div style="padding:8px 20px 10px;">
-              ${statsHTML}
-              ${(statsHTML && exceedHTML) ? `<div style="margin-top:5px;padding-top:5px;border-top:1px solid rgba(255,255,255,.06);"></div>` : ''}
-              ${exceedHTML}
-            </div>` : ''}
+        <!-- 마석: 2열 그리드 -->
+        ${magicStones.length ? `
+          ${ncSec(_magicStoneLabel)}
+          <div style="padding:8px 20px;display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;">
+            ${magicStones.map(s=>{const sc=GC[s.grade]||'#999';return`<div style="display:flex;align-items:center;gap:6px;padding:2px 0;">${s.icon?`<img src="${s.icon}" style="width:20px;height:20px;border-radius:3px;flex-shrink:0;">`:`<div style="width:20px;height:20px;border-radius:3px;background:${sc}22;flex-shrink:0;"></div>`}<span style="font-size:12px;color:${sc};">${s.name||''}</span></div>`;}).join('')}
+          </div>` : ''}
 
-          ${soulsHTML ? `
-            ${ncSec(`영혼 각인${soulBindRate ? ` <span style="color:#7ab8d8;font-weight:400;">(${soulBindRate}%)</span>` : ''}`)}
-            <div style="padding:8px 20px 10px;">${soulsHTML}</div>` : ''}
+        <!-- 신석: 아이콘 + 이름(등급색) + 설명 -->
+        ${godStones.length ? `
+          ${ncSec('신석')}
+          <div style="padding:8px 20px;">
+            ${godStones.map(s=>{const sc=GC[s.grade]||'#e0c97a';const desc=s.description||s.desc||'';const effects=(s.skillEffectList||s.effectList||[]).map(ef=>`<div style="font-size:11px;color:#aaa;line-height:1.6;">${ef.description||ef.desc||ef.name||ef}</div>`).join('');return`<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;">${s.icon?`<img src="${s.icon}" style="width:22px;height:22px;border-radius:3px;flex-shrink:0;">`:`<div style="width:22px;height:22px;border-radius:3px;background:${sc}22;flex-shrink:0;"></div>`}<div><div style="font-size:12px;color:${sc};font-weight:600;">${s.name||''}</div>${desc?`<div style="font-size:11px;color:#aaa;line-height:1.6;margin-top:2px;">${desc}</div>`:''}${effects}</div></div>`;}).join('')}
+          </div>` : ''}
 
-          ${magicStones.length ? `
-            ${ncSec(_magicStoneLabel)}
-            <div style="padding:8px 20px;">${magicStones.map(s=>{const sc=GC[s.grade]||'#e0c97a';return`<div style="display:flex;align-items:center;gap:8px;padding:3px 0;">${s.icon?`<img src="${s.icon}" style="width:22px;height:22px;border-radius:3px;flex-shrink:0;">`:`<div style="width:22px;height:22px;border-radius:3px;background:${sc}22;border:1px solid ${sc}44;flex-shrink:0;"></div>`}<div><span style="font-size:12px;color:${sc};font-weight:600;">${s.name||''}</span>${(s.description||s.desc)?`<div style="font-size:11px;color:#999;margin-top:1px;">${s.description||s.desc}</div>`:''}</div></div>`;}).join('')}</div>` : ''}
-
-          ${godStones.length ? `
-            ${ncSec('신석')}
-            <div style="padding:8px 20px;">${godStones.map(s=>{const sc=GC[s.grade]||'#e0c97a';const effects=(s.skillEffectList||s.effectList||[]).map(ef=>`<div style="font-size:11px;color:#c8c8c8;line-height:1.5;">${ef.description||ef.desc||ef.name||ef}</div>`).join('');return`<div style="margin-bottom:8px;display:flex;align-items:flex-start;gap:8px;">${s.icon?`<img src="${s.icon}" style="width:22px;height:22px;border-radius:3px;flex-shrink:0;">`:`<div style="width:22px;height:22px;border-radius:3px;background:${sc}22;border:1px solid ${sc}44;flex-shrink:0;"></div>`}<div style="flex:1;min-width:0;"><div style="font-size:12px;color:${sc};font-weight:600;">${s.name||''}</div>${(s.description||s.desc)?`<div style="font-size:11px;color:#c8c8c8;line-height:1.5;margin-top:2px;">${s.description||s.desc}</div>`:''}${effects}</div></div>`;}).join('')}</div>` : ''}
-
-          ${costumeList.length ? `
-            ${ncSec('외형 정보')}
-            <table style="width:100%;border-collapse:collapse;">
-              ${ncRow('외형', costumeList.join(', '))}
-            </table>` : ''}
-
+        <!-- 세트 효과 + 획득처 -->
+        <div style="display:flex;gap:0;border-top:1px solid rgba(255,255,255,.07);">
+          <div style="flex:1;">
+            ${ncSec('세트 효과')}
+            <div style="padding:8px 20px;">${setFxHTML}</div>
+          </div>
+          <div style="flex:1;border-left:1px solid rgba(255,255,255,.07);">
+            ${ncSec('획득처')}
+            <div style="padding:8px 20px;">${acqHTML}</div>
+          </div>
         </div>
 
-        <!-- 오른쪽 -->
-        <div style="width:170px;flex-shrink:0;border-left:1px solid rgba(255,255,255,.07);">
-          <div style="padding:5px 16px;background:#25262b;font-size:11px;font-weight:600;color:#777;letter-spacing:.06em;">세트 효과</div>
-          <div style="padding:10px 14px;">${setFxHTML}</div>
-          <div style="padding:5px 16px;background:#25262b;font-size:11px;font-weight:600;color:#777;letter-spacing:.06em;border-top:1px solid rgba(255,255,255,.06);">획득처</div>
-          <div style="padding:10px 14px;">${acqHTML}</div>
-        </div>
       </div>
     `;
   }
