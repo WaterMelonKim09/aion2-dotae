@@ -56,6 +56,7 @@ module.exports = async function handler(req, res) {
       return {
         name:        e.name || '',
         slot:        e.slotPosName || e.slot || '',
+        slotPos:     e.slotPos !== undefined ? e.slotPos : null,
         enchant:     e.enchantLevel || 0,
         exceed:      e.exceedLevel || 0,
         grade:       e.grade || '',
@@ -120,9 +121,8 @@ module.exports = async function handler(req, res) {
       daevanion:    daevList,
       ranking:      rankList,
       titles:       titleList,
-      stigma:       [],
+      stigma:       skillList,
       arcana:       arcanaList,
-      skills:       skillList,
       pet:          petData,
       wing:         wingData,
     });
