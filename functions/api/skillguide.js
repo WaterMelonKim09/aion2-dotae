@@ -40,9 +40,9 @@ export async function onRequest(context) {
 
   const encodedTitle = encodeURIComponent(title);
 
-  async function tryJson(fetchUrl) {
+  async function tryJson(fetchUrl, reqHeaders) {
     try {
-      const r = await fetch(fetchUrl, { headers: ncHeaders });
+      const r = await fetch(fetchUrl, { headers: reqHeaders || ncHeaders });
       const text = await r.text();
       const isJson = text.trim().startsWith('{') || text.trim().startsWith('[');
       return { status: r.status, text: text.slice(0, 300), data: (r.ok && isJson) ? JSON.parse(text) : null };
@@ -51,21 +51,23 @@ export async function onRequest(context) {
     }
   }
 
-  // 시도할 API URL 목록 (title 파라미터 기반)
+  // 시도할 URL 목록
+  // 같은 페이지 URL에 Accept: application/json 헤더로 요청하면 JSON 반환하는 경우 많음
+  const jsonHeaders = { ...ncHeaders, 'Accept': 'application/json' };
   const attempts = [
-    `https://aion2.plaync.com/ko-kr/api/guidebook/view?title=${encodedTitle}`,
-    `https://aion2.plaync.com/ko-kr/api/guidebook/detail?title=${encodedTitle}`,
-    `https://aion2.plaync.com/ko-kr/api/guidebook/list?title=${encodedTitle}`,
-    `https://aion2.plaync.com/ko-kr/api/guidebook/view?title=${encodedTitle}&lang=ko`,
-    `https://aion2.plaync.com/api/guidebook/view?title=${encodedTitle}`,
+    { url: `https://aion2.plaync.com/ko-kr/guidebook/view?title=${encodedTitle}`, headers: jsonHeaders },
+    { url: `https://aion2.plaync.com/ko-kr/guidebook/view?title=${encodedTitle}&format=json`, headers: jsonHeaders },
+    { url: `https://aion2.plaync.com/ko-kr/guidebook/view?title=${encodedTitle}`, headers: { ...jsonHeaders, 'X-Requested-With': 'XMLHttpRequest' } },
+    { url: `https://aion2.plaync.com/ko-kr/guidebook/api/view?title=${encodedTitle}`, headers: jsonHeaders },
+    { url: `https://aion2.plaync.com/ko-kr/api/guidebook/view?title=${encodedTitle}`, headers: ncHeaders },
   ];
 
   try {
     const results = [];
     let paragraphList = null;
 
-    for (const fetchUrl of attempts) {
-      const res = await tryJson(fetchUrl);
+    for (const { url: fetchUrl, headers: reqHeaders } of attempts) {
+      const res = await tryJson(fetchUrl, reqHeaders);
       results.push({ url: fetchUrl, status: res.status, preview: res.text });
 
       if (!res.data) continue;
