@@ -1820,8 +1820,10 @@ function openDetail(m) {
       if([...params.keys()].filter(k=>k!=='lang').length > 0) {
         const res = await fetch('/api/item?' + params.toString());
         const json = await res.json();
-        console.log('[item-tooltip] API 응답:', json);
-        if(!json.error) {
+        console.log('[item-tooltip] API 응답:', JSON.stringify(json).substring(0, 500));
+        // _source가 있거나, 아이템 관련 필드가 있으면 유효한 응답으로 처리
+        const _hasData = json && (json._source || json.name || json.itemStat || json.equipmentList || json.itemLevel || json.grade || json.slotPos !== undefined);
+        if(_hasData) {
           // _source='equip-list': 장비 목록에서 찾은 아이템 (NC API의 원본 필드 그대로)
           // _source='item-endpoint': 아이템 상세 엔드포인트 응답
           raw = json;
