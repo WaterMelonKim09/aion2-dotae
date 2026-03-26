@@ -44,21 +44,23 @@ export async function onRequest(context) {
     const html = await r.text();
 
     if (debug) {
-      // HTML에서 스킬 테이블이 있는 부분만 추출해서 반환
-      const tableMatch = html.match(/<table[\s\S]{0,50000}/i);
+      // JS 번들 URL 목록 추출
+      const scriptSrcs = [...html.matchAll(/<script[^>]+src=["']([^"']+)["']/gi)].map(m => m[1]).slice(0, 10);
+      // 인라인 스크립트에서 API 관련 내용 추출
+      const inlineScripts = [...html.matchAll(/<script(?:[^>]*)>([\s\S]*?)<\/script>/gi)]
+        .map(m => m[1].trim())
+        .filter(s => s.length > 10 && (s.includes('api') || s.includes('guidebook') || s.includes('fetch') || s.includes('axios')))
+        .map(s => s.slice(0, 400));
+      // 페이지 내 API URL 힌트 탐색
+      const apiHints = [...html.matchAll(/['"`](\/(?:ko-kr\/)?api\/[^'"`\s]{5,80})['"`]/g)].map(m => m[1]);
       return new Response(JSON.stringify({
-        _debug: true,
-        gbId: info.gbId,
-        pageUrl,
-        httpStatus: r.status,
-        htmlLength: html.length,
-        // 첫 번째 table 태그 주변 컨텍스트
-        tablePreview: tableMatch ? tableMatch[0].slice(0, 1000) : null,
-        // __INITIAL_STATE__ 또는 JSON 데이터 확인
+        _debug: true, gbId: info.gbId, pageUrl, httpStatus: r.status, htmlLength: html.length,
+        scriptSrcs,
+        inlineScripts,
+        apiHints: [...new Set(apiHints)],
         hasInitialState: html.includes('__INITIAL_STATE__'),
         hasNuxtData: html.includes('__NUXT__') || html.includes('useNuxtApp'),
-        // 스크립트 태그에서 JSON 추출 시도
-        scriptJsonPreview: extractScriptJson(html, 200),
+        bodyPreview: html.slice(html.indexOf('<body'), html.indexOf('<body') + 1000),
       }, null, 2), { headers: corsHeaders });
     }
 
