@@ -1549,6 +1549,19 @@ function initFirebase() {
         document.getElementById('stat-recruit').textContent = recruits.length;
       });
 
+    // recruits 실시간 구독: 신청·수정·삭제 즉시 카드 갱신
+    db.channel('recruits-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'recruits' }, () => {
+        db.from('recruits').select('*').order('created_at', { ascending: false })
+          .then(({ data, error }) => {
+            if(error) return;
+            recruits = data || [];
+            renderRecruit();
+            document.getElementById('stat-recruit').textContent = recruits.length;
+          });
+      })
+      .subscribe();
+
     db.from('notices').select('*').order('created_at', { ascending: false })
       .then(function({ data, error }) {
         if(error) return;
