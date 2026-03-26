@@ -336,8 +336,8 @@
   </div>
   <div style="display:flex;align-items:center;gap:8px;">
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px;">
+      <span id="ver-latest" style="font-size:10px;color:var(--muted);white-space:nowrap;"></span>
       <span id="ver-current" style="font-size:10px;color:var(--muted);white-space:nowrap;"></span>
-      <span id="ver-latest" style="display:none;font-size:10px;color:#f90;white-space:nowrap;font-weight:600;"></span>
     </div>
     <button id="btn-system-update" onclick="doSystemUpdate()" class="btn btn-sm" style="font-size:12px;padding:6px 10px;white-space:nowrap;">⟳ 시스템 업데이트</button>
     <div id="header-user-btn" onclick="openMyProfile()" style="cursor:pointer;align-items:center;gap:8px;padding:5px 12px 5px 5px;background:var(--surface);border:1px solid var(--border);border-radius:20px;">
@@ -782,7 +782,7 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '20260326.1';
+const BUILD_VERSION = '20260326.2';
 
 let members  = [];
 let recruits = [];
@@ -2069,8 +2069,9 @@ function updateVersionDisplay(latestVersion) {
   curEl.textContent = '현재 v' + BUILD_VERSION;
   const hasUpdate = latestVersion && latestVersion !== BUILD_VERSION;
   if(latEl) {
-    latEl.style.display = hasUpdate ? '' : 'none';
-    if(hasUpdate) latEl.textContent = '최신 v' + latestVersion;
+    latEl.textContent = latestVersion ? ('최신 v' + latestVersion) : '';
+    latEl.style.color = hasUpdate ? '#f90' : 'var(--muted)';
+    latEl.style.fontWeight = hasUpdate ? '600' : '';
   }
   if(btn) {
     btn.style.borderColor = hasUpdate ? '#f90' : '';
