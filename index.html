@@ -1716,10 +1716,14 @@ function openDetail(m) {
       <div style="width:32px;height:32px;border-radius:4px;background:var(--surface);border:1px solid var(--border);flex-shrink:0;"></div>
       <div style="font-size:11px;color:var(--muted);">${SN[slot]||slot}</div></div>`;
     return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);cursor:pointer;" onclick="_showItemTooltip('${slot}')">
-      <img src="${e.icon}" style="width:32px;height:32px;border-radius:4px;border:2px solid ${gc};flex-shrink:0;">
+      <div style="position:relative;width:32px;height:32px;flex-shrink:0;">
+        <img src="${e.icon}" style="width:32px;height:32px;border-radius:4px;border:2px solid ${gc};">
+        ${e.enchant ? `<span style="position:absolute;bottom:1px;right:1px;font-size:8px;font-weight:700;color:#fff;background:rgba(0,0,0,.8);border-radius:2px;padding:0 2px;line-height:13px;pointer-events:none;">+${e.enchant}</span>` : ''}
+        ${e.exceed ? `<span style="position:absolute;top:1px;right:1px;font-size:7px;font-weight:700;color:#60c8ff;background:rgba(0,0,0,.8);border-radius:2px;padding:0 2px;line-height:12px;pointer-events:none;">돌파${e.exceed}</span>` : ''}
+      </div>
       <div style="flex:1;min-width:0;">
         <div style="font-size:12px;font-weight:600;color:${gc};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.name}</div>
-        <div style="font-size:10px;color:var(--muted);">${SN[slot]||slot} <span style="color:var(--gold-l);">+${e.enchant||0}</span>${e.exceed?`<div style="position:absolute;bottom:-1px;right:-1px;width:16px;height:16px;display:flex;align-items:center;justify-content:center;"><svg viewBox='0 0 16 16' width='16' height='16' style='position:absolute;'><polygon points='8,1 15,8 8,15 1,8' fill='#003850' stroke='#60c8ff' stroke-width='1.5'/></svg><span style='position:relative;font-size:8px;font-weight:700;color:#60c8ff;line-height:1;'>${e.exceed}</span></div>`:''}</div>
+        <div style="font-size:10px;color:var(--muted);">${SN[slot]||slot}</div>
       </div>
       <span style="font-size:10px;padding:1px 5px;border-radius:3px;background:${gc}22;color:${gc};border:1px solid ${gc}44;flex-shrink:0;">${GN[e.grade]||e.grade}</span>
     </div>`;
