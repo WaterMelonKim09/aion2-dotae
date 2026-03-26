@@ -64,9 +64,9 @@ module.exports = async function handler(req, res) {
         itemId:      e.itemId || e.id || 0,
         itemLevel:   e.itemLevel || 0,
         setName:     e.setItemName || '',
-        itemStats:   (e.itemStat && e.itemStat.statList) ? e.itemStat.statList : [],
-        itemOptions: (e.itemOption && e.itemOption.optionList) ? e.itemOption.optionList : [],
-        itemSouls:   (e.soulCrystal && e.soulCrystal.crystalList) ? e.soulCrystal.crystalList : [],
+        itemStats:   (e.itemStat   && (e.itemStat.statList   || e.itemStat.list   || e.itemStat.stats   || [])) || [],
+        itemOptions: (e.itemOption && (e.itemOption.optionList || e.itemOption.list || e.itemOption.options || [])) || [],
+        itemSouls:   (e.soulCrystal && (e.soulCrystal.crystalList || e.soulCrystal.list || e.soulCrystal.crystals || [])) || [],
         potential:   e.potential || null,
       };
     };
