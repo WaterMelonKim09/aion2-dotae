@@ -2121,14 +2121,18 @@ function openDetail(m) {
 
   // 장착 타이틀
   const titles = m.titles || [];
+  console.log('[titles] count:', titles.length, '/ sample:', JSON.stringify(titles[0]||null));
   const _gc2 = g => g==='Legendary'?'#ff6a20':g==='Unique'?'#e8c030':g==='Hero'||g==='Epic'?'#d44040':'#4a90e8';
   const titleHTML = titles.length
     ? '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;">'
       + titles.map(t => {
-          const col = _gc2(t.grade||'');
-          const es = (t.equipStatList||[]).map(s=>`<div style="font-size:11px;color:var(--muted);">${s.desc||''}</div>`).join('');
+          const tname = t.name || t.titleName || t.title || '';
+          const tgrade = t.grade || t.titleGrade || '';
+          const col = _gc2(tgrade);
+          const statList = t.equipStatList || t.statList || t.stats || [];
+          const es = statList.map(s=>`<div style="font-size:11px;color:var(--muted);">${s.desc||s.description||s.name||''}</div>`).join('');
           return `<div style="padding:10px;background:var(--card);border:1px solid ${col}44;border-radius:8px;border-left:3px solid ${col};">
-            <div style="font-size:13px;font-weight:600;color:${col};margin-bottom:4px;">${t.name||''}</div>${es}</div>`;
+            <div style="font-size:13px;font-weight:600;color:${col};margin-bottom:4px;">${tname}</div>${es}</div>`;
         }).join('') + '</div>'
     : '<div style="color:var(--muted);font-size:12px;padding:12px;text-align:center;">장착된 타이틀 없음 (갱신 필요)</div>';
 
