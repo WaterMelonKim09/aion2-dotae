@@ -2159,7 +2159,7 @@ function openDetail(m) {
       <div style="position:relative;width:32px;height:32px;flex-shrink:0;">
         <img src="${e.icon}" style="width:32px;height:32px;border-radius:4px;border:2px solid ${gc};">
         ${e.exceed>0
-          ? `<div style="position:absolute;bottom:-2px;right:-2px;background:#003850;border:1.5px solid #60c8ff;border-radius:3px;padding:0 3px;font-size:10px;font-weight:700;color:#60c8ff;line-height:1.5;pointer-events:none;white-space:nowrap;">돌파${e.exceed}</div>`
+          ? `<div style="position:absolute;bottom:-2px;right:-2px;width:18px;height:18px;display:flex;align-items:center;justify-content:center;pointer-events:none;"><svg viewBox='0 0 13 13' width='18' height='18' style='position:absolute;'><polygon points='6.5,1 12,6.5 6.5,12 1,6.5' fill='#001e30' stroke='#60c8ff' stroke-width='1.5'/></svg><span style='position:relative;font-size:8px;font-weight:700;color:#60c8ff;'>${e.exceed}</span></div>`
           : e.enchant>0
           ? `<div style="position:absolute;bottom:-2px;right:-2px;font-size:10px;font-weight:700;color:var(--gold-l);background:rgba(0,0,0,.92);border-radius:2px;padding:0 3px;line-height:1.5;pointer-events:none;">+${e.enchant}</div>`
           : ''}
