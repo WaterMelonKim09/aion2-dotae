@@ -56,11 +56,15 @@ CREATE TABLE IF NOT EXISTS recruits (
 -- notices 테이블
 CREATE TABLE IF NOT EXISTS notices (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  type        TEXT DEFAULT '공지사항',
+  version     TEXT DEFAULT '',
   title       TEXT,
   content     TEXT,
   author      TEXT,
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
+ALTER TABLE notices ADD COLUMN IF NOT EXISTS type    TEXT DEFAULT '공지사항';
+ALTER TABLE notices ADD COLUMN IF NOT EXISTS version TEXT DEFAULT '';
 
 -- war_surveys 테이블
 CREATE TABLE IF NOT EXISTS war_surveys (
