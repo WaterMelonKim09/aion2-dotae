@@ -2134,17 +2134,8 @@ function openDetail(m) {
         </div>`).join('')
     : '';
 
-  // 펫/날개 NC 스타일 헬퍼
-  const _pwRow = (icon, nameHTML, rightIcon) =>
-    `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;">
-      <div style="width:36px;height:36px;border-radius:4px;border:1px solid rgba(255,255,255,.18);overflow:hidden;flex-shrink:0;background:#111;display:flex;align-items:center;justify-content:center;">
-        ${icon?`<img src="${icon}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.opacity=.25">`:``}
-      </div>
-      <div style="flex:1;min-width:0;">${nameHTML}</div>
-      ${rightIcon?`<div style="width:32px;height:32px;border-radius:4px;border:2px solid #5a3a9a;overflow:hidden;flex-shrink:0;background:#111;"><img src="${rightIcon}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.opacity=.25"></div>`:''}
-    </div>`;
   const petHTML = m.pet
-    ? `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;">
+    ? `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);">
         <div style="position:relative;width:32px;height:32px;flex-shrink:0;">
           <img src="${m.pet.icon||''}" style="width:32px;height:32px;border-radius:4px;border:2px solid #888;" onerror="this.style.opacity=.3">
           ${m.pet.level?`<div style="position:absolute;bottom:-2px;right:-2px;font-size:10px;font-weight:700;color:var(--gold-l);background:rgba(0,0,0,.92);border-radius:2px;padding:0 3px;line-height:1.5;">Lv.${m.pet.level}</div>`:''}
@@ -2154,22 +2145,54 @@ function openDetail(m) {
           <div style="font-size:10px;color:var(--muted);">펫</div>
         </div>
       </div>`
-    : `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;opacity:.25;">
+    : `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);opacity:.25;">
         <div style="width:32px;height:32px;border-radius:4px;background:var(--surface);border:1px solid var(--border);flex-shrink:0;"></div>
         <div style="font-size:11px;color:var(--muted);">펫 없음</div>
       </div>`;
   const effectWingHTML = (() => {
     if(equipMap['Wing']) {
       const e = equipMap['Wing'], gc = GC[e.grade]||'#e8a030';
-      return _pwRow(e.icon, `<div style="font-size:13px;color:#e8a030;">${e.name}${e.enchant>0?' +'+e.enchant:''}</div>`, '');
+      return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);">
+        <div style="position:relative;width:32px;height:32px;flex-shrink:0;">
+          <img src="${e.icon}" style="width:32px;height:32px;border-radius:4px;border:2px solid ${gc};">
+          ${e.enchant>0?`<div style="position:absolute;bottom:-2px;right:-2px;font-size:10px;font-weight:700;color:var(--gold-l);background:rgba(0,0,0,.92);border-radius:2px;padding:0 3px;line-height:1.5;">+${e.enchant}</div>`:''}
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:12px;font-weight:600;color:${gc};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.name}</div>
+          <div style="font-size:10px;color:var(--muted);">효과 날개</div>
+        </div>
+        <span style="font-size:10px;padding:1px 5px;border-radius:3px;background:${gc}22;color:${gc};border:1px solid ${gc}44;flex-shrink:0;">${GN[e.grade]||e.grade}</span>
+      </div>`;
     }
-    if(m.wing) return _pwRow(m.wing.icon,
-      `<div style="font-size:13px;color:#e8a030;">${m.wing.name||'날개'}${m.wing.enchant>0?' +'+m.wing.enchant:''}</div>`, '');
-    return `<div style="font-size:12px;color:var(--muted);padding:8px 10px;">없음</div>`;
+    if(m.wing) return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);">
+      <div style="position:relative;width:32px;height:32px;flex-shrink:0;">
+        <img src="${m.wing.icon||''}" style="width:32px;height:32px;border-radius:4px;border:2px solid #e8a030;" onerror="this.style.opacity=.3">
+        ${m.wing.enchant>0?`<div style="position:absolute;bottom:-2px;right:-2px;font-size:10px;font-weight:700;color:var(--gold-l);background:rgba(0,0,0,.92);border-radius:2px;padding:0 3px;line-height:1.5;">+${m.wing.enchant}</div>`:''}
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;font-weight:600;color:#e8a030;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.wing.name||'날개'}</div>
+        <div style="font-size:10px;color:var(--muted);">효과 날개</div>
+      </div>
+    </div>`;
+    return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);opacity:.25;">
+      <div style="width:32px;height:32px;border-radius:4px;background:var(--surface);border:1px solid var(--border);flex-shrink:0;"></div>
+      <div style="font-size:11px;color:var(--muted);">효과 날개 없음</div>
+    </div>`;
   })();
   const skinWingHTML = (m.wing && m.wing.skin)
-    ? _pwRow(m.wing.skin.icon, `<div style="font-size:13px;color:#e8a030;">${m.wing.skin.name||'외형 날개'}</div>`, m.wing.skin.icon)
-    : `<div style="font-size:12px;color:var(--muted);padding:8px 10px;">없음</div>`;
+    ? `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);">
+        <div style="width:32px;height:32px;flex-shrink:0;">
+          <img src="${m.wing.skin.icon||''}" style="width:32px;height:32px;border-radius:4px;border:2px solid #9060d0;" onerror="this.style.opacity=.3">
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:12px;font-weight:600;color:#c090ff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.wing.skin.name||'외형 날개'}</div>
+          <div style="font-size:10px;color:var(--muted);">외형 날개</div>
+        </div>
+      </div>`
+    : `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);opacity:.25;">
+        <div style="width:32px;height:32px;border-radius:4px;background:var(--surface);border:1px solid var(--border);flex-shrink:0;"></div>
+        <div style="font-size:11px;color:var(--muted);">외형 날개 없음</div>
+      </div>`;
 
   // 슬롯 그룹
   const equip1 = ['MainHand','SubHand','Helmet','Shoulder','Torso','Gloves','Pants','Boots','Cape','Belt'];
@@ -2272,14 +2295,10 @@ function openDetail(m) {
         </div>
         <!-- 펫/날개/아르카나 -->
         <div>
-          <div style="border:1px solid var(--border);border-radius:6px;overflow:hidden;background:var(--card);margin-bottom:12px;">
-            <div style="font-size:10px;font-weight:600;color:var(--muted);padding:6px 10px 4px;border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.5px;">펫</div>
-            <div style="padding:0;">${petHTML}</div>
-            <div style="font-size:10px;font-weight:600;color:var(--muted);padding:6px 10px 4px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.5px;">효과 날개</div>
-            <div style="padding:0;">${effectWingHTML}</div>
-            <div style="font-size:10px;font-weight:600;color:var(--muted);padding:6px 10px 4px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.5px;">외형 날개</div>
-            <div style="padding:0;">${skinWingHTML}</div>
-          </div>
+          <div style="font-size:11px;font-weight:600;color:var(--gold);margin-bottom:8px;">펫 / 날개</div>
+          ${petHTML}
+          ${effectWingHTML}
+          ${skinWingHTML}
           <div style="font-size:11px;font-weight:600;color:var(--gold);margin:12px 0 8px;">아르카나</div>
           ${['Arcana1','Arcana2','Arcana3','Arcana4','Arcana5','Arcana6'].map((s,i,a)=>equipHTML(s,i===a.length-1)).join('')}
         </div>
