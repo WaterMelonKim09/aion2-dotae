@@ -1425,51 +1425,53 @@ function initFirebase() {
     if(BUILD_VERSION >= stored) {
       versionRef.set({ latest_version: BUILD_VERSION, updated_at: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
     }
-  });
-  versionRef.onSnapshot(doc => {
     if(doc.exists && doc.data().latest_version) updateVersionDisplay(doc.data().latest_version);
     else updateVersionDisplay(BUILD_VERSION);
-  });
+  }).catch(function(){});
 
   migrateRanks(); // 구버전 계급 자동 변환
-  initBossTimers(); // 슈고 타이머 구독
-  db.collection('members').orderBy('combat_power','desc')
-    .onSnapshot(snap => {
-      members = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      renderAll();
-      setFirebaseStatus('ok');
-      clearTimeout(window.loadingTimeout); var _loadEl=document.getElementById('loading-screen'); if(_loadEl) _loadEl.style.display='none';
-      const isFirstLoad = !sessionStorage.getItem("_loginInit");
-      if(isFirstLoad){ sessionStorage.setItem("_loginInit","1"); initLoginScreen(); }
-    }, function(err) {
-      clearTimeout(window.loadingTimeout);
-      var _loadEl=document.getElementById('loading-screen'); if(_loadEl) _loadEl.style.display='none';
-      const isFirstLoad = !sessionStorage.getItem("_loginInit");
-      if(isFirstLoad){ sessionStorage.setItem("_loginInit","1"); initLoginScreen(); }
-      setFirebaseStatus('error', err.code || err.message);
-      console.error('Firebase 연결 오류:', err);
-    });
-  db.collection('recruits').orderBy('created_at','desc')
-    .onSnapshot(snap => {
-      recruits = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      renderRecruit();
-      document.getElementById('stat-recruit').textContent = recruits.length;
-      // 상세 모달 열려있으면 갱신
-      if(currentRecruitId && document.getElementById('modal-recruit-detail').classList.contains('open')) {
-        renderApplyList(currentRecruitId);
-        renderCommentList(currentRecruitId);
-      }
-    });
+  initBossTimers(); // 슈고 타이머 구독 (boss_timers만 onSnapshot 유지)
 
-  db.collection('notices').orderBy('created_at','desc')
-    .onSnapshot(function(snap) {
-      renderNotices(snap.docs.map(function(d){ return Object.assign({id:d.id},d.data()); }));
-    });
+  // onSnapshot → get() 전환: 모바일 WebSocket 차단 환경 대응
+  function loadAllData() {
+    db.collection('members').orderBy('combat_power','desc').get()
+      .then(snap => {
+        members = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderAll();
+        setFirebaseStatus('ok');
+        clearTimeout(window.loadingTimeout); var _loadEl=document.getElementById('loading-screen'); if(_loadEl) _loadEl.style.display='none';
+        const isFirstLoad = !sessionStorage.getItem("_loginInit");
+        if(isFirstLoad){ sessionStorage.setItem("_loginInit","1"); initLoginScreen(); }
+      })
+      .catch(function(err) {
+        clearTimeout(window.loadingTimeout);
+        var _loadEl=document.getElementById('loading-screen'); if(_loadEl) _loadEl.style.display='none';
+        const isFirstLoad = !sessionStorage.getItem("_loginInit");
+        if(isFirstLoad){ sessionStorage.setItem("_loginInit","1"); initLoginScreen(); }
+        setFirebaseStatus('error', err.code || err.message);
+        console.error('Firebase 연결 오류:', err);
+      });
 
-  db.collection('war_surveys').orderBy('created_at','desc').onSnapshot(snap => {
-    warSurveys = snap.docs.map(d => Object.assign({id:d.id},d.data()));
-    renderWarSurveys();
-  });
+    db.collection('recruits').orderBy('created_at','desc').get()
+      .then(snap => {
+        recruits = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderRecruit();
+        document.getElementById('stat-recruit').textContent = recruits.length;
+      }).catch(function(){});
+
+    db.collection('notices').orderBy('created_at','desc').get()
+      .then(function(snap) {
+        renderNotices(snap.docs.map(function(d){ return Object.assign({id:d.id},d.data()); }));
+      }).catch(function(){});
+
+    db.collection('war_surveys').orderBy('created_at','desc').get()
+      .then(snap => {
+        warSurveys = snap.docs.map(d => Object.assign({id:d.id},d.data()));
+        renderWarSurveys();
+      }).catch(function(){});
+  }
+  window.refreshData = loadAllData;
+  loadAllData();
 }
 
 // 계급 순서
@@ -2736,13 +2738,18 @@ async function clearKill(bossId) {
   toast('초기화 완료');
 }
 
-// Firebase 슈고 타이머 구독
+// Firebase 슈고 타이머 (get으로 전환)
 function initBossTimers() {
-  db.collection('boss_timers').onSnapshot(snap => {
-    bossData = {};
-    snap.docs.forEach(d => { bossData[d.id] = d.data(); });
-    renderBossGrid();
-  });
+  function loadBossTimers() {
+    db.collection('boss_timers').get().then(snap => {
+      bossData = {};
+      snap.docs.forEach(d => { bossData[d.id] = d.data(); });
+      renderBossGrid();
+    }).catch(function(){});
+  }
+  loadBossTimers();
+  // 30초마다 갱신 (실시간 대신 폴링)
+  setInterval(loadBossTimers, 30000);
 
   // 1초마다 카운트다운 업데이트
   setInterval(() => {
