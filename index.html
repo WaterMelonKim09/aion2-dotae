@@ -2440,19 +2440,10 @@ function renderMembers() {
       : '';
     rows += rowHTML(main, false, subToggle);
     mainSubs.forEach(s => {
-      rows += `<tr id="sub-row-${s.id}" style="display:none;background:rgba(0,0,0,.15);">
-        <td style="font-weight:600;white-space:nowrap;padding-left:20px;">└ ${s.nickname}<span style="font-size:10px;color:var(--muted);margin-left:4px;border:1px solid var(--border);border-radius:3px;padding:1px 4px;">부캐</span></td>
-        <td style="white-space:nowrap;"><span class="cls cls-${CLASS_MAP[s.class]||s.class||''}">${CLS_ICON[CLASS_MAP[s.class]||s.class]||''} ${CLASS_MAP[s.class]||s.class||'?'}</span></td>
-        <td></td>
-        <td><span style="font-size:13px;font-weight:600;color:var(--gold-l);">${(s.combat_power||0).toLocaleString()}</span></td>
-        <td style="white-space:nowrap;">${s.item_level||'—'}</td>
-        <td><div class="equip-list">${(s.equipment||[]).slice(0,3).map(e=>{const gc=({Common:'#aaaaaa',Rare:'#4a90e8',Hero:'#d44040',Epic:'#d44040',Unique:'#e8c030',Legendary:'#ff6a20',Special:'#40d4c0'})[e.grade]||'#555';return`<div class="equip-item grade-${e.grade||''}" style="border-color:${gc}88;"><img src="${e.icon}" onerror="this.style.display='none'" style="width:20px;height:20px;border-radius:3px;border:1px solid ${gc}66;"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px;display:inline-block;vertical-align:middle;color:${gc};">${e.name||''} ${e.enchant?'+'+e.enchant:''}</span></div>`;}).join('')}</div></td>
-        <td style="white-space:nowrap;vertical-align:middle;"><button class="btn btn-sm" onclick="syncMember('${s.id}','${s.nickname}','${s.server||'2001'}')">갱신</button></td>
-        <td style="white-space:nowrap;vertical-align:middle;">
-          <button class="btn btn-sm" onclick="openDetailById('${s.id}')" style="font-size:11px;">상세</button>
-          <button class="btn btn-sm" onclick="openEdit('${s.id}','${s.rank||'군단병'}')">관리</button>
-        </td>
-      </tr>`;
+      rows += rowHTML(s, true).replace(
+        /^<tr style="/,
+        `<tr id="sub-row-${s.id}" style="display:none;`
+      );
     });
   });
 
