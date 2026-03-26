@@ -2144,7 +2144,7 @@ function openDetail(m) {
       <div style="position:relative;width:32px;height:32px;flex-shrink:0;">
         <img src="${e.icon}" style="width:32px;height:32px;border-radius:4px;border:2px solid ${gc};">
         ${e.exceed>0
-          ? `<div style="position:absolute;bottom:-2px;right:-2px;background:#003850;border:1.5px solid #60c8ff;border-radius:3px;padding:0 3px;font-size:10px;font-weight:700;color:#60c8ff;line-height:1.5;pointer-events:none;white-space:nowrap;">돌${e.exceed}</div>`
+          ? `<div style="position:absolute;bottom:-2px;right:-2px;background:#003850;border:1.5px solid #60c8ff;border-radius:3px;padding:0 3px;font-size:10px;font-weight:700;color:#60c8ff;line-height:1.5;pointer-events:none;white-space:nowrap;">돌파${e.exceed}</div>`
           : e.enchant>0
           ? `<div style="position:absolute;bottom:-2px;right:-2px;font-size:10px;font-weight:700;color:var(--gold-l);background:rgba(0,0,0,.92);border-radius:2px;padding:0 3px;line-height:1.5;pointer-events:none;">+${e.enchant}</div>`
           : ''}
@@ -2235,7 +2235,6 @@ function openDetail(m) {
     ? `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);">
         <div style="position:relative;width:32px;height:32px;flex-shrink:0;">
           <img src="${m.pet.icon||''}" style="width:32px;height:32px;border-radius:4px;border:2px solid #888;" onerror="this.style.opacity=.3">
-          ${m.pet.level?`<div style="position:absolute;bottom:-2px;right:-2px;font-size:10px;font-weight:700;color:var(--gold-l);background:rgba(0,0,0,.92);border-radius:2px;padding:0 3px;line-height:1.5;">Lv.${m.pet.level}</div>`:''}
         </div>
         <div style="flex:1;min-width:0;">
           <div style="font-size:12px;font-weight:600;color:#d8d8d8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.pet.name||'펫'}</div>
@@ -2246,43 +2245,30 @@ function openDetail(m) {
         <div style="width:32px;height:32px;border-radius:4px;background:var(--surface);border:1px solid var(--border);flex-shrink:0;"></div>
         <div style="font-size:11px;color:var(--muted);">펫 없음</div>
       </div>`;
-  const effectWingHTML = (() => {
-    if(equipMap['Wing']) {
-      const e = equipMap['Wing'], gc = GC[e.grade]||'#e8a030';
-      return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);">
+  const effectWingHTML = m.wing
+    ? `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);">
         <div style="position:relative;width:32px;height:32px;flex-shrink:0;">
-          <img src="${e.icon}" style="width:32px;height:32px;border-radius:4px;border:2px solid ${gc};">
-          ${e.enchant>0?`<div style="position:absolute;bottom:-2px;right:-2px;font-size:10px;font-weight:700;color:var(--gold-l);background:rgba(0,0,0,.92);border-radius:2px;padding:0 3px;line-height:1.5;">+${e.enchant}</div>`:''}
+          <img src="${m.wing.icon||''}" style="width:32px;height:32px;border-radius:4px;border:2px solid #e8a030;" onerror="this.style.opacity=.3">
+          ${m.wing.enchant>0?`<div style="position:absolute;bottom:-2px;right:-2px;font-size:10px;font-weight:700;color:var(--gold-l);background:rgba(0,0,0,.92);border-radius:2px;padding:0 3px;line-height:1.5;">+${m.wing.enchant}</div>`:''}
         </div>
         <div style="flex:1;min-width:0;">
-          <div style="font-size:12px;font-weight:600;color:${gc};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.name}</div>
+          <div style="font-size:12px;font-weight:600;color:#e8a030;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.wing.name||'날개'}</div>
           <div style="font-size:10px;color:var(--muted);">효과 날개</div>
         </div>
-        <span style="font-size:10px;padding:1px 5px;border-radius:3px;background:${gc}22;color:${gc};border:1px solid ${gc}44;flex-shrink:0;">${GN[e.grade]||e.grade}</span>
+      </div>`
+    : `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);opacity:.25;">
+        <div style="width:32px;height:32px;border-radius:4px;background:var(--surface);border:1px solid var(--border);flex-shrink:0;"></div>
+        <div style="font-size:11px;color:var(--muted);">효과 날개 없음</div>
       </div>`;
-    }
-    if(m.wing) return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);">
-      <div style="position:relative;width:32px;height:32px;flex-shrink:0;">
-        <img src="${m.wing.icon||''}" style="width:32px;height:32px;border-radius:4px;border:2px solid #e8a030;" onerror="this.style.opacity=.3">
-        ${m.wing.enchant>0?`<div style="position:absolute;bottom:-2px;right:-2px;font-size:10px;font-weight:700;color:var(--gold-l);background:rgba(0,0,0,.92);border-radius:2px;padding:0 3px;line-height:1.5;">+${m.wing.enchant}</div>`:''}
-      </div>
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:12px;font-weight:600;color:#e8a030;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.wing.name||'날개'}</div>
-        <div style="font-size:10px;color:var(--muted);">효과 날개</div>
-      </div>
-    </div>`;
-    return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);opacity:.25;">
-      <div style="width:32px;height:32px;border-radius:4px;background:var(--surface);border:1px solid var(--border);flex-shrink:0;"></div>
-      <div style="font-size:11px;color:var(--muted);">효과 날개 없음</div>
-    </div>`;
-  })();
-  const skinWingHTML = (m.wing && m.wing.skin)
+  // 외형 날개: 스킨이 있으면 스킨, 없으면 효과 날개와 동일하게 표시
+  const _skinSrc = m.wing ? (m.wing.skin || { name: m.wing.name, icon: m.wing.icon }) : null;
+  const skinWingHTML = _skinSrc
     ? `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);">
         <div style="width:32px;height:32px;flex-shrink:0;">
-          <img src="${m.wing.skin.icon||''}" style="width:32px;height:32px;border-radius:4px;border:2px solid #9060d0;" onerror="this.style.opacity=.3">
+          <img src="${_skinSrc.icon||''}" style="width:32px;height:32px;border-radius:4px;border:2px solid #9060d0;" onerror="this.style.opacity=.3">
         </div>
         <div style="flex:1;min-width:0;">
-          <div style="font-size:12px;font-weight:600;color:#c090ff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.wing.skin.name||'외형 날개'}</div>
+          <div style="font-size:12px;font-weight:600;color:#c090ff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${_skinSrc.name||'외형 날개'}</div>
           <div style="font-size:10px;color:var(--muted);">외형 날개</div>
         </div>
       </div>`
