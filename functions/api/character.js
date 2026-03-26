@@ -131,8 +131,7 @@ export async function onRequest(context) {
         icon:   s.skillIcon   || s.icon   || '',
         level:  s.skillLevel  || s.level  || 0,
         type:   s.skillType   || s.type   || s.category || s.skillCategory || s.typeName || item._defaultType || '',
-        effect: s.skillEffect || s.effect || s.description || s.tooltip || s.skillDescription || s.skillDesc || s.skillInfo || s.info || '',
-        _debugKeys: Object.keys(s),  // 임시 디버그: API에서 어떤 필드 오는지 확인용
+        effect: '',  // NC API에서 스킬 효과 텍스트 미제공
       };
     });
     var statList = (infoData && infoData.stat && infoData.stat.statList) ? infoData.stat.statList : [];

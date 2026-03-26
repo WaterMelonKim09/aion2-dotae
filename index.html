@@ -2168,12 +2168,11 @@ function openDetail(m) {
     return a.localeCompare(b);
   });
   const skillCardHTML = s => `
-    <div style="display:flex;align-items:flex-start;gap:8px;padding:6px;background:var(--surface);border:1px solid var(--border);border-radius:8px;">
-      <img src="${s.icon||''}" style="width:32px;height:32px;border-radius:6px;border:1px solid var(--border);flex-shrink:0;" onerror="this.style.display='none'">
+    <div style="display:flex;align-items:center;gap:8px;padding:6px;background:var(--surface);border:1px solid var(--border);border-radius:8px;">
+      <img src="${s.icon||''}" style="width:32px;height:32px;border-radius:6px;border:1px solid var(--border);" onerror="this.style.display='none'">
       <div style="flex:1;min-width:0;">
         <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.name||''}</div>
         <div style="font-size:10px;color:var(--muted);">Lv.${s.level||0}</div>
-        ${s.effect ? `<div style="font-size:10px;color:var(--text);opacity:.75;margin-top:3px;line-height:1.4;white-space:pre-wrap;">${s.effect}</div>` : ''}
       </div>
     </div>`;
   const stigmaHTML = skillGroupEntries.length
