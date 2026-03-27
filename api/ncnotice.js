@@ -11,58 +11,56 @@ module.exports = async function handler(req, res) {
     'Origin': 'https://aion2.plaync.com',
   };
 
-  // boardAlias=notice_ko (debug 응답으로 확인)
+  // notice_ko / notice_ko_ko boardAlias 기반으로 시도
   const endpoints = [
-    'https://aion2.plaync.com/api/board/aion2/notice_ko/list?page=1&pageSize=20',
-    'https://aion2.plaync.com/api/board/notice_ko/list?page=1&pageSize=20&serviceAlias=aion2',
-    'https://aion2.plaync.com/api/board/list?serviceAlias=aion2&boardAlias=notice_ko&page=1&pageSize=20',
-    'https://aion2.plaync.com/api/board/aion2/notice_ko?page=1&pageSize=20',
+    'https://aion2.plaync.com/api/board/notice_ko/articles?page=1&pageSize=20&serviceAlias=aion2',
+    'https://aion2.plaync.com/api/board/notice_ko_ko/articles?page=1&pageSize=20&serviceAlias=aion2',
+    'https://aion2.plaync.com/api/board/notice_ko/list/articles?page=1&pageSize=20&serviceAlias=aion2',
+    'https://aion2.plaync.com/api/board/aion2/notice_ko/articles?page=1&pageSize=20',
+    'https://aion2.plaync.com/ko-kr/api/board/notice_ko/articles?page=1&pageSize=20',
+    'https://aion2.plaync.com/api/board/notice_ko/posts?page=1&pageSize=20&serviceAlias=aion2',
+    'https://aion2.plaync.com/api/board/aion2/notice/articles?page=1&pageSize=20',
   ];
 
-  const debug = req.query.debug === '1';
-  const debugLog = [];
+  if (req.query.debug === '1') {
+    const results = [];
+    for (const url of endpoints) {
+      try {
+        const r = await fetch(url, { headers });
+        const text = await r.text();
+        let parsed = null; try { parsed = JSON.parse(text); } catch(e) {}
+        results.push({ url, status: r.status, ok: r.ok, isJson: !!parsed, keys: parsed ? Object.keys(parsed) : null, preview: text.slice(0, 400) });
+      } catch(e) { results.push({ url, error: e.message }); }
+    }
+    return res.status(200).json({ notices: [], debug: results });
+  }
 
   for (const url of endpoints) {
     try {
       const r = await fetch(url, { headers });
-      const text = await r.text();
-      let data;
-      try { data = JSON.parse(text); } catch(e) {
-        if(debug) debugLog.push({ url, status: r.status, parseError: e.message, preview: text.slice(0,200) });
-        continue;
-      }
-      if(debug) debugLog.push({ url, status: r.status, ok: r.ok, keys: Object.keys(data), preview: text.slice(0,400) });
       if (!r.ok) continue;
+      const text = await r.text();
+      let data; try { data = JSON.parse(text); } catch(e) { continue; }
 
-      const rawList = data?.result?.boardList
-        || data?.result?.list
-        || data?.boardList
-        || data?.list
-        || data?.data?.list
-        || data?.data
-        || (Array.isArray(data) ? data : null)
-        || [];
+      const rawList = data?.result?.boardList || data?.result?.list || data?.result?.articles
+        || data?.boardList || data?.list || data?.articles || data?.data?.list || data?.data
+        || (Array.isArray(data) ? data : null) || [];
 
       if (!Array.isArray(rawList) || rawList.length === 0) continue;
 
       const notices = rawList.slice(0, 20).map(n => ({
         id:       String(n.boardNo || n.articleNo || n.id || ''),
         title:    n.subject || n.title || n.boardTitle || '',
-        date:     (n.createDate || n.regDate || n.date || '').slice(0,10).replace(/-/g,'.'),
+        date:     (n.createDate || n.regDate || n.date || '').slice(0, 10).replace(/-/g, '.'),
         url:      buildUrl(n),
         category: n.categoryName || n.category || '',
       })).filter(n => n.title);
 
-      if (notices.length > 0) {
-        return res.status(200).json({ notices, _src: url });
-      }
-    } catch(e) {
-      if(debug) debugLog.push({ url, error: e.message });
-    }
+      if (notices.length > 0) return res.status(200).json({ notices, _src: url });
+    } catch(e) { continue; }
   }
 
-  if(debug) return res.status(200).json({ notices: [], debug: debugLog });
-  return res.status(200).json({ notices: [], _err: '공지 목록을 가져올 수 없습니다' });
+  return res.status(200).json({ notices: [], _err: 'NC 공지 API 엔드포인트를 찾지 못했습니다' });
 };
 
 function buildUrl(n) {

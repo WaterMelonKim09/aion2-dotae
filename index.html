@@ -981,7 +981,7 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.30';
+const BUILD_VERSION = '1.5.31';
 const BUILD_PATCHNOTE = {
   title: '최근 모집 카드 크기 + 스킬 설명 복구',
   content: '• 대시보드 최근 모집: recruit-grid 동일한 3열 그리드 레이아웃 적용.\n• 스킬 설명: NC 가이드북 API 호출 복구 (CLASS_MAP 클래스명으로 정확히 요청).'
@@ -1933,9 +1933,10 @@ function renderNotices(notices, showAll) {
     const d = n.created_at ? new Date(n.created_at) : new Date();
     const dateStr = d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0');
     const author = n.author || '';
+    const views  = n.views  || 0;
     const nid    = 'notice-body-'+n.id;
     return '<div class="card" style="padding:0;border-left:3px solid '+borderLeft3(n.type)+';margin-bottom:8px;overflow:hidden;">'
-      +'<div style="padding:12px 14px;cursor:pointer;" onclick="toggleNoticeItem(\''+n.id+'\')">'
+      +'<div style="padding:12px 14px;cursor:pointer;" onclick="toggleNoticeItem(\''+n.id+'\','+views+')">'
         +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;margin-bottom:4px;">'
           +'<span style="font-size:13px;font-weight:700;line-height:1.4;flex:1;">'+(n.version?'<span style="color:var(--gold-l);font-size:11px;margin-right:4px;">'+n.version+'</span>':'')+n.title+'</span>'
           +(isAdmin()?'<button onclick="event.stopPropagation();deleteNotice(\''+n.id+'\')" style="font-size:10px;padding:2px 5px;background:none;border:1px solid var(--red);border-radius:4px;color:var(--red);cursor:pointer;flex-shrink:0;">삭제</button>':'')
@@ -1943,6 +1944,7 @@ function renderNotices(notices, showAll) {
         +'<div style="display:flex;gap:8px;align-items:center;">'
           +(author?'<span style="font-size:11px;color:var(--muted);">'+author+'</span><span style="color:var(--border);">·</span>':'')
           +'<span style="font-size:11px;color:var(--muted);">'+dateStr+'</span>'
+          +'<span style="font-size:11px;color:var(--muted);">👁 <span id="views-'+n.id+'">'+views+'</span></span>'
         +'</div>'
       +'</div>'
       +'<div id="'+nid+'" style="display:none;padding:0 14px 14px;border-top:1px solid var(--border);">'
@@ -1967,10 +1969,21 @@ function renderNotices(notices, showAll) {
     + moreBtn;
 }
 
-function toggleNoticeItem(noticeId) {
+function toggleNoticeItem(noticeId, currentViews) {
   const body = document.getElementById('notice-body-'+noticeId);
   if(!body) return;
-  body.style.display = body.style.display !== 'none' ? 'none' : '';
+  const isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : '';
+  if(!isOpen) {
+    const newViews = (currentViews||0) + 1;
+    const viewEl = document.getElementById('views-'+noticeId);
+    if(viewEl) viewEl.textContent = newViews;
+    // onclick 갱신 (다음 토글 시 최신값 전달)
+    const header = body.previousElementSibling;
+    if(header) header.setAttribute('onclick', 'toggleNoticeItem(\''+noticeId+'\','+newViews+')');
+    // DB 업데이트 (views 컬럼 있을 때만 반영, 없으면 조용히 무시)
+    db.from('notices').update({ views: newViews }).eq('id', noticeId).catch(function(){});
+  }
 }
 
 function openNoticeWrite() {
