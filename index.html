@@ -1195,10 +1195,10 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.68';
+const BUILD_VERSION = '1.5.69';
 const BUILD_PATCHNOTE = {
-  title: '액션 팝업 개선, 백그라운드 갱신 최적화',
-  content: '• 액션 로딩 팝업 크기 확대 및 스피너 중앙 이미지 표시.\n• 사용자 액션 시 백그라운드 갱신 즉시 중단 (상세 보기 응답 속도 개선).\n• 탈퇴 스캔 제거 시 로딩 팝업 표시.\n• 캐시 저장 시 무거운 컬럼 제외로 용량 절감.\n• 연결 실패 재시도 메시지 표시 버그 수정.'
+  title: '상세 팝업 로딩 hang 버그 수정',
+  content: '• 상세 보기 클릭 시 로딩 팝업이 닫히지 않던 버그 수정.\n• openDetailById try-finally로 로딩 팝업 항상 해제 보장.\n• 백그라운드 갱신 AbortController 제거, 토큰 방식으로 교체 (안정성).'
 };
 
 // 전체 패치 내역 (버전별 정확한 설명)
@@ -1237,6 +1237,8 @@ const _PATCH_HISTORY = [
     content:'• 멤버 쿼리 컬럼 선택 방식 변경으로 데이터 로딩 오류 수정.' },
   { version:'1.5.68', title:'액션 팝업 개선, 백그라운드 갱신 최적화',
     content:'• 액션 로딩 팝업 크기 확대 및 스피너 중앙 이미지 표시.\n• 사용자 액션 시 백그라운드 갱신 즉시 중단 (상세 보기 응답 속도 개선).\n• 탈퇴 스캔 제거 시 로딩 팝업 표시.\n• 캐시 저장 시 무거운 컬럼 제외로 용량 절감.\n• 연결 실패 재시도 메시지 표시 버그 수정.' },
+  { version:'1.5.69', title:'상세 팝업 로딩 hang 버그 수정',
+    content:'• 상세 보기 클릭 시 로딩 팝업이 닫히지 않던 버그 수정.\n• openDetailById try-finally로 로딩 팝업 항상 해제 보장.\n• 백그라운드 갱신 AbortController 제거, 토큰 방식으로 교체 (안정성).' },
 ];
 
 // 시맨틱 버전 비교 (날짜형 구버전 호환)
@@ -2071,17 +2073,15 @@ function initFirebase() {
       .catch(function(){});
   }
 
-  // 백그라운드 갱신 (캐시 히트 후 실행) — 사용자 액션 시 abort 가능
-  window._bgController = null;
+  // 백그라운드 갱신 (캐시 히트 후 실행) — 토큰으로 stale 결과 무시
+  var _bgRefreshToken = 0;
   function _bgRefresh() {
-    if(window._bgController) window._bgController.abort();
-    window._bgController = new AbortController();
-    var signal = window._bgController.signal;
+    var token = ++_bgRefreshToken;
     Promise.all([
-      db.from('members').select(_MEMBER_COLS).order('combat_power', { ascending: false }).abortSignal(signal),
-      db.from('notices').select('*').order('created_at', { ascending: false }).abortSignal(signal)
+      db.from('members').select(_MEMBER_COLS).order('combat_power', { ascending: false }),
+      db.from('notices').select('*').order('created_at', { ascending: false })
     ]).then(function(results) {
-      if(signal.aborted) return;
+      if(token !== _bgRefreshToken) return; // 더 최신 갱신이 있으면 무시
       var mRes = results[0], nRes = results[1];
       if(mRes.error) return;
       var freshMembers = mRes.data || [];
@@ -2094,7 +2094,7 @@ function initFirebase() {
       renderAll();
       renderNotices(freshNotices);
       _fetchAndMergeEquipment(true, freshNotices);
-    }).catch(function(e){ if(e && e.name === 'AbortError') return; });
+    }).catch(function(){});
   }
 
   // Supabase REST 기반 데이터 로딩
@@ -2935,11 +2935,16 @@ function toggleSubs(mainId) {
 async function openDetailById(id) {
   const basic = members.find(x => x.id === id) || members.find(x => x.nickname === id);
   if(!basic) return;
-  // 백그라운드 갱신 중단 후 상세 우선 처리
-  if(window._bgController) { window._bgController.abort(); window._bgController = null; }
   showActionLoading(basic.nickname + ' 스펙 불러오는 중...', basic.profile_img || '');
-  const { data: full } = await db.from('members').select('*').eq('id', basic.id).maybeSingle().catch(() => ({data:null}));
-  hideActionLoading();
+  let full = null;
+  try {
+    const res = await db.from('members').select('*').eq('id', basic.id).maybeSingle();
+    full = res.data || null;
+  } catch(e) {
+    // 쿼리 실패 시 기존 데이터로 열기
+  } finally {
+    hideActionLoading();
+  }
   const el = document.getElementById('modal-detail');
   if(el) el.classList.add('open');
   openDetail(full || basic);
