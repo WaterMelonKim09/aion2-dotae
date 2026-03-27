@@ -920,10 +920,10 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.17';
+const BUILD_VERSION = '1.5.18';
 const BUILD_PATCHNOTE = {
   title: '멤버 관리 버그픽스 + UI 개선',
-  content: '• 멤버 관리에서 등급 변경 저장 시 "닉네임 입력" 팝업 뜨던 버그 수정.\n• 멤버 관리에서 부캐 선택 시 본캐 닉네임 입력 칸 정상 표시.\n• 등록/관리 닉네임 입력 칸 자동완성 드롭다운 추가.\n• 헤더 계급 표기를 멤버 스펙 DB 기준으로 통일.\n• 군단장/엘리트장교/군단병 계급 배지 색상 차별화.\n• 직업 엠블럼과 직업명 간격 축소.'
+  content: '• 멤버 관리에서 등급 변경 저장 시 "닉네임 입력" 팝업 뜨던 버그 수정.\n• 멤버 관리에서 부캐 선택 시 본캐 닉네임 입력 칸 정상 표시.\n• 등록/관리 닉네임 입력 칸 자동완성 드롭다운 추가.\n• 헤더 계급 표기를 멤버 스펙 DB 기준으로 통일.\n• 군단장/엘리트장교/군단병 계급 배지 색상 차별화.\n• 직업 엠블럼과 직업명 간격 축소.\n• v1.5.17 로딩 바 멈춤 버그 수정 (스크립트 구문 오류 수정).'
 };
 
 // 시맨틱 버전 비교 (날짜형 구버전 호환)
@@ -2795,7 +2795,7 @@ function renderMembers() {
       <td style="white-space:nowrap;vertical-align:middle;">${syncBtn}${lastSync}</td>
       <td style="white-space:nowrap;vertical-align:middle;">
         <button class="btn btn-sm" onclick="openDetailById('${mId}')" style="font-size:11px;">상세</button>
-        <button class="btn btn-sm" onclick="openEdit('${m.id}','${m.rank||'군단병'}',${m.is_main===false?'false':'true'},'${(m.player_id||'').replace(/'/g,&quot;\\'&quot;)}')">관리</button>
+        <button class="btn btn-sm" onclick="openEdit('${m.id}','${m.rank||'군단병'}',${m.is_main===false?'false':'true'})">관리</button>
       </td>
     </tr>`;
   };
@@ -3280,14 +3280,15 @@ function togglePlayerIdField(val) {
   var g = document.getElementById('player-id-group');
   if(g) g.style.display = val==='false' ? '' : 'none';
 }
-function openEdit(id,rank,isMain,playerId) {
+function openEdit(id,rank,isMain) {
   document.getElementById('edit-id').value=id;
   document.getElementById('edit-rank').value=rank;
   var isMainStr = (isMain===false||isMain==='false') ? 'false' : 'true';
   var isMainEl = document.getElementById('edit-is-main');
   if(isMainEl) isMainEl.value = isMainStr;
+  var member = members.find(function(m){ return m.id===id; });
   var pidEl = document.getElementById('edit-player-id');
-  if(pidEl) pidEl.value = playerId||'';
+  if(pidEl) pidEl.value = (member&&member.player_id) || '';
   togglePlayerIdField(isMainStr);
   openModal('edit');
 }
