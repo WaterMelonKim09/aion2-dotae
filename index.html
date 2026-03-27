@@ -448,8 +448,23 @@
 
   <!-- 공지/패치노트 -->
   <div id="tab-notice" class="tab-content">
+    <!-- NC 공홈 공지 섹션 -->
+    <div class="card" style="margin-bottom:20px;padding:16px 20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:15px;font-weight:700;color:var(--gold-l);">🌐 아이온2 공홈 공지</span>
+          <span id="nc-notice-badge" style="font-size:10px;padding:2px 7px;border-radius:10px;background:#1a2a1a;color:#6acd8a;border:1px solid #2a5a2a;display:none;">실시간</span>
+        </div>
+        <button class="btn btn-sm" onclick="loadNcNotices(true)" style="font-size:11px;">새로고침</button>
+      </div>
+      <div id="nc-notice-list" style="display:flex;flex-direction:column;gap:6px;">
+        <div style="color:var(--muted);font-size:13px;">불러오는 중...</div>
+      </div>
+    </div>
+
+    <!-- 레기온 공지/패치노트 -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-      <div class="section-title" style="margin:0;">📢 공지 / 패치노트</div>
+      <div class="section-title" style="margin:0;">📢 레기온 공지 / 패치노트</div>
       <button id="notice-write-btn" class="btn btn-primary btn-sm" onclick="openNoticeWrite()" style="display:none;">📝 공지 작성</button>
     </div>
     <div id="notice-list"><div class="empty"><div class="empty-icon">📢</div><p>불러오는 중...</p></div></div>
@@ -957,7 +972,7 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.27';
+const BUILD_VERSION = '1.5.28';
 const BUILD_PATCHNOTE = {
   title: '최근 모집 카드 크기 + 스킬 설명 복구',
   content: '• 대시보드 최근 모집: recruit-grid 동일한 3열 그리드 레이아웃 적용.\n• 스킬 설명: NC 가이드북 API 호출 복구 (CLASS_MAP 클래스명으로 정확히 요청).'
@@ -2022,6 +2037,35 @@ async function deleteNotice(id) {
 function refreshNoticeWriteBtn() {
   const nb = document.getElementById('notice-write-btn');
   if(nb) nb.style.display = isAdmin() ? 'inline-block' : 'none';
+}
+
+let _ncNoticeLoaded = false;
+async function loadNcNotices(force) {
+  if(_ncNoticeLoaded && !force) return;
+  const el = document.getElementById('nc-notice-list');
+  if(!el) return;
+  el.innerHTML = '<div style="color:var(--muted);font-size:13px;">불러오는 중...</div>';
+  try {
+    const r = await fetch('/api/ncnotice');
+    const data = await r.json();
+    const list = data.notices || [];
+    if(!list.length) {
+      el.innerHTML = '<div style="color:var(--muted);font-size:13px;">공지를 불러올 수 없어요 (NC 서버 응답 없음)</div>';
+      return;
+    }
+    _ncNoticeLoaded = true;
+    document.getElementById('nc-notice-badge').style.display = '';
+    el.innerHTML = list.map(function(n) {
+      const dateStr = (n.date||'').replace(/[.\-\/]/g,'.').slice(0,10);
+      const cat = n.category ? '<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(100,160,255,.1);color:#6ab0ff;border:1px solid #1a3060;margin-right:6px;">'+n.category+'</span>' : '';
+      return '<a href="'+n.url+'" target="_blank" rel="noopener" style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border-radius:7px;background:var(--card);border:1px solid var(--border);text-decoration:none;transition:border-color .15s;" onmouseover="this.style.borderColor=\'var(--gold-d)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
+        +'<span style="font-size:13px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">'+cat+n.title+'</span>'
+        +'<span style="font-size:11px;color:var(--muted);flex-shrink:0;margin-left:12px;">'+dateStr+'</span>'
+        +'</a>';
+    }).join('');
+  } catch(e) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:13px;">불러오기 실패: '+e.message+'</div>';
+  }
 }
 
 function renderAll() {
@@ -3444,7 +3488,7 @@ function showTab(id) {
   tabEl.classList.add('active');
   ['notice','dashboard','members','recruit','war','timer','register'].forEach((t,i)=>{ if(t===id) document.querySelectorAll('.nav-btn')[i].classList.add('active'); });
   if(id==='war'){const wb=document.getElementById('war-create-btn');if(wb)wb.style.display=isAdmin()?'inline-block':'none';const wr=document.getElementById('war-reset-btn');if(wr)wr.style.display=isAdmin()?'inline-block':'none';renderWarSurveys();}
-  if(id==='notice') refreshNoticeWriteBtn();
+  if(id==='notice') { refreshNoticeWriteBtn(); loadNcNotices(); }
   try { localStorage.setItem('activeTab', id); } catch(e) {}
 }
 function openModal(id) { 
