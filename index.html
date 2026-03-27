@@ -957,134 +957,6 @@
           <div id="fetch-result" style="margin-top:10px;font-size:12px;color:var(--muted);"></div>
         </div>
 
-        <!-- 관리자 전용: 일괄 등록 -->
-        <div id="bulk-register-section" style="display:none;background:var(--surface);border:1px solid var(--gold-d);border-radius:8px;padding:16px;margin-bottom:16px;">
-          <div style="font-size:12px;color:var(--gold);font-weight:600;margin-bottom:6px;">⚡ 일괄 등록 (관리자 전용)</div>
-          <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">닉네임 또는 <b>닉네임|계급</b> 형식으로 한 줄에 하나씩. 이미 등록된 멤버는 건너뜁니다.</div>
-          <textarea id="bulk-nicknames" rows="10" class="form-input" style="resize:vertical;font-size:12px;line-height:1.7;font-family:monospace;">으내|군단장
-사탕|엘리트장교
-피아|엘리트장교
-Go|군단병
-강재하|군단병
-검롬|군단병
-격자|군단병
-고영|군단병
-꼼아지|군단병
-공표핏|군단병
-관무경|군단병
-궁요쿠|군단병
-권유|군단병
-귀기|군단병
-그래|군단병
-김수박|군단병
-깃|군단병
-김봉|군단병
-깔|군단병
-꿈마도|군단병
-나냥|군단병
-내꼬|군단병
-네이트|군단병
-달링|군단병
-든든국밥호법|군단병
-따개비|군단병
-딸기티라미수|군단병
-뚜이나|군단병
-류천|군단병
-마스터리|군단병
-맨정신|군단병
-마요|군단병
-메즈|군단병
-모공|군단병
-무장|군단병
-미연시|군단병
-밀크세이크|군단병
-백한지|군단병
-베로딘|군단병
-베어|군단병
-별밤|군단병
-보조성|군단병
-뾰띠성|군단병
-빠르릉|군단병
-뱁꽁|군단병
-서이|군단병
-선빈|군단병
-설하|군단병
-소금꽃|군단병
-송뻐|군단병
-스미나|군단병
-승아|군단병
-시나몬|군단병
-시한부|군단병
-신검일도|군단병
-아름|군단병
-야다|군단병
-아쿠|군단병
-엔루|군단병
-예진|군단병
-은하|군단병
-외개인|군단병
-요쿠|군단병
-월궁|군단병
-위스|군단병
-유펠|군단병
-은설하연|군단병
-이챙영|군단병
-재돈|군단병
-전지수|군단병
-제리타임|군단병
-제목|군단병
-존엄|군단병
-주맨|군단병
-지라|군단병
-진밤뻥|군단병
-찬수|군단병
-참참|군단병
-청룡진|군단병
-초여름|군단병
-초일|군단병
-충격적중|군단병
-카하하이석현|군단병
-쿠퍼|군단병
-타우렌|군단병
-태경임|군단병
-태봉|군단병
-테테|군단병
-토스트이삭|군단병
-파네스|군단병
-페릿|군단병
-포실포실한크림빵|군단병
-푸터|군단병
-푸른심장|군단병
-풍화|군단병
-퓨우|군단병
-프핀|군단병
-하프|군단병
-한번찌르기|군단병
-한봉|군단병
-헉스|군단병
-헤무|군단병
-형님|군단병
-홍살|군단병
-화석|군단병
-히메코|군단병
-힐딱|군단병</textarea>
-          <div style="display:flex;gap:8px;margin-top:8px;">
-            <select class="form-select" id="bulk-is-main" style="width:100px;">
-              <option value="true">본캐</option><option value="false">부캐</option>
-            </select>
-            <button class="btn btn-primary" style="flex:1;" onclick="bulkRegister()">▶ 일괄 등록 시작</button>
-          </div>
-          <div id="bulk-progress" style="margin-top:10px;display:none;">
-            <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:4px;">
-              <span id="bulk-status-text">처리 중...</span>
-              <span id="bulk-count-text">0 / 0</span>
-            </div>
-            <div style="background:var(--border);border-radius:4px;height:6px;overflow:hidden;">
-              <div id="bulk-bar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--gold-d),var(--gold-l));border-radius:4px;transition:width .3s;"></div>
-            </div>
-          </div>
-          <div id="bulk-result-list" style="margin-top:10px;max-height:200px;overflow-y:auto;font-size:12px;"></div>
-        </div>
 
       </div>
     </div>
@@ -1313,10 +1185,10 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.59';
+const BUILD_VERSION = '1.5.60';
 const BUILD_PATCHNOTE = {
-  title: '탈퇴 스캔 DB 기반 전환, 신석 등급 색상 수정',
-  content: '• 탈퇴 스캔: NC API 대신 DB 저장 데이터 기준으로 즉시 판별 (502 오류 해결).\n• 신석 등급별 색상 전용 객체(GSC) 추가: 영웅=보라, 전설=주황.\n• 신석 색상이 NC 공홈 기준과 일치하도록 수정.'
+  title: '일괄 등록 제거, 닉네임 검색 본캐/부캐 분리 표시',
+  content: '• 일괄 등록 기능 제거.\n• 멤버 스펙 닉네임 검색 시 매칭 본캐 먼저 표시, 절취선 이후 매칭 부캐 표시.'
 };
 
 // 전체 패치 내역 (버전별 정확한 설명)
@@ -1337,6 +1209,8 @@ const _PATCH_HISTORY = [
     content:'• 레기온 전체 인원(105명) 일괄 등록 데이터 반영 (계급 포함).\n• 과거 패치 내역 정확한 내용으로 DB 업데이트.\n• 탈퇴 스캔: 레기온 없는 멤버도 감지.\n• 신석 전설 등급(Legend) 색상 수정.' },
   { version:'1.5.59', title:'탈퇴 스캔 DB 기반 전환, 신석 등급 색상 수정',
     content:'• 탈퇴 스캔: NC API 대신 DB 저장 데이터 기준으로 즉시 판별 (502 오류 해결).\n• 신석 등급별 색상 전용 객체(GSC) 추가: 영웅=보라, 전설=주황.\n• 신석 색상이 NC 공홈 기준과 일치하도록 수정.' },
+  { version:'1.5.60', title:'일괄 등록 제거, 닉네임 검색 본캐/부캐 분리 표시',
+    content:'• 일괄 등록 기능 제거.\n• 멤버 스펙 닉네임 검색 시 매칭 본캐 먼저 표시, 절취선 이후 매칭 부캐 표시.' },
 ];
 
 // 시맨틱 버전 비교 (날짜형 구버전 호환)
@@ -2730,93 +2604,6 @@ async function fetchAndRegister() {
 }
 
 // ─── 일괄 등록 (관리자 전용) ───────────
-function _showBulkSection() {
-  const el = document.getElementById('bulk-register-section');
-  if(el) el.style.display = isAdmin() ? '' : 'none';
-}
-
-async function bulkRegister() {
-  if(!isAdmin()) { toast('관리자만 사용할 수 있어요'); return; }
-  const textarea = document.getElementById('bulk-nicknames');
-  const isMainEl = document.getElementById('bulk-is-main');
-  if(!textarea) return;
-
-  const lines = textarea.value.split('\n').map(s=>s.trim()).filter(Boolean);
-  if(!lines.length) { toast('닉네임을 입력해주세요'); return; }
-
-  const isMain = isMainEl ? isMainEl.value === 'true' : true;
-  const serverId = '2001';
-
-  const progressEl = document.getElementById('bulk-progress');
-  const statusEl   = document.getElementById('bulk-status-text');
-  const countEl    = document.getElementById('bulk-count-text');
-  const barEl      = document.getElementById('bulk-bar');
-  const resultList = document.getElementById('bulk-result-list');
-  if(progressEl) progressEl.style.display = '';
-  if(resultList) resultList.innerHTML = '';
-
-  let existingNicks = new Set();
-  try {
-    const { data: existing } = await db.from('members').select('nickname');
-    (existing || []).forEach(m => existingNicks.add(m.nickname));
-  } catch(e) {}
-
-  let done = 0, skipped = 0, failed = 0;
-  const total = lines.length;
-  const addLog = (msg, color) => {
-    if(!resultList) return;
-    const div = document.createElement('div');
-    div.style.cssText = 'padding:3px 0;border-bottom:1px solid var(--border);color:'+color+';font-size:12px;';
-    div.textContent = msg;
-    resultList.prepend(div);
-  };
-
-  for(let i = 0; i < total; i++) {
-    const parts = lines[i].split('|');
-    const nick = parts[0].trim();
-    const rank = parts[1] ? parts[1].trim() : '군단병';
-    if(!nick) continue;
-
-    if(statusEl) statusEl.textContent = nick + ' 처리 중...';
-    if(countEl)  countEl.textContent  = (i+1) + ' / ' + total;
-    if(barEl)    barEl.style.width    = ((i+1)/total*100) + '%';
-
-    if(existingNicks.has(nick)) {
-      skipped++;
-      addLog('⏭ ' + nick + ' — 이미 등록됨', 'var(--muted)');
-      continue;
-    }
-
-    try {
-      const data = await fetchCharacterData(nick, serverId);
-      const cls  = CLASS_MAP[data.class] || data.class || '';
-      await db.from('members').upsert({
-        id: nick+'_'+serverId, nickname: nick, server: serverId,
-        rank: rank, is_main: isMain, player_id: nick,
-        class: cls, level: data.level||0, combat_power: data.combat_power||0,
-        item_level: data.item_level||0, equipment: data.equipment||[],
-        stats: data.stats||[], daevanion: data.daevanion||[],
-        ranking: data.ranking||[], stigma: data.stigma||[],
-        arcana: data.arcana||[], titles: data.titles||[],
-        pet: data.pet||null, wing: data.wing||null,
-        server_name: data.server_name||'', guild_name: data.guild_name||'',
-        race: data.race||'', profile_img: data.profile_img||'',
-        character_id: data.characterId||'',
-        last_synced: new Date().toISOString(), updated_at: new Date().toISOString(),
-      });
-      done++;
-      addLog('✓ ' + nick + ' (' + rank + ') — 전투력 ' + (data.combat_power||0).toLocaleString(), '#6acd8a');
-    } catch(e) {
-      failed++;
-      addLog('✗ ' + nick + ' — 실패: ' + e.message, 'var(--red)');
-    }
-    if(i < total - 1) await new Promise(r => setTimeout(r, 800));
-  }
-
-  if(statusEl) statusEl.textContent = `완료! 등록 ${done}명 / 건너뜀 ${skipped}명 / 실패 ${failed}명`;
-  toast(`일괄 등록 완료: ${done}명 등록, ${skipped}명 건너뜀`);
-  if(done > 0) loadData();
-}
 
 function scanLeaveMembers() {
   if(!isAdmin()) { toast('관리자만 사용할 수 있어요'); return; }
@@ -3788,30 +3575,48 @@ function renderMembers() {
       subFiltered.forEach(s => { rows += rowHTML(s, true); });
     }
   } else {
-    // 전체: 본캐 먼저, 본캐 아래 부캐 그룹핑
-    const mains = filtered.filter(m => m.is_main !== false);
-    const subs  = members.filter(m => m.is_main === false); // 검색 필터 무관하게 전체 부캐
+    if(search) {
+      // 검색 키워드 있을 때: 매칭 본캐 → 절취선 → 매칭 부캐
+      const mainFiltered = sortMembers(members.filter(m =>
+        m.is_main !== false &&
+        (mFilter==='all'||(CLASS_MAP[m.class]||m.class)===mFilter) &&
+        (m.nickname||'').toLowerCase().includes(search)
+      ));
+      const subFiltered = sortMembers(members.filter(m =>
+        m.is_main === false &&
+        (mFilter==='all'||(CLASS_MAP[m.class]||m.class)===mFilter) &&
+        (m.nickname||'').toLowerCase().includes(search)
+      ));
+      mainFiltered.forEach(m => { rows += rowHTML(m, false, ''); });
+      if(subFiltered.length) {
+        rows += `<tr><td colspan="9" style="padding:2px 0;"><div style="display:flex;align-items:center;gap:8px;margin:4px 0;"><div style="flex:1;border-top:1px dashed var(--border);"></div><span style="font-size:11px;color:var(--muted);white-space:nowrap;">부캐</span><div style="flex:1;border-top:1px dashed var(--border);"></div></div></td></tr>`;
+        subFiltered.forEach(s => { rows += rowHTML(s, true); });
+      }
+    } else {
+      // 전체 + 검색 없음: 본캐 먼저, 본캐 아래 부캐 토글 그룹핑
+      const mains = filtered.filter(m => m.is_main !== false);
+      const subs  = members.filter(m => m.is_main === false);
 
-    mains.forEach(main => {
-      const mainSubs = subs.filter(s => s.player_id === main.nickname);
-      const subToggle = mainSubs.length > 0
-        ? `<div style="margin-top:3px;"><span id="sub-toggle-${main.id}" onclick="toggleSubs('${main.id}')" style="font-size:11px;color:var(--gold);cursor:pointer;user-select:none;">▶ 부캐 보기 (${mainSubs.length})</span></div>`
-        : '';
-      rows += rowHTML(main, false, subToggle);
-      mainSubs.forEach(s => {
-        rows += rowHTML(s, true).replace(
-          /^<tr style="/,
-          `<tr id="sub-row-${s.id}" style="display:none;`
-        );
+      mains.forEach(main => {
+        const mainSubs = subs.filter(s => s.player_id === main.nickname);
+        const subToggle = mainSubs.length > 0
+          ? `<div style="margin-top:3px;"><span id="sub-toggle-${main.id}" onclick="toggleSubs('${main.id}')" style="font-size:11px;color:var(--gold);cursor:pointer;user-select:none;">▶ 부캐 보기 (${mainSubs.length})</span></div>`
+          : '';
+        rows += rowHTML(main, false, subToggle);
+        mainSubs.forEach(s => {
+          rows += rowHTML(s, true).replace(
+            /^<tr style="/,
+            `<tr id="sub-row-${s.id}" style="display:none;`
+          );
+        });
       });
-    });
 
-    // 본캐 없는 부캐
-    subs.filter(s => !mains.find(m => m.nickname === s.player_id)).forEach(s => rows += rowHTML(s, true));
+      // 본캐 없는 부캐
+      subs.filter(s => !mains.find(m => m.nickname === s.player_id)).forEach(s => rows += rowHTML(s, true));
 
-    // is_main 필드 없는 기존 멤버 (항상 표시)
-    const legacy = filtered.filter(m => m.is_main === undefined);
-    legacy.forEach(m => rows += rowHTML(m, false));
+      // is_main 필드 없는 기존 멤버 (항상 표시)
+      filtered.filter(m => m.is_main === undefined).forEach(m => rows += rowHTML(m, false));
+    }
   }
 
   document.getElementById('member-body').innerHTML = rows ||
@@ -4235,7 +4040,7 @@ function showTab(id) {
   ['notice','dashboard','members','recruit','war','timer','homework','register'].forEach((t,i)=>{ if(t===id) document.querySelectorAll('.nav-btn')[i].classList.add('active'); });
   if(id==='war'){const wb=document.getElementById('war-create-btn');if(wb)wb.style.display=isAdmin()?'inline-block':'none';const wr=document.getElementById('war-reset-btn');if(wr)wr.style.display=isAdmin()?'inline-block':'none';renderWarSurveys();}
   if(id==='notice') { refreshNoticeWriteBtn(); loadNcNotices(); loadNcUpdates(); }
-  if(id==='register') { _showBulkSection(); }
+
 
   if(id==='members') { const ls=document.getElementById('leave-scan-section'); if(ls) ls.style.display=isAdmin()?'':'none'; }
   try { localStorage.setItem('activeTab', id); } catch(e) {}
