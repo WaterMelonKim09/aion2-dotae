@@ -75,7 +75,7 @@ export async function onRequest(context) {
     }).filter(n => n.title);
 
     const hasMore = data?.hasMore ?? false;
-    const lastSnowId = notices.length > 0 ? (notices[notices.length - 1].snowId || notices[notices.length - 1].id || 0) : 0;
+    const lastSnowId = notices.length > 0 ? (notices[notices.length - 1].id || 0) : 0;
 
     return new Response(JSON.stringify({ notices, hasMore, lastSnowId, _src: endpoint }), { status: 200, headers: corsHeaders });
   } catch(e) {
