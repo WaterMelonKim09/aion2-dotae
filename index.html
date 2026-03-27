@@ -497,7 +497,7 @@
         <div class="section-title" style="margin:0">최근 모집</div>
         <button class="btn btn-sm" onclick="showTab('recruit')">전체 보기</button>
       </div>
-      <div id="recent-recruit" style="display:flex;flex-direction:column;gap:10px;"></div>
+      <div id="recent-recruit" class="recruit-grid"></div>
     </div>
   </div>
 
@@ -918,10 +918,10 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.23';
+const BUILD_VERSION = '1.5.24';
 const BUILD_PATCHNOTE = {
-  title: '대시보드 모집 카드 + 스킬 설명 개선',
-  content: '• 대시보드 최근 모집이 파티 모집 탭과 동일한 카드 UI로 표시 (요구 직업, 신청자, 상세보기 포함).\n• 스킬 탭 설명 표시: 스킬 데이터에 description 필드가 있으면 즉시 표시 (존재하지 않는 API 호출 제거).'
+  title: '최근 모집 카드 크기 + 스킬 설명 복구',
+  content: '• 대시보드 최근 모집: recruit-grid 동일한 3열 그리드 레이아웃 적용.\n• 스킬 설명: NC 가이드북 API 호출 복구 (CLASS_MAP 클래스명으로 정확히 요청).'
 };
 
 // 시맨틱 버전 비교 (날짜형 구버전 호환)
@@ -2661,8 +2661,27 @@ function switchDetailTab(tab) {
   if(tab === 'skill') _loadSkillDescriptions();
 }
 
-// ─── 스킬 설명: 스킬 카드 렌더 시 s.description 직접 표시 ───────────────
-function _loadSkillDescriptions() { /* 스킬 데이터에서 직접 표시하므로 별도 로딩 불필요 */ }
+/// ─── 스킬 설명 가이드북 로딩 (NC 가이드 파싱) ───────────────
+const _skillGuideCache = {};
+function _loadSkillDescriptions() {
+  const m = window._currentDetailMember;
+  if(!m) return;
+  const cls = CLASS_MAP[m.class] || m.class || '';
+  if(!cls) return;
+  if(_skillGuideCache[cls] !== undefined) {
+    if(_skillGuideCache[cls]) _applySkillDescriptions(_skillGuideCache[cls]);
+    return;
+  }
+  _skillGuideCache[cls] = null;
+  fetch('/api/skillguide?class=' + encodeURIComponent(cls))
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      const skills = data.skills || {};
+      _skillGuideCache[cls] = Object.keys(skills).length ? skills : null;
+      if(_skillGuideCache[cls]) _applySkillDescriptions(skills);
+    })
+    .catch(function() { _skillGuideCache[cls] = null; });
+}
 function _applySkillDescriptions(skills) {
   const skillTab = document.getElementById('detail-skill');
   if(!skillTab) return;
