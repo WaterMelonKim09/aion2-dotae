@@ -4,22 +4,19 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Referer': 'https://aion2.plaync.com/ko-kr/board/notice/list',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
+    'Referer': 'https://aion2.plaync.com/',
     'Accept': 'application/json, text/plain, */*',
     'Accept-Language': 'ko-KR,ko;q=0.9',
     'Origin': 'https://aion2.plaync.com',
+    'Sec-Fetch-Dest': 'empty',
+    'Sec-Fetch-Mode': 'cors',
+    'Sec-Fetch-Site': 'same-site',
   };
 
-  // board config: id=681c7d485be6481dfc46c48d, snow.boardId=501, boardAlias=notice_ko
-  // boardUrlPattern uses articleId (MongoDB ObjectId)
   const endpoints = [
-    'https://aion2.plaync.com/api/board/681c7d485be6481dfc46c48d/articles?page=1&pageSize=20',
-    'https://aion2.plaync.com/api/board/notice_ko/articles?page=0&pageSize=20&serviceAlias=aion2',
-    'https://aion2.plaync.com/api/board/notice_ko/article?serviceAlias=aion2&page=1&pageSize=20',
-    'https://aion2.plaync.com/api/board/aion2/notice_ko/article?page=1&pageSize=20',
-    'https://aion2.plaync.com/api/v1/board/notice_ko/articles?serviceAlias=aion2&page=0&pageSize=20',
-    'https://aion2.plaync.com/ko-kr/api/board/notice_ko/articles?serviceAlias=aion2&page=1&pageSize=20',
+    'https://api-community.plaync.com/aion2/board/notice_ko/noticeArticle',
+    'https://api-community.plaync.com/aion2/board/notice_ko',
   ];
 
   if (req.query.debug === '1') {
@@ -29,7 +26,7 @@ module.exports = async function handler(req, res) {
         const r = await fetch(url, { headers });
         const text = await r.text();
         let parsed = null; try { parsed = JSON.parse(text); } catch(e) {}
-        results.push({ url, status: r.status, ok: r.ok, isJson: !!parsed, keys: parsed ? Object.keys(parsed) : null, preview: text.slice(0, 400) });
+        results.push({ url, status: r.status, ok: r.ok, isJson: !!parsed, keys: parsed ? Object.keys(parsed) : null, preview: text.slice(0, 600) });
       } catch(e) { results.push({ url, error: e.message }); }
     }
     return res.status(200).json({ notices: [], debug: results });
@@ -42,19 +39,19 @@ module.exports = async function handler(req, res) {
       const text = await r.text();
       let data; try { data = JSON.parse(text); } catch(e) { continue; }
 
-      // articleId 기반 URL 패턴: /ko-kr/board/notice/view?articleId={articleId}
-      const rawList = data?.result?.articles || data?.result?.boardList || data?.result?.list
-        || data?.articles || data?.boardList || data?.list || data?.data?.list || data?.data
+      const rawList = data?.list || data?.articles || data?.data?.list || data?.data?.articles
+        || data?.result?.articles || data?.result?.list || data?.result?.boardList
+        || data?.boardList || data?.noticeList || data?.items
         || (Array.isArray(data) ? data : null) || [];
 
       if (!Array.isArray(rawList) || rawList.length === 0) continue;
 
       const notices = rawList.slice(0, 20).map(n => ({
-        id:       String(n.articleId || n.boardNo || n.id || ''),
-        title:    n.subject || n.title || n.boardTitle || '',
-        date:     (n.createDate || n.regDate || n.date || '').slice(0, 10).replace(/-/g, '.'),
+        id:       String(n.articleId || n.noticeArticleId || n.boardNo || n.id || ''),
+        title:    n.title || n.subject || n.boardTitle || '',
+        date:     (n.createDate || n.registDate || n.regDate || n.date || '').slice(0, 10).replace(/-/g, '.'),
         url:      buildUrl(n),
-        category: n.categoryName || n.category || '',
+        category: n.categoryName || n.category || n.noticeType || '',
       })).filter(n => n.title);
 
       if (notices.length > 0) return res.status(200).json({ notices, _src: url });
@@ -65,7 +62,7 @@ module.exports = async function handler(req, res) {
 };
 
 function buildUrl(n) {
-  const articleId = n.articleId || '';
+  const articleId = n.articleId || n.noticeArticleId || '';
   const boardNo   = n.boardNo || n.id || '';
   if (n.linkUrl) return n.linkUrl;
   if (n.url) return n.url.startsWith('http') ? n.url : 'https://aion2.plaync.com' + n.url;
