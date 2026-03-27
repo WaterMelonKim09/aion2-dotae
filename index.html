@@ -440,7 +440,7 @@
   <button class="nav-btn" onclick="showTab('members')">⚔ 멤버 스펙</button>
   <button class="nav-btn" onclick="showTab('recruit')">🛡 파티 모집</button>
   <button class="nav-btn" onclick="showTab('war')">⚔ 쟁 참여조사</button>
-  <button class="nav-btn" onclick="showTab('timer')">🐹 슈고 타이머</button>
+  <button class="nav-btn" onclick="showTab('timer')">🐹 시공/슈고 알리미</button>
   <button class="nav-btn" onclick="showTab('register')">✚ 멤버 등록</button>
 </div>
 
@@ -450,12 +450,50 @@
   <div id="tab-notice" class="tab-content">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
       <div class="section-title" style="margin:0;">📢 공지 / 패치노트</div>
-      <button id="notice-write-btn" class="btn btn-primary btn-sm" onclick="openNoticeWrite()" style="display:none;">+ 작성</button>
+      <button id="notice-write-btn" class="btn btn-primary btn-sm" onclick="openNoticeWrite()" style="display:none;">📝 공지 작성</button>
     </div>
     <div id="notice-list"><div class="empty"><div class="empty-icon">📢</div><p>불러오는 중...</p></div></div>
   </div>
 
   
+  <!-- 공지 작성 모달 -->
+  <div class="overlay" id="modal-notice-write" onclick="closeOverlay(event,'modal-notice-write')">
+    <div class="modal" style="max-width:560px;max-height:90vh;overflow-y:auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div class="modal-title" style="margin:0;">📝 공지 작성</div>
+        <button class="btn btn-sm" onclick="closeModal('modal-notice-write')">닫기</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div style="display:flex;gap:10px;">
+          <div style="flex:1;">
+            <label style="font-size:12px;color:var(--muted);margin-bottom:4px;display:block;">유형</label>
+            <select id="nw-type" class="input" style="width:100%;" onchange="toggleNwVersion()">
+              <option value="공지사항">공지사항</option>
+              <option value="패치노트">패치노트</option>
+            </select>
+          </div>
+          <div id="nw-version-group" style="flex:1;display:none;">
+            <label style="font-size:12px;color:var(--muted);margin-bottom:4px;display:block;">버전</label>
+            <input id="nw-version" class="input" placeholder="예: v1.5.26" style="width:100%;">
+          </div>
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--muted);margin-bottom:4px;display:block;">제목 *</label>
+          <input id="nw-title" class="input" placeholder="공지 제목을 입력하세요" style="width:100%;">
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--muted);margin-bottom:4px;display:block;">작성자 *</label>
+          <input id="nw-author" class="input" placeholder="작성자 이름" style="width:100%;">
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--muted);margin-bottom:4px;display:block;">내용 *</label>
+          <textarea id="nw-content" class="input" rows="9" placeholder="공지 내용을 입력하세요" style="width:100%;resize:vertical;font-family:inherit;line-height:1.7;"></textarea>
+        </div>
+        <button class="btn btn-primary" onclick="submitNotice()" style="width:100%;padding:12px;">등록</button>
+      </div>
+    </div>
+  </div>
+
   <!-- 내정보 모달 -->
   <div class="overlay" id="modal-myprofile" onclick="closeOverlay(event,'modal-myprofile')">
     <div class="modal" style="max-width:580px;max-height:85vh;overflow-y:auto;">
@@ -575,7 +613,7 @@
 
   <!-- 슈고 타이머 -->
   <div id="tab-timer" class="tab-content">
-    <div class="section-title">🐹 슈고 타이머</div>
+    <div class="section-title">🐹 시공/슈고 알리미</div>
     <div style="max-width:480px;margin:0 auto;">
 
       <!-- 메인 시계 카드 -->
@@ -918,7 +956,7 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.25';
+const BUILD_VERSION = '1.5.26';
 const BUILD_PATCHNOTE = {
   title: '최근 모집 카드 크기 + 스킬 설명 복구',
   content: '• 대시보드 최근 모집: recruit-grid 동일한 3열 그리드 레이아웃 적용.\n• 스킬 설명: NC 가이드북 API 호출 복구 (CLASS_MAP 클래스명으로 정확히 요청).'
@@ -1851,28 +1889,41 @@ function refreshHeaderUser() {
 function renderNotices(notices, showAll) {
   const list = document.getElementById('notice-list');
   if(!list) return;
-  const gradeColor3 = t => t==='공지사항'?'#e8c030':'var(--gold-l)';
-  const typeBg3 = t => t==='공지사항'?'rgba(232,192,48,.15)':'rgba(0,200,138,.15)';
-  const typeBorder3 = t => t==='공지사항'?'#604010':'var(--gold-d)';
-  const borderLeft3 = t => t==='공지사항'?'#e8c030':'var(--gold)';
+  window._cachedNotices = notices;
 
-  const announcements = notices.filter(n => n.type === '공지사항');
-  const patches = notices.filter(n => n.type !== '공지사항');
+  const gradeColor3 = t => t==='공지사항'?'#e8c030':'#5bc8a0';
+  const typeBg3    = t => t==='공지사항'?'rgba(232,192,48,.15)':'rgba(0,200,138,.15)';
+  const typeBorder3= t => t==='공지사항'?'#604010':'#1a5040';
+  const borderLeft3= t => t==='공지사항'?'#e8c030':'#00c88a';
+
+  const announcements  = notices.filter(n => n.type === '공지사항');
+  const patches        = notices.filter(n => n.type !== '공지사항');
   const visiblePatches = showAll ? patches : patches.slice(0, 5);
-  const hiddenCount = patches.length - visiblePatches.length;
+  const hiddenCount    = patches.length - visiblePatches.length;
 
   const renderItem = n => {
     const d = n.created_at ? new Date(n.created_at) : new Date();
     const dateStr = d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0');
-    return '<div class="card" style="padding:20px;border-left:3px solid '+borderLeft3(n.type)+';margin-bottom:12px;">'
-      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">'
-      +'<div><span style="font-size:11px;padding:2px 8px;border-radius:10px;background:'+typeBg3(n.type)+';color:'+gradeColor3(n.type)+';border:1px solid '+typeBorder3(n.type)+';margin-right:8px;">'+(n.type||'공지')+'</span>'
-      +'<span style="font-size:16px;font-weight:700;">'+(n.version?n.version+' — ':'')+n.title+'</span></div>'
-      +'<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'
-      +'<span style="font-size:12px;color:var(--muted);">'+dateStr+'</span>'
-      +(isAdmin()?'<button onclick="deleteNotice(\''+n.id+'\')" style="font-size:10px;padding:2px 7px;background:none;border:1px solid var(--red);border-radius:4px;color:var(--red);cursor:pointer;">삭제</button>':'')
-      +'</div></div>'
-      +'<div style="font-size:13px;color:var(--muted);line-height:1.8;white-space:pre-wrap;">'+(n.content||'')+'</div></div>';
+    const views = n.views || 0;
+    const author = n.author || '';
+    const nid = 'notice-body-'+n.id;
+    return '<div class="card" style="padding:0;border-left:3px solid '+borderLeft3(n.type)+';margin-bottom:10px;overflow:hidden;">'
+      +'<div style="padding:14px 16px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px;" onclick="toggleNoticeItem(\''+n.id+'\',this,'+JSON.stringify(n.views||0)+')">'
+        +'<div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1;">'
+          +'<span style="font-size:10px;padding:2px 7px;border-radius:10px;white-space:nowrap;background:'+typeBg3(n.type)+';color:'+gradeColor3(n.type)+';border:1px solid '+typeBorder3(n.type)+'">'+(n.type||'공지')+'</span>'
+          +'<span style="font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(n.version?'<span style="color:var(--gold-l);font-size:12px;margin-right:4px;">'+n.version+'</span>':'')+n.title+'</span>'
+        +'</div>'
+        +'<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">'
+          +(author?'<span style="font-size:11px;color:var(--muted);">'+author+'</span>':'')
+          +'<span style="font-size:11px;color:var(--muted);">👁 <span id="views-'+n.id+'">'+views+'</span></span>'
+          +'<span style="font-size:11px;color:var(--muted);">'+dateStr+'</span>'
+          +(isAdmin()?'<button onclick="event.stopPropagation();deleteNotice(\''+n.id+'\')" style="font-size:10px;padding:2px 6px;background:none;border:1px solid var(--red);border-radius:4px;color:var(--red);cursor:pointer;">삭제</button>':'')
+        +'</div>'
+      +'</div>'
+      +'<div id="'+nid+'" style="display:none;padding:0 16px 16px;border-top:1px solid var(--border);">'
+        +'<div style="font-size:13px;color:var(--muted);line-height:1.8;white-space:pre-wrap;padding-top:12px;">'+(n.content||'')+'</div>'
+      +'</div>'
+    +'</div>';
   };
 
   const leftHTML = announcements.length
@@ -1880,7 +1931,7 @@ function renderNotices(notices, showAll) {
     : '<div style="color:var(--muted);font-size:13px;padding:12px">공지사항이 없어요</div>';
 
   const moreBtn = hiddenCount > 0
-    ? '<button onclick="renderNotices(window._cachedNotices, true)" style="width:100%;padding:10px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:13px;cursor:pointer;margin-top:4px;">▼ 이전 패치노트 '+hiddenCount+'개 더보기</button>'
+    ? '<button onclick="renderNotices(window._cachedNotices,true)" style="width:100%;padding:10px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:13px;cursor:pointer;margin-top:4px;">▼ 이전 패치노트 '+hiddenCount+'개 더보기</button>'
     : '';
   const rightHTML = (visiblePatches.length
     ? visiblePatches.map(renderItem).join('')
@@ -1888,15 +1939,83 @@ function renderNotices(notices, showAll) {
     + moreBtn;
 
   list.innerHTML = '<div style="display:flex;gap:0;align-items:stretch;">'
-    + '<div style="flex:1;min-width:0;padding-right:16px;">'
-    + '<div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:1px;margin-bottom:12px;text-transform:uppercase;">📢 공지사항</div>'
-    + leftHTML + '</div>'
-    + '<div style="width:1px;background:repeating-linear-gradient(to bottom,var(--border) 0,var(--border) 6px,transparent 6px,transparent 12px);flex-shrink:0;"></div>'
-    + '<div style="flex:1;min-width:0;padding-left:16px;">'
-    + '<div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:1px;margin-bottom:12px;text-transform:uppercase;">🛠 패치노트</div>'
-    + rightHTML + '</div>'
-    + '</div>';
-  window._cachedNotices = notices;
+    +'<div style="flex:1;min-width:0;padding-right:16px;">'
+      +'<div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:1px;margin-bottom:12px;">📢 공지사항</div>'
+      +leftHTML
+    +'</div>'
+    +'<div style="width:1px;background:repeating-linear-gradient(to bottom,var(--border) 0,var(--border) 6px,transparent 6px,transparent 12px);flex-shrink:0;"></div>'
+    +'<div style="flex:1;min-width:0;padding-left:16px;">'
+      +'<div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:1px;margin-bottom:12px;">🛠 패치노트</div>'
+      +rightHTML
+    +'</div>'
+    +'</div>';
+}
+
+function toggleNoticeItem(noticeId, headerEl, currentViews) {
+  const body = document.getElementById('notice-body-'+noticeId);
+  if(!body) return;
+  const isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : '';
+  if(!isOpen) {
+    // 열릴 때 조회수 1 증가
+    const newViews = (currentViews||0) + 1;
+    const viewEl = document.getElementById('views-'+noticeId);
+    if(viewEl) viewEl.textContent = newViews;
+    db.from('notices').update({ views: newViews }).eq('id', noticeId).then(function(){}).catch(function(){});
+    // onclick 갱신 (다음 토글 시 최신 views 전달)
+    headerEl.setAttribute('onclick', 'toggleNoticeItem(\''+noticeId+'\',this,'+newViews+')');
+  }
+}
+
+function openNoticeWrite() {
+  var authorEl = document.getElementById('nw-author');
+  if(authorEl && currentUser && currentUser.nickname) authorEl.value = currentUser.nickname;
+  var typeEl = document.getElementById('nw-type');
+  if(typeEl) typeEl.value = '공지사항';
+  toggleNwVersion();
+  openModal('notice-write');
+}
+
+function toggleNwVersion() {
+  var typeEl = document.getElementById('nw-type');
+  var vg = document.getElementById('nw-version-group');
+  if(!typeEl || !vg) return;
+  vg.style.display = typeEl.value === '패치노트' ? '' : 'none';
+}
+
+async function submitNotice() {
+  var type    = (document.getElementById('nw-type')||{value:'공지사항'}).value;
+  var version = ((document.getElementById('nw-version')||{value:''}).value||'').trim();
+  var title   = ((document.getElementById('nw-title')||{value:''}).value||'').trim();
+  var author  = ((document.getElementById('nw-author')||{value:''}).value||'').trim();
+  var content = ((document.getElementById('nw-content')||{value:''}).value||'').trim();
+
+  if(!title)   { toast('제목을 입력하세요'); return; }
+  if(!author)  { toast('작성자를 입력하세요'); return; }
+  if(!content) { toast('내용을 입력하세요'); return; }
+
+  const payload = { type, title, author, content, views: 0 };
+  if(version) payload.version = version;
+
+  const { error } = await db.from('notices').insert(payload);
+  if(error) { toast('등록 실패: ' + (error.message||'')); return; }
+
+  ['nw-version','nw-title','nw-content'].forEach(function(id) {
+    var el = document.getElementById(id); if(el) el.value = '';
+  });
+  closeModal('modal-notice-write');
+  toast('공지가 등록되었어요 ✓');
+}
+
+async function deleteNotice(id) {
+  if(!confirm('이 공지를 삭제할까요?')) return;
+  await db.from('notices').delete().eq('id', id);
+  toast('삭제되었어요');
+}
+
+function refreshNoticeWriteBtn() {
+  const nb = document.getElementById('notice-write-btn');
+  if(nb) nb.style.display = isAdmin() ? 'inline-block' : 'none';
 }
 
 function renderAll() {
@@ -1909,6 +2028,7 @@ function renderAll() {
   renderTop5(); renderRecentRecruit(); renderMembers();
   if(distView==='pie') drawPie(); else renderDistList();
   refreshHeaderUser();
+  refreshNoticeWriteBtn();
 }
 
 // ─── NC 공홈 API 호출 ──────────────────
@@ -3318,7 +3438,7 @@ function showTab(id) {
   tabEl.classList.add('active');
   ['notice','dashboard','members','recruit','war','timer','register'].forEach((t,i)=>{ if(t===id) document.querySelectorAll('.nav-btn')[i].classList.add('active'); });
   if(id==='war'){const wb=document.getElementById('war-create-btn');if(wb)wb.style.display=isAdmin()?'inline-block':'none';const wr=document.getElementById('war-reset-btn');if(wr)wr.style.display=isAdmin()?'inline-block':'none';renderWarSurveys();}
-  if(id==='notice'){const nb=document.getElementById('notice-write-btn');if(nb)nb.style.display=isAdmin()?'inline-block':'none';}
+  if(id==='notice') refreshNoticeWriteBtn();
   try { localStorage.setItem('activeTab', id); } catch(e) {}
 }
 function openModal(id) { 
