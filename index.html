@@ -315,29 +315,29 @@
 }
 
 @media (max-width: 480px) {
-  /* 헤더: 2줄 레이아웃 */
-  /* 헤더: 1줄 유지, 로고 고정 */
+  /* 헤더: 로고(좌) + 우측그룹(2줄: 유저+로그아웃 / ⟳+버전) */
   .header { padding:6px 10px; height:auto !important; align-items:center; }
   .logo { flex-shrink:0; }
   .logo-sub { display:none; }
   .logo-text { font-size:14px; white-space:nowrap; }
-  /* 업데이트 영역: 모바일에서 버전이 버튼 아래로 */
-  .hdr-update-area { flex-direction:column; align-items:center; gap:2px; }
+  /* 우측 그룹: 세로 2줄, 오른쪽 정렬 */
+  .hdr-right-group { flex:1; flex-direction:column; align-items:flex-end; gap:3px; }
+  /* 유저+로그아웃 → 위에 */
+  .hdr-right { order:-1; gap:5px; }
+  /* ⟳ + 버전 → 아래에, 가로 배치 */
+  .hdr-update-area { flex-direction:row; align-items:center; gap:5px; }
   .hdr-ver-wrap { flex-direction:row; gap:4px; align-items:center; }
   .hdr-ver-wrap span { font-size:9px !important; }
   /* 업데이트 버튼: 아이콘만 */
   .hdr-btn-text { display:none; }
-  #btn-system-update { padding:5px 8px !important; }
-  /* 우측 그룹 간격 */
-  .hdr-right-group { gap:5px; }
-  .hdr-right { gap:5px; }
-  /* 프로필 버튼: 컴팩트 pill */
-  #header-user-btn { padding:4px 8px 4px 4px !important; gap:5px !important; }
-  .hdr-nick-wrap { max-width:60px; overflow:hidden; }
-  #header-nick { font-size:11px !important; overflow:hidden; text-overflow:ellipsis; }
-  #header-rank { font-size:9px !important; }
+  #btn-system-update { padding:4px 7px !important; font-size:12px; }
+  /* 프로필 버튼: PC와 유사하게 (avatar + nick + rank) */
+  #header-user-btn { padding:3px 10px 3px 4px !important; gap:6px !important; }
+  .hdr-nick-wrap { max-width:100px; overflow:hidden; }
+  #header-nick { font-size:12px !important; overflow:hidden; text-overflow:ellipsis; }
+  #header-rank { font-size:10px !important; }
   /* 로그아웃 버튼 */
-  #btn-logout { padding:4px 6px !important; font-size:10px !important; }
+  #btn-logout { padding:4px 8px !important; font-size:11px !important; }
 
   .header-title { font-size:14px; }
   .stat-val { font-size:18px !important; }
@@ -920,10 +920,10 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.18';
+const BUILD_VERSION = '1.5.19';
 const BUILD_PATCHNOTE = {
-  title: '멤버 관리 버그픽스 + UI 개선',
-  content: '• 멤버 관리에서 등급 변경 저장 시 "닉네임 입력" 팝업 뜨던 버그 수정.\n• 멤버 관리에서 부캐 선택 시 본캐 닉네임 입력 칸 정상 표시.\n• 등록/관리 닉네임 입력 칸 자동완성 드롭다운 추가.\n• 헤더 계급 표기를 멤버 스펙 DB 기준으로 통일.\n• 군단장/엘리트장교/군단병 계급 배지 색상 차별화.\n• 직업 엠블럼과 직업명 간격 축소.\n• v1.5.17 로딩 바 멈춤 버그 수정 (스크립트 구문 오류 수정).'
+  title: '모바일 헤더 PC와 유사하게 개선',
+  content: '• 모바일 헤더 레이아웃 재설계: 내정보(아바타+닉네임+계급) 및 로그아웃 버튼이 PC와 유사하게 표시.\n• 상단: 내정보 + 로그아웃, 하단: ⟳ 업데이트 + 버전 정보 (2줄 배치).'
 };
 
 // 시맨틱 버전 비교 (날짜형 구버전 호환)
