@@ -11,96 +11,93 @@ module.exports = async function handler(req, res) {
     'Origin': 'https://aion2.plaync.com',
   };
 
-  try {
-    // NC 공식 공지 목록 API (게시판 리스트)
-    const listUrl = 'https://aion2.plaync.com/ko-kr/api/board/aion2/notice/list?page=1&pageSize=20';
-    const listRes = await fetch(listUrl, { headers });
-    if (!listRes.ok) {
-      return res.status(502).json({ error: `NC 공지 API 오류: ${listRes.status}` });
-    }
+  // 시도할 엔드포인트 목록 (순서대로 시도)
+  const endpoints = [
+    'https://aion2.plaync.com/ko-kr/api/board/aion2/notice/list?page=1&pageSize=20',
+    'https://aion2.plaync.com/api/board/notice/list?page=1&pageSize=20&gameCode=aion2',
+    'https://aion2.plaync.com/api/v2/aion2/board/notice/list?page=1&pageSize=20',
+    'https://aion2.plaync.com/ko-kr/api/board/notice/list?page=1&pageSize=20',
+  ];
 
-    const listData = await listRes.json();
-    const rawList = listData?.result?.boardList
-      || listData?.boardList
-      || listData?.list
-      || listData?.data
-      || [];
+  for (const url of endpoints) {
+    try {
+      const r = await fetch(url, { headers });
+      if (!r.ok) continue;
 
-    if (!Array.isArray(rawList) || rawList.length === 0) {
-      // 리스트 API 포맷이 다를 경우 HTML 파싱 시도
-      return fetchViaHtml(res, headers);
-    }
+      const text = await r.text();
+      // JSON 응답인지 확인
+      let data;
+      try { data = JSON.parse(text); } catch(e) { continue; }
 
-    const notices = rawList.slice(0, 15).map(n => ({
-      id:      String(n.boardNo || n.id || n.articleId || ''),
-      title:   n.subject || n.title || '',
-      date:    n.createDate || n.regDate || n.date || '',
-      url:     n.boardNo ? `https://aion2.plaync.com/ko-kr/board/notice/view/${n.boardNo}` : '',
-      category: n.categoryName || n.category || '',
-    }));
+      const rawList = data?.result?.boardList
+        || data?.boardList
+        || data?.result?.list
+        || data?.list
+        || data?.data?.list
+        || data?.data
+        || (Array.isArray(data) ? data : null)
+        || [];
 
-    return res.status(200).json({ notices });
+      if (!Array.isArray(rawList) || rawList.length === 0) continue;
 
-  } catch (err) {
-    return res.status(500).json({ error: 'NC 공지 조회 실패', detail: err.message });
+      const notices = rawList.slice(0, 20).map(n => ({
+        id:       String(n.boardNo || n.articleNo || n.id || ''),
+        title:    n.subject || n.title || n.boardTitle || '',
+        date:     (n.createDate || n.regDate || n.date || '').slice(0, 10).replace(/-/g, '.'),
+        url:      buildUrl(n),
+        category: n.categoryName || n.category || '',
+      })).filter(n => n.title);
+
+      if (notices.length > 0) {
+        return res.status(200).json({ notices, _src: url });
+      }
+    } catch(e) { continue; }
   }
+
+  // JSON API 모두 실패 → HTML 파싱
+  return fetchViaHtml(res, headers);
 };
+
+function buildUrl(n) {
+  const no = n.boardNo || n.articleNo || n.id || '';
+  if (n.linkUrl) return n.linkUrl;
+  if (n.url) return n.url.startsWith('http') ? n.url : 'https://aion2.plaync.com' + n.url;
+  if (no) return `https://aion2.plaync.com/ko-kr/board/notice/view/${no}`;
+  return 'https://aion2.plaync.com/ko-kr/board/notice/list';
+}
 
 async function fetchViaHtml(res, headers) {
   try {
-    const htmlRes = await fetch('https://aion2.plaync.com/ko-kr/board/notice/list', { headers });
-    if (!htmlRes.ok) return res.status(502).json({ error: `NC 공지 HTML 오류: ${htmlRes.status}` });
+    const htmlRes = await fetch('https://aion2.plaync.com/ko-kr/board/notice/list', { headers: { ...headers, Accept: 'text/html,application/xhtml+xml' } });
+    if (!htmlRes.ok) return res.status(502).json({ notices: [], _err: `HTML ${htmlRes.status}` });
 
     const html = await htmlRes.text();
     const notices = [];
 
-    // 게시글 목록 파싱
-    const rowRegex = /<tr[^>]*class="[^"]*board[^"]*"[^>]*>([\s\S]*?)<\/tr>/gi;
-    let rowMatch;
-    while ((rowMatch = rowRegex.exec(html)) !== null && notices.length < 15) {
-      const rowHTML = rowMatch[1];
-      const titleMatch = rowHTML.match(/<a[^>]+href="([^"]*\/view\/(\d+)[^"]*)"[^>]*>([\s\S]*?)<\/a>/i);
-      if (!titleMatch) continue;
-      const path    = titleMatch[1];
-      const boardNo = titleMatch[2];
-      const rawTitle = titleMatch[3].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
-      const dateMatch = rowHTML.match(/(\d{4}[.\-\/]\d{2}[.\-\/]\d{2})/);
-      const date = dateMatch ? dateMatch[1] : '';
-      if (rawTitle) {
-        notices.push({
-          id:    boardNo,
-          title: rawTitle,
-          date,
-          url:   path.startsWith('http') ? path : 'https://aion2.plaync.com' + path,
-          category: '',
-        });
-      }
+    // <a> 태그 중 /board/notice/view/ 패턴 추출
+    const linkRegex = /<a[^>]+href="([^"]*\/board\/notice\/view\/(\d+)[^"]*)"[^>]*>([\s\S]*?)<\/a>/gi;
+    let m;
+    const seen = new Set();
+    while ((m = linkRegex.exec(html)) !== null && notices.length < 20) {
+      const path  = m[1];
+      const no    = m[2];
+      const raw   = m[3].replace(/<[^>]+>/g, '').replace(/&nbsp;/gi,' ').replace(/\s+/g,' ').trim();
+      if (!raw || raw.length < 2 || raw.length > 200 || seen.has(no)) continue;
+      seen.add(no);
+      // 주변 텍스트에서 날짜 추출 시도
+      const ctx    = html.slice(Math.max(0, m.index - 200), m.index + m[0].length + 200);
+      const dMatch = ctx.match(/(\d{4})[.\-\/](\d{2})[.\-\/](\d{2})/);
+      notices.push({
+        id:       no,
+        title:    raw,
+        date:     dMatch ? `${dMatch[1]}.${dMatch[2]}.${dMatch[3]}` : '',
+        url:      path.startsWith('http') ? path : 'https://aion2.plaync.com' + path,
+        category: '',
+      });
     }
 
-    // 대안: <li> 기반 파싱
-    if (notices.length === 0) {
-      const liRegex = /<li[^>]*>([\s\S]*?)<\/li>/gi;
-      let liMatch;
-      while ((liMatch = liRegex.exec(html)) !== null && notices.length < 15) {
-        const li = liMatch[1];
-        const aMatch = li.match(/<a[^>]+href="([^"]*\/(\d+)[^"]*)"[^>]*>([\s\S]*?)<\/a>/i);
-        if (!aMatch) continue;
-        const rawTitle = aMatch[3].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
-        const dateMatch = li.match(/(\d{4}[.\-\/]\d{2}[.\-\/]\d{2})/);
-        if (rawTitle && rawTitle.length > 2 && rawTitle.length < 200) {
-          notices.push({
-            id:    aMatch[2],
-            title: rawTitle,
-            date:  dateMatch ? dateMatch[1] : '',
-            url:   aMatch[1].startsWith('http') ? aMatch[1] : 'https://aion2.plaync.com' + aMatch[1],
-            category: '',
-          });
-        }
-      }
-    }
-
-    return res.status(200).json({ notices });
-  } catch (err) {
-    return res.status(500).json({ error: 'HTML 파싱 실패', detail: err.message });
+    return res.status(200).json({ notices, _src: 'html' });
+  } catch(e) {
+    return res.status(500).json({ notices: [], _err: e.message });
   }
 }

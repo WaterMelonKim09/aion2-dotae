@@ -448,26 +448,35 @@
 
   <!-- 공지/패치노트 -->
   <div id="tab-notice" class="tab-content">
-    <!-- NC 공홈 공지 섹션 -->
-    <div class="card" style="margin-bottom:20px;padding:16px 20px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span style="font-size:15px;font-weight:700;color:var(--gold-l);">🌐 아이온2 공홈 공지</span>
-          <span id="nc-notice-badge" style="font-size:10px;padding:2px 7px;border-radius:10px;background:#1a2a1a;color:#6acd8a;border:1px solid #2a5a2a;display:none;">실시간</span>
-        </div>
-        <button class="btn btn-sm" onclick="loadNcNotices(true)" style="font-size:11px;">새로고침</button>
-      </div>
-      <div id="nc-notice-list" style="display:flex;flex-direction:column;gap:6px;">
-        <div style="color:var(--muted);font-size:13px;">불러오는 중...</div>
-      </div>
-    </div>
-
-    <!-- 레기온 공지/패치노트 -->
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-      <div class="section-title" style="margin:0;">📢 레기온 공지 / 패치노트</div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
       <button id="notice-write-btn" class="btn btn-primary btn-sm" onclick="openNoticeWrite()" style="display:none;">📝 공지 작성</button>
     </div>
-    <div id="notice-list"><div class="empty"><div class="empty-icon">📢</div><p>불러오는 중...</p></div></div>
+    <div id="notice-3col" style="display:flex;gap:0;align-items:flex-start;">
+      <!-- 아이온2 공지사항 -->
+      <div style="flex:1;min-width:0;padding-right:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:1px;">🌐 아이온2 공지사항</div>
+          <button class="btn btn-sm" onclick="loadNcNotices(true)" style="font-size:10px;padding:2px 7px;">↺</button>
+        </div>
+        <div id="nc-notice-list"><div style="color:var(--muted);font-size:13px;padding:8px 0;">불러오는 중...</div></div>
+      </div>
+      <!-- 구분선 -->
+      <div style="width:1px;background:repeating-linear-gradient(to bottom,var(--border) 0,var(--border) 6px,transparent 6px,transparent 12px);flex-shrink:0;align-self:stretch;"></div>
+      <!-- 공지사항 -->
+      <div style="flex:1;min-width:0;padding:0 16px;">
+        <div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:1px;margin-bottom:12px;">📢 공지사항</div>
+        <div id="notice-ann-list"></div>
+      </div>
+      <!-- 구분선 -->
+      <div style="width:1px;background:repeating-linear-gradient(to bottom,var(--border) 0,var(--border) 6px,transparent 6px,transparent 12px);flex-shrink:0;align-self:stretch;"></div>
+      <!-- 패치노트 -->
+      <div style="flex:1;min-width:0;padding-left:16px;">
+        <div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:1px;margin-bottom:12px;">🛠 패치노트</div>
+        <div id="notice-patch-list"></div>
+      </div>
+    </div>
+    <!-- 숨겨진 기존 컨테이너 (JS 호환용) -->
+    <div id="notice-list" style="display:none;"></div>
   </div>
 
   
@@ -972,7 +981,7 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.28';
+const BUILD_VERSION = '1.5.29';
 const BUILD_PATCHNOTE = {
   title: '최근 모집 카드 크기 + 스킬 설명 복구',
   content: '• 대시보드 최근 모집: recruit-grid 동일한 3열 그리드 레이아웃 적용.\n• 스킬 설명: NC 가이드북 API 호출 복구 (CLASS_MAP 클래스명으로 정확히 요청).'
@@ -1903,14 +1912,9 @@ function refreshHeaderUser() {
 }
 
 function renderNotices(notices, showAll) {
-  const list = document.getElementById('notice-list');
-  if(!list) return;
   window._cachedNotices = notices;
 
-  const gradeColor3 = t => t==='공지사항'?'#e8c030':'#5bc8a0';
-  const typeBg3    = t => t==='공지사항'?'rgba(232,192,48,.15)':'rgba(0,200,138,.15)';
-  const typeBorder3= t => t==='공지사항'?'#604010':'#1a5040';
-  const borderLeft3= t => t==='공지사항'?'#e8c030':'#00c88a';
+  const borderLeft3 = t => t==='공지사항'?'#e8c030':'#00c88a';
 
   const announcements  = notices.filter(n => n.type === '공지사항');
   const patches        = notices.filter(n => n.type !== '공지사항');
@@ -1920,51 +1924,41 @@ function renderNotices(notices, showAll) {
   const renderItem = n => {
     const d = n.created_at ? new Date(n.created_at) : new Date();
     const dateStr = d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0');
-    const views = n.views || 0;
     const author = n.author || '';
-    const nid = 'notice-body-'+n.id;
-    return '<div class="card" style="padding:0;border-left:3px solid '+borderLeft3(n.type)+';margin-bottom:10px;overflow:hidden;">'
-      +'<div style="padding:14px 16px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px;" onclick="toggleNoticeItem(\''+n.id+'\',this,'+JSON.stringify(n.views||0)+')">'
-        +'<div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1;">'
-          +'<span style="font-size:10px;padding:2px 7px;border-radius:10px;white-space:nowrap;background:'+typeBg3(n.type)+';color:'+gradeColor3(n.type)+';border:1px solid '+typeBorder3(n.type)+'">'+(n.type||'공지')+'</span>'
-          +'<span style="font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(n.version?'<span style="color:var(--gold-l);font-size:12px;margin-right:4px;">'+n.version+'</span>':'')+n.title+'</span>'
+    const views  = n.views  || 0;
+    const nid    = 'notice-body-'+n.id;
+    return '<div class="card" style="padding:0;border-left:3px solid '+borderLeft3(n.type)+';margin-bottom:8px;overflow:hidden;">'
+      +'<div style="padding:12px 14px;cursor:pointer;" onclick="toggleNoticeItem(\''+n.id+'\',this,'+views+')">'
+        +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;margin-bottom:4px;">'
+          +'<span style="font-size:13px;font-weight:700;line-height:1.4;flex:1;">'+(n.version?'<span style="color:var(--gold-l);font-size:11px;margin-right:4px;">'+n.version+'</span>':'')+n.title+'</span>'
+          +(isAdmin()?'<button onclick="event.stopPropagation();deleteNotice(\''+n.id+'\')" style="font-size:10px;padding:2px 5px;background:none;border:1px solid var(--red);border-radius:4px;color:var(--red);cursor:pointer;flex-shrink:0;">삭제</button>':'')
         +'</div>'
-        +'<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">'
-          +(author?'<span style="font-size:11px;color:var(--muted);">'+author+'</span>':'')
-          +'<span style="font-size:11px;color:var(--muted);">👁 <span id="views-'+n.id+'">'+views+'</span></span>'
+        +'<div style="display:flex;gap:8px;align-items:center;">'
+          +(author?'<span style="font-size:11px;color:var(--muted);">'+author+'</span><span style="color:var(--border);">·</span>':'')
           +'<span style="font-size:11px;color:var(--muted);">'+dateStr+'</span>'
-          +(isAdmin()?'<button onclick="event.stopPropagation();deleteNotice(\''+n.id+'\')" style="font-size:10px;padding:2px 6px;background:none;border:1px solid var(--red);border-radius:4px;color:var(--red);cursor:pointer;">삭제</button>':'')
+          +'<span style="font-size:11px;color:var(--muted);">👁 <span id="views-'+n.id+'">'+views+'</span></span>'
         +'</div>'
       +'</div>'
-      +'<div id="'+nid+'" style="display:none;padding:0 16px 16px;border-top:1px solid var(--border);">'
-        +'<div style="font-size:13px;color:var(--muted);line-height:1.8;white-space:pre-wrap;padding-top:12px;">'+(n.content||'')+'</div>'
+      +'<div id="'+nid+'" style="display:none;padding:0 14px 14px;border-top:1px solid var(--border);">'
+        +'<div style="font-size:13px;color:var(--muted);line-height:1.8;white-space:pre-wrap;padding-top:10px;">'+(n.content||'')+'</div>'
       +'</div>'
     +'</div>';
   };
 
-  const leftHTML = announcements.length
+  const annEl   = document.getElementById('notice-ann-list');
+  const patchEl = document.getElementById('notice-patch-list');
+
+  if(annEl) annEl.innerHTML = announcements.length
     ? announcements.map(renderItem).join('')
-    : '<div style="color:var(--muted);font-size:13px;padding:12px">공지사항이 없어요</div>';
+    : '<div style="color:var(--muted);font-size:13px;padding:8px 0;">공지사항이 없어요</div>';
 
   const moreBtn = hiddenCount > 0
-    ? '<button onclick="renderNotices(window._cachedNotices,true)" style="width:100%;padding:10px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:13px;cursor:pointer;margin-top:4px;">▼ 이전 패치노트 '+hiddenCount+'개 더보기</button>'
+    ? '<button onclick="renderNotices(window._cachedNotices,true)" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;margin-top:4px;">▼ '+hiddenCount+'개 더보기</button>'
     : '';
-  const rightHTML = (visiblePatches.length
+  if(patchEl) patchEl.innerHTML = (visiblePatches.length
     ? visiblePatches.map(renderItem).join('')
-    : '<div style="color:var(--muted);font-size:13px;padding:12px">패치노트가 없어요</div>')
+    : '<div style="color:var(--muted);font-size:13px;padding:8px 0;">패치노트가 없어요</div>')
     + moreBtn;
-
-  list.innerHTML = '<div style="display:flex;gap:0;align-items:stretch;">'
-    +'<div style="flex:1;min-width:0;padding-right:16px;">'
-      +'<div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:1px;margin-bottom:12px;">📢 공지사항</div>'
-      +leftHTML
-    +'</div>'
-    +'<div style="width:1px;background:repeating-linear-gradient(to bottom,var(--border) 0,var(--border) 6px,transparent 6px,transparent 12px);flex-shrink:0;"></div>'
-    +'<div style="flex:1;min-width:0;padding-left:16px;">'
-      +'<div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:1px;margin-bottom:12px;">🛠 패치노트</div>'
-      +rightHTML
-    +'</div>'
-    +'</div>';
 }
 
 function toggleNoticeItem(noticeId, headerEl, currentViews) {
@@ -2050,11 +2044,11 @@ async function loadNcNotices(force) {
     const data = await r.json();
     const list = data.notices || [];
     if(!list.length) {
-      el.innerHTML = '<div style="color:var(--muted);font-size:13px;">공지를 불러올 수 없어요 (NC 서버 응답 없음)</div>';
+      const errMsg = data._err ? '('+data._err+')' : '(NC 서버 응답 없음)';
+      el.innerHTML = '<div style="color:var(--muted);font-size:13px;">공지를 불러올 수 없어요 '+errMsg+'<br><a href="https://aion2.plaync.com/ko-kr/board/notice/list" target="_blank" style="color:var(--gold-l);font-size:11px;">공홈에서 직접 보기 →</a></div>';
       return;
     }
     _ncNoticeLoaded = true;
-    document.getElementById('nc-notice-badge').style.display = '';
     el.innerHTML = list.map(function(n) {
       const dateStr = (n.date||'').replace(/[.\-\/]/g,'.').slice(0,10);
       const cat = n.category ? '<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(100,160,255,.1);color:#6ab0ff;border:1px solid #1a3060;margin-right:6px;">'+n.category+'</span>' : '';
