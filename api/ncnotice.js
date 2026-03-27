@@ -17,7 +17,34 @@ module.exports = async function handler(req, res) {
     'https://aion2.plaync.com/api/board/notice/list?page=1&pageSize=20&gameCode=aion2',
     'https://aion2.plaync.com/api/v2/aion2/board/notice/list?page=1&pageSize=20',
     'https://aion2.plaync.com/ko-kr/api/board/notice/list?page=1&pageSize=20',
+    'https://aion2.plaync.com/ko-kr/api/board/aion2/notice?page=1&pageSize=20',
   ];
+
+  // ?debug=1 : 각 엔드포인트 상태 상세 반환
+  if (req.query.debug === '1') {
+    const results = [];
+    for (const url of endpoints) {
+      try {
+        const r = await fetch(url, { headers });
+        const text = await r.text();
+        let parsed = null;
+        try { parsed = JSON.parse(text); } catch(e) {}
+        results.push({ url, status: r.status, ok: r.ok, isJson: !!parsed, preview: text.slice(0, 300), keys: parsed ? Object.keys(parsed) : null });
+      } catch(e) {
+        results.push({ url, error: e.message });
+      }
+    }
+    // HTML 페이지도 확인
+    try {
+      const hr = await fetch('https://aion2.plaync.com/ko-kr/board/notice/list', { headers: { ...headers, Accept: 'text/html' } });
+      const htxt = await hr.text();
+      const hasNoticeLink = /\/board\/notice\/view\/\d+/.test(htxt);
+      results.push({ url: 'HTML_PAGE', status: hr.status, hasNoticeViewLinks: hasNoticeLink, htmlPreview: htxt.slice(0, 500) });
+    } catch(e) {
+      results.push({ url: 'HTML_PAGE', error: e.message });
+    }
+    return res.status(200).json({ debug: results });
+  }
 
   for (const url of endpoints) {
     try {
