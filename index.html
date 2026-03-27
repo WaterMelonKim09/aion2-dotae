@@ -1196,10 +1196,10 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.76';
+const BUILD_VERSION = '1.5.77';
 const BUILD_PATCHNOTE = {
-  title: '신석 색상 아이템 등급 기준으로 변경',
-  content: '• 신석 이름 색상: 효과 키워드 방식 → 아이템 등급(grade) 기준으로 변경.\n• 일반(회)·희귀(파)·영웅(빨)·유일(금)·전설(주황)·스페셜(청록) — 장비와 동일한 등급 색상 체계 적용.'
+  title: 'Supabase CPU 절감 & 빈 화면 방지',
+  content: '• Realtime WebSocket 4채널 제거 → 5분 폴링으로 교체 (Supabase Nano CPU 과부하 해결).\n• DB 연결 실패 시 이전 캐시(24h 이내)로 폴백 — 빈 화면 대신 이전 데이터 표시.'
 };
 
 // 전체 패치 내역 (버전별 정확한 설명)
@@ -2079,11 +2079,14 @@ function initFirebase() {
       }));
     } catch(e) { try { localStorage.removeItem(_CACHE_KEY); } catch(e2) {} }
   }
-  function _loadCache() {
+  function _loadCache(allowStale) {
     try {
       const c = JSON.parse(localStorage.getItem(_CACHE_KEY) || 'null');
-      if(!c || c.v !== BUILD_VERSION || !c.members || !c.members.length) return null;
-      return c;
+      if(!c || !c.members || !c.members.length) return null;
+      if(c.v === BUILD_VERSION) return c; // 최신 캐시
+      // 버전 불일치라도 24시간 이내면 stale 캐시로 반환 (DB 장애 시 폴백)
+      if(allowStale && c.ts && (Date.now() - c.ts) < 24 * 60 * 60 * 1000) return Object.assign({}, c, { _stale: true });
+      return null;
     } catch(e) { return null; }
   }
   function _hideLoading() {
@@ -2111,9 +2114,7 @@ function initFirebase() {
         window._versionPollingStarted = true;
         setInterval(checkVersion, 60000);
       }
-      db.channel('config-realtime')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'config', filter: 'key=eq.system' }, () => { checkVersion(); })
-        .subscribe();
+      // config 변경도 60초 폴링으로 처리 (Realtime 채널 제거)
       migrateRanks();
       initBossTimers();
     }
@@ -2170,13 +2171,12 @@ function initFirebase() {
 
     // ── 캐시 히트: 즉시 렌더 ──
     var cache = _loadCache();
-    if(cache) {
+    if(cache && !cache._stale) {
       _applyInit(cache.members, cache.notices);
       _hideLoading();
       var isFirstLoad = !sessionStorage.getItem("_loginInit");
       if(isFirstLoad){ sessionStorage.setItem("_loginInit","1"); initLoginScreen(); }
       _bgRefresh(); // 백그라운드에서 최신 데이터 동기화
-      // recruits는 캐시 없으니 별도 로드
       db.from('recruits').select('*').order('created_at', { ascending: false })
         .then(function({ data, error }){ if(!error){ recruits=data||[]; renderRecruit(); document.getElementById('stat-recruit').textContent=recruits.length; } });
       _setupRealtimeSubscriptions();
@@ -2214,6 +2214,19 @@ function initFirebase() {
       .catch(function(err) {
         clearTimeout(window.loadingTimeout);
         console.error('Supabase 연결 오류:', err);
+        // DB 실패 시 stale 캐시(버전 불일치 포함, 24h 이내)로 폴백
+        var stale = _loadCache(true);
+        if(stale) {
+          _applyInit(stale.members, stale.notices);
+          _hideLoading();
+          var isFL = !sessionStorage.getItem("_loginInit");
+          if(isFL){ sessionStorage.setItem("_loginInit","1"); initLoginScreen(); }
+          setFirebaseStatus('error', 'stale-cache');
+          var _tbody = document.querySelector('#members-tbody');
+          if(_tbody) { var _banner = document.createElement('tr'); _banner.innerHTML = '<td colspan="9" style="text-align:center;padding:8px;background:#2a1800;color:#cc9020;font-size:12px;">⚠ 서버 연결 불안정 — 이전 데이터를 표시 중입니다. <button onclick="sessionStorage.removeItem(\'_autoRetry\');location.reload(true)" style="background:none;border:1px solid #cc9020;color:#cc9020;padding:2px 8px;border-radius:4px;font-size:11px;cursor:pointer;">다시 시도</button></td>'; _tbody.prepend(_banner); }
+          _setupRealtimeSubscriptions();
+          return;
+        }
         var _retryCount = parseInt(sessionStorage.getItem('_autoRetry') || '0', 10);
         if(_retryCount < 3) {
           sessionStorage.setItem('_autoRetry', String(_retryCount + 1));
@@ -2234,7 +2247,6 @@ function initFirebase() {
           var isFirstLoad = !sessionStorage.getItem("_loginInit");
           if(isFirstLoad){ sessionStorage.setItem("_loginInit","1"); initLoginScreen(); }
           setFirebaseStatus('error', err.code || err.message);
-          // 멤버 목록에도 에러 표시 (로그인된 상태에서 볼 수 있도록)
           var _tbody = document.querySelector('#members-tbody');
           if(_tbody) _tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--red);font-size:14px;">⚠ 서버 연결 실패 — 잠시 후 <button onclick="sessionStorage.removeItem(\'_autoRetry\');location.reload(true)" style="background:none;border:1px solid var(--red);color:var(--red);padding:3px 10px;border-radius:5px;font-size:12px;cursor:pointer;">다시 시도</button></td></tr>';
         }
@@ -2250,55 +2262,14 @@ function initFirebase() {
     if(window._realtimeSetup) return;
     window._realtimeSetup = true;
 
-    // members 실시간 구독
-    db.channel('members-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'members' }, function() {
-        db.from('members').select(_MEMBER_COLS).order('combat_power', { ascending: false })
-          .then(function({ data, error }) {
-            if(error) return;
-            var freshMembers = data || [];
-            freshMembers.forEach(function(m){
-              var old = members.find(function(x){ return x.id===m.id; });
-              if(old && old.equipment) m.equipment = old.equipment;
-            });
-            members = freshMembers;
-            renderAll();
-            _saveCache(members, null);
-          });
-      })
-      .subscribe();
+    // Realtime WebSocket 대신 5분 폴링 (Supabase Nano CPU 절약)
+    window._pollTimer = setInterval(function() { _bgRefresh(); }, 5 * 60 * 1000);
 
-    // recruits 실시간 구독: 신청·수정·삭제 즉시 카드 갱신
-    db.channel('recruits-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'recruits' }, () => {
-        db.from('recruits').select('*').order('created_at', { ascending: false })
-          .then(({ data, error }) => {
-            if(error) return;
-            recruits = data || [];
-            renderRecruit();
-            document.getElementById('stat-recruit').textContent = recruits.length;
-          });
-      })
-      .subscribe();
-
-    // notices 실시간 구독: 새 공지/패치노트 즉시 반영
-    db.channel('notices-realtime')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notices' }, function(payload) {
-        const n = payload.new || {};
-        // 신규 공지 팝업
-        showNoticeAlert(n);
-        db.from('notices').select('*').order('created_at', { ascending: false })
-          .then(function({ data, error }) { if(!error) renderNotices(data || []); });
-      })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notices' }, function() {
-        db.from('notices').select('*').order('created_at', { ascending: false })
-          .then(function({ data, error }) { if(!error) renderNotices(data || []); });
-      })
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'notices' }, function() {
-        db.from('notices').select('*').order('created_at', { ascending: false })
-          .then(function({ data, error }) { if(!error) renderNotices(data || []); });
-      })
-      .subscribe();
+    // recruits 3분 폴링
+    window._recruitPollTimer = setInterval(function() {
+      db.from('recruits').select('*').order('created_at', { ascending: false })
+        .then(function({ data, error }){ if(!error){ recruits=data||[]; renderRecruit(); document.getElementById('stat-recruit').textContent=recruits.length; } });
+    }, 3 * 60 * 1000);
 
     db.from('war_surveys').select('*').order('created_at', { ascending: false })
       .then(({ data, error }) => {
@@ -2310,6 +2281,8 @@ function initFirebase() {
   window.refreshData = function() {
     // 캐시 클리어 + 로딩 화면 표시 후 데이터 재로드
     try { localStorage.removeItem(_CACHE_KEY); } catch(e) {}
+    if(window._pollTimer) { clearInterval(window._pollTimer); window._pollTimer = null; }
+    if(window._recruitPollTimer) { clearInterval(window._recruitPollTimer); window._recruitPollTimer = null; }
     window._realtimeSetup = false;
     window._loadingHidden = false;
     clearTimeout(window.loadingTimeout);
