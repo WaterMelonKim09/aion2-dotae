@@ -895,10 +895,10 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.13';
+const BUILD_VERSION = '1.5.14';
 const BUILD_PATCHNOTE = {
-  title: '모바일 헤더 UI 개선',
-  content: '• 모바일에서 헤더가 2줄로 표시되어 버전 정보·프로필·로그아웃 버튼이 모두 보이게 개선.\n• 버전 정보가 헤더 하단에 깔끔하게 표시.\n• 프로필 버튼에 닉네임이 컴팩트하게 표시.\n• 업데이트 알림 말풍선 정상 유지.'
+  title: '데이터 로딩 실패 시 자동 새로고침',
+  content: '• 새로고침 또는 시스템 업데이트 시 로딩 화면을 먼저 표시.\n• 데이터 불러오기 실패하면 로딩 화면에 카운트다운이 표시되고 자동으로 새로고침.\n• 20초 내 데이터 미수신 시에도 자동 새로고침으로 빈 화면 방지.'
 };
 
 // 시맨틱 버전 비교 (날짜형 구버전 호환)
@@ -1584,23 +1584,19 @@ function nickSelect(el, inputId, previewId, cardId, memberId) {
 })();
 
 function initFirebase() {
-  // 20초 후 로딩 강제 숨김 (느린 모바일 네트워크 대비)
+  // 20초 후에도 데이터 없으면 자동 새로고침
   var _loadTimeout = setTimeout(function() {
-    var el = document.getElementById('loading-screen');
-    if(el) el.style.display='none';
-    initLoginScreen();
-    setTimeout(function() {
-      if(!members || members.length === 0) {
-        var el = document.getElementById('firebase-status');
-        if(el && el.style.display !== 'none' && !el.innerHTML.includes('(')) {
-          setFirebaseStatus('error', 'network-timeout');
-        } else if(el && el.style.display === 'none') {
-          // 이미 ok 상태면 무시
-        } else if(!el || !el.innerHTML) {
-          setFirebaseStatus('error', 'network-timeout');
-        }
-      }
-    }, 500);
+    if(members && members.length > 0) return; // 이미 로드 성공
+    var _pctEl = document.getElementById('loading-pct');
+    var _msgEl = document.querySelector('#loading-screen div[style*="불러오는 중"]');
+    if(_msgEl) _msgEl.textContent = '연결 시간 초과. 자동 새로고침 중...';
+    var _cnt = 3;
+    if(_pctEl) _pctEl.textContent = _cnt + '초 후 새로고침';
+    var _autoRefresh = setInterval(function() {
+      _cnt--;
+      if(_pctEl) _pctEl.textContent = _cnt + '초 후 새로고침';
+      if(_cnt <= 0) { clearInterval(_autoRefresh); location.reload(true); }
+    }, 1000);
   }, 20000);
   window.loadingTimeout = _loadTimeout;
 
@@ -1670,13 +1666,19 @@ function initFirebase() {
         if(isFirstLoad){ sessionStorage.setItem("_loginInit","1"); initLoginScreen(); }
       })
       .catch(function(err) {
-        if(window._loadingBarDone) window._loadingBarDone();
         clearTimeout(window.loadingTimeout);
-        setTimeout(function() { var _loadEl=document.getElementById('loading-screen'); if(_loadEl) _loadEl.style.display='none'; }, 300);
-        const isFirstLoad = !sessionStorage.getItem("_loginInit");
-        if(isFirstLoad){ sessionStorage.setItem("_loginInit","1"); initLoginScreen(); }
-        setFirebaseStatus('error', err.code || err.message);
         console.error('Supabase 연결 오류:', err);
+        // 로딩 실패 시 자동 새로고침 (3초 카운트다운)
+        var _pctEl = document.getElementById('loading-pct');
+        var _msgEl = document.querySelector('#loading-screen div[style*="불러오는 중"]');
+        if(_msgEl) _msgEl.textContent = '연결 실패. 자동 새로고침 중...';
+        var _cnt = 3;
+        if(_pctEl) _pctEl.textContent = _cnt + '초 후 새로고침';
+        var _autoRefresh = setInterval(function() {
+          _cnt--;
+          if(_pctEl) _pctEl.textContent = _cnt + '초 후 새로고침';
+          if(_cnt <= 0) { clearInterval(_autoRefresh); location.reload(true); }
+        }, 1000);
       });
 
     db.from('recruits').select('*').order('created_at', { ascending: false })
@@ -1724,7 +1726,21 @@ function initFirebase() {
         renderWarSurveys();
       });
   }
-  window.refreshData = loadAllData;
+  window.refreshData = function() {
+    // 로딩 화면 표시 후 데이터 재로드
+    var loadEl = document.getElementById('loading-screen');
+    if(loadEl) loadEl.style.display = 'flex';
+    var bar = document.getElementById('loading-bar');
+    var pct = document.getElementById('loading-pct');
+    if(bar) bar.style.width = '0%';
+    if(pct) pct.textContent = '0%';
+    var _pct2 = 0;
+    var _iv2 = setInterval(function() {
+      if(_pct2 < 85) { _pct2 += (85 - _pct2) * 0.06; if(bar) bar.style.width = Math.round(_pct2) + '%'; if(pct) pct.textContent = Math.round(_pct2) + '%'; }
+    }, 80);
+    window._loadingBarDone = function() { clearInterval(_iv2); if(bar) bar.style.width='100%'; if(pct) pct.textContent='100%'; };
+    loadAllData();
+  };
   loadAllData();
 }
 
