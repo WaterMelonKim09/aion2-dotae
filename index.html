@@ -1005,7 +1005,7 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.44';
+const BUILD_VERSION = '1.5.45';
 const BUILD_PATCHNOTE = {
   title: 'NC 아이온2 공지사항 파싱 수정',
   content: '• noticesList[].articleMeta 구조 파싱 적용.\n• 아이온2 공홈 공지사항 정상 표시.'
@@ -1768,7 +1768,7 @@ function initFirebase() {
           checkVersion();
           if(!window._versionPollingStarted) {
             window._versionPollingStarted = true;
-            setInterval(checkVersion, 60000);
+            setInterval(checkVersion, 1000);
           }
           db.channel('config-realtime')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'config', filter: 'key=eq.system' }, () => { checkVersion(); })
