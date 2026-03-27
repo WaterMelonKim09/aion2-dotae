@@ -920,10 +920,10 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.19';
+const BUILD_VERSION = '1.5.20';
 const BUILD_PATCHNOTE = {
-  title: '모바일 헤더 PC와 유사하게 개선',
-  content: '• 모바일 헤더 레이아웃 재설계: 내정보(아바타+닉네임+계급) 및 로그아웃 버튼이 PC와 유사하게 표시.\n• 상단: 내정보 + 로그아웃, 하단: ⟳ 업데이트 + 버전 정보 (2줄 배치).'
+  title: '계급 변경 실시간 반영',
+  content: '• 멤버 관리에서 계급 변경 시 헤더 내정보·멤버 스펙 즉시 갱신.\n• members 테이블 실시간 구독 추가 (다른 사용자 변경도 즉시 반영).'
 };
 
 // 시맨틱 버전 비교 (날짜형 구버전 호환)
@@ -1720,6 +1720,18 @@ function initFirebase() {
         renderRecruit();
         document.getElementById('stat-recruit').textContent = recruits.length;
       });
+
+    // members 실시간 구독: 계급·스펙 변경 즉시 반영
+    db.channel('members-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'members' }, function(payload) {
+        db.from('members').select('*').order('combat_power', { ascending: false })
+          .then(function({ data, error }) {
+            if(error) return;
+            members = data || [];
+            renderAll();
+          });
+      })
+      .subscribe();
 
     // recruits 실시간 구독: 신청·수정·삭제 즉시 카드 갱신
     db.channel('recruits-realtime')
@@ -2994,6 +3006,10 @@ async function updateMember() {
   const updates = { rank, is_main: isMain };
   if(!isMain && playerId) updates.player_id = playerId;
   await db.from('members').update(updates).eq('id', id);
+  // 로컬 members 배열 즉시 갱신
+  var idx = members.findIndex(function(m){ return m.id===id; });
+  if(idx >= 0) Object.assign(members[idx], updates);
+  renderAll();
   closeModal('modal-edit'); toast('변경 완료 ✓');
 }
 async function saveRecruit() {
