@@ -75,8 +75,8 @@
   /* 아이온2 8개 직업 배지 */
   .cls-검성   { background:#0e1f26; color:#5ab4cc; border:1px solid #5ab4cc55; }
   .cls-수호성   { background:#0e1426; color:#7090d8; border:1px solid #7090d855; }
-  .cls-마도성   { background:#220818; color:#cc44aa; border:1px solid #cc44aa55; }
-  .cls-살성   { background:#220a12; color:#c84468; border:1px solid #c8446855; }
+  .cls-마도성   { background:#160e26; color:#9966dd; border:1px solid #9966dd55; }
+  .cls-살성   { background:#141e06; color:#7acc40; border:1px solid #7acc4055; }
   .cls-궁성   { background:#0a1e14; color:#44c088; border:1px solid #44c08855; }
   .cls-정령성   { background:#150e22; color:#9966cc; border:1px solid #9966cc55; }
   .cls-치유성   { background:#201600; color:#c8a030; border:1px solid #c8a03055; }
@@ -1184,8 +1184,8 @@ const CLS_ICON  = {
 };
 
 
-const CLS_COLOR = {'검성':'#5ab4cc','수호성':'#7090d8','살성':'#c84468','궁성':'#44c088','마도성':'#cc44aa','정령성':'#9966cc','치유성':'#c8a030','호법성':'#cc6030'};
-const CLS_BG    = {'검성':'#5ab4cc','수호성':'#7090d8','살성':'#c84468','궁성':'#44c088','마도성':'#cc44aa','정령성':'#9966cc','치유성':'#c8a030','호법성':'#cc6030'};
+const CLS_COLOR = {'검성':'#5ab4cc','수호성':'#7090d8','살성':'#7acc40','궁성':'#44c088','마도성':'#9966dd','정령성':'#9966cc','치유성':'#c8a030','호법성':'#cc6030'};
+const CLS_BG    = {'검성':'#5ab4cc','수호성':'#7090d8','살성':'#7acc40','궁성':'#44c088','마도성':'#9966dd','정령성':'#9966cc','치유성':'#c8a030','호법성':'#cc6030'};
 
 // NC 직업명 → 한국어 매핑
 const CLASS_MAP = {
@@ -1195,10 +1195,10 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.70';
+const BUILD_VERSION = '1.5.71';
 const BUILD_PATCHNOTE = {
-  title: '직업 색상 통일 및 파이차트 개선',
-  content: '• 살성·마도성·정령성 직업 배지·범례·차트 색상 불일치 수정.\n• 8개 직업 색상 팔레트 통일 (CSS/JS 일관성).\n• 파이차트 세그먼트 solid 색상 적용으로 선명도 개선.'
+  title: '살성·마도성 엠블렘 색상 수정',
+  content: '• 살성 황록색(#7acc40)·마도성 바이올렛(#9966dd) 엠블렘 색으로 통일.'
 };
 
 // 전체 패치 내역 (버전별 정확한 설명)
@@ -1239,8 +1239,8 @@ const _PATCH_HISTORY = [
     content:'• 액션 로딩 팝업 크기 확대 및 스피너 중앙 이미지 표시.\n• 사용자 액션 시 백그라운드 갱신 즉시 중단 (상세 보기 응답 속도 개선).\n• 탈퇴 스캔 제거 시 로딩 팝업 표시.\n• 캐시 저장 시 무거운 컬럼 제외로 용량 절감.\n• 연결 실패 재시도 메시지 표시 버그 수정.' },
   { version:'1.5.69', title:'상세 팝업 로딩 hang 버그 수정',
     content:'• 상세 보기 클릭 시 로딩 팝업이 닫히지 않던 버그 수정.\n• openDetailById try-finally로 로딩 팝업 항상 해제 보장.\n• 백그라운드 갱신 AbortController 제거, 토큰 방식으로 교체 (안정성).' },
-  { version:'1.5.70', title:'직업 색상 통일 및 파이차트 개선',
-    content:'• 살성·마도성·정령성 직업 배지·범례·차트 색상 불일치 수정.\n• 8개 직업 색상 팔레트 통일 (CSS/JS 일관성).\n• 파이차트 세그먼트 solid 색상 적용으로 선명도 개선.' },
+  { version:'1.5.71', title:'살성·마도성 엠블렘 색상 수정',
+    content:'• 살성 황록색(#7acc40)·마도성 바이올렛(#9966dd) 엠블렘 색으로 통일.' },
 ];
 
 // 시맨틱 버전 비교 (날짜형 구버전 호환)
