@@ -193,11 +193,20 @@
   #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
 
 /* ── 모바일 반응형 ─────────────────── */
+/* 파티 모집 필터 레이아웃 */
+.recruit-filter-top { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:10px; }
+.recruit-add-btn { flex-shrink:0; white-space:nowrap; }
+.recruit-search-row { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; align-items:center; }
+.recruit-date-row { display:flex; gap:6px; align-items:center; flex:1; min-width:220px; }
+
 @media (max-width: 768px) {
-  .header { padding:10px 14px; }
+  .header { padding:8px 12px; height:auto; min-height:52px; }
   .header-title { font-size:16px; }
   .online-badge { display:none; }
   .main { padding:12px; }
+
+  /* 헤더 우측 간격 축소 */
+  .header > div:last-child { gap:6px; }
 
   /* 네비게이션 - 스크롤 가능하게 */
   .nav { padding:0 8px; gap:0; overflow-x:auto; flex-wrap:nowrap; scrollbar-width:none; }
@@ -230,7 +239,8 @@
   .search-box { width:100% !important; }
 
   /* 모달 */
-  .modal { margin:10px; width:calc(100% - 20px) !important; max-width:none !important; border-radius:10px; }
+  .modal { margin:8px; width:calc(100% - 16px) !important; max-width:none !important; border-radius:10px; padding:16px !important; }
+  .modal-title { font-size:15px; margin-bottom:14px !important; }
   .modal-detail-content { font-size:13px; }
 
   /* 상세 모달 3열 → 1열 */
@@ -286,9 +296,26 @@
 
   /* 스킬 3열 → 2열 */
   #detail-skill .skill-grid { grid-template-columns:repeat(2,1fr) !important; }
+
+  /* 파티 모집 필터: 모집등록 버튼 세로로 */
+  .recruit-filter-top { flex-wrap:wrap; }
+  .recruit-search-row { flex-direction:column; gap:8px; }
+  .recruit-date-row { min-width:0; width:100%; }
 }
 
 @media (max-width: 480px) {
+  /* 헤더: 버전 정보 숨김, 버튼 간소화 */
+  #ver-latest, #ver-current { display:none !important; }
+  .hdr-nick-wrap { display:none; }
+  .hdr-btn-text { display:none; }
+  #header-user-btn { padding:4px; gap:0; border-radius:50%; background:transparent; border-color:var(--gold-d); }
+  #btn-logout { padding:4px 8px !important; font-size:11px !important; }
+  .logo-sub { display:none; }
+  .logo-text { font-size:15px; }
+
+  /* 헤더 버튼 간격 */
+  .header > div:last-child { gap:5px; }
+
   .header-title { font-size:14px; }
   .stat-val { font-size:18px !important; }
   .stats-grid { grid-template-columns:1fr 1fr !important; }
@@ -298,6 +325,20 @@
   /* 테이블 갱신/시간 컬럼 숨김 */
   .table-wrap th:nth-child(7),
   .table-wrap td:nth-child(7) { display:none; }
+
+  /* 파티 모집: 모집등록 버튼 전체폭 */
+  .recruit-add-btn { width:100%; }
+  .recruit-filter-top { flex-direction:column; }
+
+  /* 탭 버튼 더 작게 */
+  .nav-btn { font-size:11px; padding:8px 8px; }
+
+  /* 모달 패딩 */
+  .modal { margin:4px; width:calc(100% - 8px) !important; padding:12px !important; }
+
+  /* 쟁 참여조사 헤더 버튼 wrap */
+  #tab-war > div:first-child { flex-wrap:wrap; gap:8px; }
+  #tab-war > div:first-child > div:last-child { width:100%; justify-content:flex-end; }
 }
 </style>
 </head>
@@ -354,7 +395,7 @@
       <span id="ver-current" style="font-size:10px;color:var(--muted);white-space:nowrap;"></span>
     </div>
     <div style="position:relative;">
-      <button id="btn-system-update" onclick="doSystemUpdate()" class="btn btn-sm" style="font-size:12px;padding:6px 10px;white-space:nowrap;">⟳ 시스템 업데이트</button>
+      <button id="btn-system-update" onclick="doSystemUpdate()" class="btn btn-sm" style="font-size:12px;padding:6px 10px;white-space:nowrap;">⟳ <span class="hdr-btn-text">시스템 업데이트</span></button>
       <div id="update-bubble" style="display:none;position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#ff9900;color:#000;font-size:11px;font-weight:700;padding:6px 10px;border-radius:8px;white-space:nowrap;pointer-events:none;animation:bubble-pulse 1.5s ease-in-out infinite;">
         <div style="position:absolute;bottom:100%;left:50%;transform:translateX(-50%);width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:6px solid #ff9900;"></div>
         🔔 신규 패치가 있어요! 업데이트 해주세요.
@@ -362,7 +403,7 @@
     </div>
     <div id="header-user-btn" onclick="openMyProfile()" style="cursor:pointer;display:flex;align-items:center;gap:10px;padding:6px 16px 6px 6px;background:var(--surface);border:1px solid var(--border);border-radius:24px;">
       <div id="header-avatar" style="width:34px;height:34px;border-radius:50%;background:var(--card);border:2px solid var(--gold-d);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:15px;"></div>
-      <div><div id="header-nick" style="font-size:14px;font-weight:700;color:var(--gold-l);white-space:nowrap;"></div>
+      <div class="hdr-nick-wrap"><div id="header-nick" style="font-size:14px;font-weight:700;color:var(--gold-l);white-space:nowrap;"></div>
       <div id="header-rank" style="font-size:11px;color:var(--muted);white-space:nowrap;"></div></div>
     </div>
     <button id="btn-logout" onclick="logoutUser()" class="btn btn-sm" style="display:none;font-size:12px;color:var(--muted);white-space:nowrap;">로그아웃</button>
@@ -472,8 +513,8 @@
 
   <!-- 파티 모집 -->
   <div id="tab-recruit" class="tab-content">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-      <div class="filter-row" style="margin:0">
+    <div class="recruit-filter-top">
+      <div class="filter-row" style="margin:0;flex:1;">
         <button class="chip active" onclick="setRFilter('all',this)">전체</button>
         <button class="chip" onclick="setRFilter('원정',this)">원정</button>
         <button class="chip" onclick="setRFilter('초월',this)">초월</button>
@@ -483,13 +524,15 @@
         <button class="chip" onclick="setRFilter('투기장',this)">투기장</button>
         <button class="chip" onclick="setRFilter('토벌전',this)">토벌전</button>
       </div>
-      <button class="btn btn-primary" onclick="openModal('recruit');setTimeout(function(){if(currentUser){var el=document.getElementById('m-author');if(el&&!el.value)el.value=currentUser.nickname;}},50);">+ 모집 등록</button>
+      <button class="btn btn-primary recruit-add-btn" onclick="openModal('recruit');setTimeout(function(){if(currentUser){var el=document.getElementById('m-author');if(el&&!el.value)el.value=currentUser.nickname;}},50);">+ 모집 등록</button>
     </div>
-    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
-      <input class="form-input" id="r-keyword" placeholder="🔍 키워드 검색 (제목·작성자·내용)" style="flex:1;min-width:160px;" oninput="renderRecruit()">
-      <input type="date" class="form-input" id="r-date-from" style="width:140px;color-scheme:dark;" onchange="renderRecruit()">
-      <span style="font-size:12px;color:var(--muted);flex-shrink:0;">~</span>
-      <input type="date" class="form-input" id="r-date-to" style="width:140px;color-scheme:dark;" onchange="renderRecruit()">
+    <div class="recruit-search-row">
+      <input class="form-input" id="r-keyword" placeholder="🔍 키워드 검색 (제목·작성자·내용)" style="flex:1;min-width:0;" oninput="renderRecruit()">
+      <div class="recruit-date-row">
+        <input type="date" class="form-input" id="r-date-from" style="flex:1;min-width:0;color-scheme:dark;" onchange="renderRecruit()">
+        <span style="font-size:12px;color:var(--muted);flex-shrink:0;">~</span>
+        <input type="date" class="form-input" id="r-date-to" style="flex:1;min-width:0;color-scheme:dark;" onchange="renderRecruit()">
+      </div>
     </div>
     <div class="recruit-grid" id="recruit-grid"></div>
   </div>
@@ -834,10 +877,10 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.11';
+const BUILD_VERSION = '1.5.12';
 const BUILD_PATCHNOTE = {
-  title: '모바일 접속 안정성 대폭 개선',
-  content: '• 아이폰 등 모바일 환경에서 서버 연결 실패(network-timeout) 오류 수정.\n• 페이지 시작 시 동시 서버 요청을 7개에서 1개로 줄여 모바일 네트워크 부하 해소.\n• 버전 체크, 타이머, 마이그레이션 등 부가 기능을 데이터 로드 완료 후 순차적으로 시작.\n• 로딩 타임아웃을 10초에서 20초로 늘려 느린 환경에서도 정상 접속 가능.'
+  title: '모바일 UI 전면 개선',
+  content: '• 아이폰 등 모바일 화면에서 헤더 버튼 잘림 현상 수정.\n• 작은 화면에서 불필요한 헤더 텍스트(버전 정보, 닉네임 등) 자동 숨김.\n• 파티 모집 날짜 필터 UI가 모바일에서 깔끔하게 줄 바꿈되도록 개선.\n• 탭, 모달, 카드 전반적인 모바일 레이아웃 최적화.'
 };
 
 // 시맨틱 버전 비교 (날짜형 구버전 호환)
