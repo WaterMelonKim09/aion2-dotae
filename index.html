@@ -483,6 +483,7 @@
   <div id="tab-notice" class="tab-content">
     <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
       <button id="notice-write-btn" class="btn btn-primary btn-sm" onclick="openNoticeWrite()" style="display:none;">📝 공지 작성</button>
+      <button id="patch-migrate-btn" class="btn btn-sm" onclick="migratePatchNoteHistory()" style="display:none;margin-left:6px;border-color:var(--gold-d);color:var(--gold);">🔧 패치 내역 수정</button>
     </div>
     <div id="notice-3col" style="display:flex;gap:0;align-items:flex-start;">
       <!-- 아이온2 공지사항 -->
@@ -1031,7 +1032,42 @@ Go|군단병
 재돈|군단병
 전지수|군단병
 제리타임|군단병
-제목|군단병</textarea>
+제목|군단병
+존엄|군단병
+주맨|군단병
+지라|군단병
+진밤뻥|군단병
+찬수|군단병
+참참|군단병
+청룡진|군단병
+초여름|군단병
+초일|군단병
+충격적중|군단병
+카하하이석현|군단병
+쿠퍼|군단병
+타우렌|군단병
+태경임|군단병
+태봉|군단병
+테테|군단병
+토스트이삭|군단병
+파네스|군단병
+페릿|군단병
+포실포실한크림빵|군단병
+푸터|군단병
+푸른심장|군단병
+풍화|군단병
+퓨우|군단병
+프핀|군단병
+하프|군단병
+한번찌르기|군단병
+한봉|군단병
+헉스|군단병
+헤무|군단병
+형님|군단병
+홍살|군단병
+화석|군단병
+히메코|군단병
+힐딱|군단병</textarea>
           <div style="display:flex;gap:8px;margin-top:8px;">
             <select class="form-select" id="bulk-is-main" style="width:100px;">
               <option value="true">본캐</option><option value="false">부캐</option>
@@ -1277,11 +1313,29 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.57';
+const BUILD_VERSION = '1.5.58';
 const BUILD_PATCHNOTE = {
-  title: '레기온 일괄 등록, 신석 등급 색상, 탈퇴 멤버 감지',
-  content: '• 일괄 등록: 닉네임 입력으로 레기온 멤버 자동 조회 후 등록.\n• 신석 등급별 색상 표시 robust 파싱 적용.\n• 탈퇴 멤버 감지: 멤버 탭 → 관리자 전용 "탈퇴 스캔" 기능 추가.'
+  title: '레기온 전체 인원 일괄 등록, 패치 내역 정리',
+  content: '• 레기온 전체 인원(105명) 일괄 등록 데이터 반영 (계급 포함).\n• 과거 패치 내역 정확한 내용으로 DB 업데이트.\n• 탈퇴 스캔: 레기온 없는 멤버도 감지.\n• 신석 전설 등급(Legend) 색상 수정.'
 };
+
+// 전체 패치 내역 (버전별 정확한 설명)
+const _PATCH_HISTORY = [
+  { version:'1.5.52', title:'신석 등급 색상, 더보기·접기, 파이차트 개선',
+    content:'• 신석 슬롯 이름 "신석"으로 변경.\n• 신석 등급별 색상 규칙 반영 (일반~스페셜).\n• NC 공지/업데이트 더보기·접기 기능 추가.\n• NC 더보기 previousArticleId 버그 수정 (snowId→articleId).\n• 패치노트 접기 버튼 추가.\n• 직업 분포 파이차트 확대 (180→220px), 범례 간격 수정.\n• 관리자 일괄 멤버 등록 기능 추가.' },
+  { version:'1.5.53', title:'시공/슈고 알리미, 숙제 도우미 탭 추가',
+    content:'• 시공의 균열 타이머 추가 (3시간마다 정각, 10분간 입장 가능).\n• 슈고 페스타 타이머 추가 (매시 :15/:45, 3분간 입장 가능).\n• 숙제 도우미 탭 추가 (일일/주간 체크리스트, 자정·수요일 리셋).' },
+  { version:'1.5.54', title:'업데이트 버튼 수정, 탈퇴 멤버 스캔 기능',
+    content:'• 시스템 업데이트 버튼: URL 타임스탬프 방식으로 캐시 강제 갱신.\n• 버전 폴링 주기 1초→60초 최적화.\n• 멤버 탭 관리자 전용 "탈퇴 멤버 스캔" 기능 추가.\n• 탈퇴 스캔: guild_name이 "도태"가 아니면 탈퇴로 표시.' },
+  { version:'1.5.55', title:'신석 등급 색상 파싱 강화',
+    content:'• 신석 grade 값 다양한 형식 지원 (영문/한글/숫자 fallback).\n• 한글 등급명 매핑 추가 (일반/희귀/영웅/유일/전설/스페셜).' },
+  { version:'1.5.56', title:'UI 정리, 레기온 API 안내',
+    content:'• 레기온 자동 조회 불가 안내 (NC 공홈 로그인 세션 필요).\n• 관리자 일괄 등록 UI 개선.' },
+  { version:'1.5.57', title:'신석 전설 색상 수정, 탈퇴 스캔 개선, 일괄 등록 복구',
+    content:'• 신석 전설 등급 색상 수정: NC API "Legend" grade 값 매핑 추가.\n• 탈퇴 스캔: 레기온 없는 멤버(빈값)도 탈퇴로 감지.\n• 일괄 등록 복구: 닉네임|계급 형식으로 계급 자동 적용.' },
+  { version:'1.5.58', title:'레기온 전체 인원 일괄 등록, 패치 내역 정리',
+    content:'• 레기온 전체 인원(105명) 일괄 등록 데이터 반영 (계급 포함).\n• 과거 패치 내역 정확한 내용으로 DB 업데이트.\n• 탈퇴 스캔: 레기온 없는 멤버도 감지.\n• 신석 전설 등급(Legend) 색상 수정.' },
+];
 
 // 시맨틱 버전 비교 (날짜형 구버전 호환)
 function _semverGte(a, b) {
@@ -1627,6 +1681,28 @@ async function autoInsertPatchNote() {
       content: BUILD_PATCHNOTE.content,
     });
   } catch(e) {}
+}
+
+async function migratePatchNoteHistory() {
+  if(!isAdmin()) { toast('관리자만 가능'); return; }
+  try {
+    const { data: existing } = await db.from('notices').select('id,version').eq('type','패치노트');
+    const existMap = {};
+    (existing||[]).forEach(n => { if(n.version) existMap[n.version] = n.id; });
+    let updated = 0, inserted = 0;
+    for(const p of _PATCH_HISTORY) {
+      if(existMap[p.version]) {
+        await db.from('notices').update({ title: p.title, content: p.content }).eq('id', existMap[p.version]);
+        updated++;
+      } else {
+        await db.from('notices').insert({ type:'패치노트', version:p.version, title:p.title, content:p.content });
+        inserted++;
+      }
+    }
+    toast(`패치 내역 업데이트 완료: 수정 ${updated}건, 추가 ${inserted}건`);
+    const { data } = await db.from('notices').select('*').order('created_at',{ascending:false});
+    renderNotices(data||[]);
+  } catch(e) { toast('실패: '+e.message); }
 }
 
 function logoutUser() {
@@ -2367,6 +2443,8 @@ async function deleteNotice(id) {
 function refreshNoticeWriteBtn() {
   const nb = document.getElementById('notice-write-btn');
   if(nb) nb.style.display = isAdmin() ? 'inline-block' : 'none';
+  const pb = document.getElementById('patch-migrate-btn');
+  if(pb) pb.style.display = isAdmin() ? 'inline-block' : 'none';
 }
 
 // ─── 신규 레기온 공지 팝업 ──────────────────
