@@ -149,17 +149,37 @@
 
   /* 파이 차트 */
   .pie-wrap { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:20px; display:flex; align-items:center; gap:20px; flex-wrap:wrap; height:100%; box-sizing:border-box; }
-  .pie-rel  { position:relative; width:180px; height:180px; flex-shrink:0; }
+  .pie-rel  { position:relative; width:220px; height:220px; flex-shrink:0; }
   .pie-center { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center; }
   .pie-total { font-size:22px; font-weight:700; color:var(--gold-l); }
   .pie-sub   { font-size:11px; color:var(--muted); }
-  .legend { display:flex; flex-direction:column; gap:8px; flex:1; min-width:160px; }
-  .leg-item { display:flex; align-items:center; gap:10px; padding:6px 10px; border-radius:6px; }
+  .legend { display:flex; flex-direction:column; gap:4px; flex:1; min-width:120px; }
+  .leg-item { display:flex; align-items:center; gap:6px; padding:4px 8px; border-radius:6px; }
   .leg-dot  { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
-  .leg-name { font-size:13px; flex:1; }
-  .leg-cnt  { font-size:13px; font-weight:600; color:var(--gold-l); }
-  .leg-pct  { font-size:11px; color:var(--muted); min-width:30px; text-align:right; }
+  .leg-name { font-size:12px; white-space:nowrap; }
+  .leg-cnt  { font-size:12px; font-weight:600; color:var(--gold-l); white-space:nowrap; margin-left:auto; padding-left:8px; }
+  .leg-pct  { font-size:11px; color:var(--muted); white-space:nowrap; min-width:28px; text-align:right; }
 
+  /* 시공/슈고 슬롯 */
+  .rift-slot { text-align:center; padding:8px 4px; border-radius:8px; font-size:13px; font-family:monospace; font-weight:600; background:var(--surface); border:1px solid var(--border); color:var(--muted); transition:all .2s; }
+  .rift-slot.active { background:rgba(56,189,248,.15); border-color:#38bdf8; color:#38bdf8; }
+  .rift-slot.next { border-color:var(--gold-d); color:var(--gold-l); }
+  .shugo-quest { font-size:11px; color:var(--muted); background:var(--card); border:1px solid var(--border); border-radius:5px; padding:3px 7px; }
+  /* 숙제 도우미 */
+  .hw-section { margin-bottom:16px; }
+  .hw-section-title { font-size:13px; font-weight:700; color:var(--gold); margin-bottom:10px; display:flex; align-items:center; gap:6px; }
+  .hw-rimo-btn { padding:5px 10px; border-radius:6px; font-size:12px; background:var(--surface); border:1px solid var(--border); color:var(--muted); cursor:pointer; transition:all .15s; }
+  .hw-rimo-btn.used { background:rgba(100,100,100,.3); border-color:var(--border); color:#555; text-decoration:line-through; }
+  .hw-counter { display:flex; align-items:center; gap:6px; }
+  .hw-counter-btn { width:26px; height:26px; border-radius:5px; border:1px solid var(--border); background:var(--surface); color:var(--text); cursor:pointer; font-size:14px; display:flex; align-items:center; justify-content:center; }
+  .hw-counter-val { font-size:13px; font-weight:700; color:var(--gold-l); min-width:28px; text-align:center; }
+  .hw-max-badge { font-size:10px; padding:2px 6px; border-radius:4px; background:rgba(0,200,138,.15); color:#00c88a; border:1px solid rgba(0,200,138,.3); font-weight:700; }
+  .hw-row { display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:var(--surface); border:1px solid var(--border); border-radius:8px; margin-bottom:6px; }
+  .hw-row-label { font-size:13px; color:var(--text); flex:1; }
+  .hw-row-sub { font-size:11px; color:var(--muted); margin-left:6px; }
+  .hw-check { width:18px; height:18px; border-radius:4px; border:2px solid var(--border); cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-right:10px; transition:all .15s; }
+  .hw-check.checked { background:var(--gold); border-color:var(--gold); }
+  .hw-reset-info { font-size:11px; color:var(--muted); text-align:right; margin-bottom:6px; }
   /* 뷰 토글 */
   .view-toggle { display:flex; gap:3px; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:3px; }
   .vt { background:none; border:none; color:var(--muted); padding:4px 10px; border-radius:4px; font-size:12px; cursor:pointer; transition:all .15s; }
@@ -453,6 +473,7 @@
   <button class="nav-btn" onclick="showTab('recruit')">🛡 파티 모집</button>
   <button class="nav-btn" onclick="showTab('war')">⚔ 쟁 참여조사</button>
   <button class="nav-btn" onclick="showTab('timer')">🐹 시공/슈고 알리미</button>
+  <button class="nav-btn" onclick="showTab('homework')">📋 숙제 도우미</button>
   <button class="nav-btn" onclick="showTab('register')">✚ 멤버 등록</button>
 </div>
 
@@ -468,22 +489,32 @@
       <div style="flex:1;min-width:0;padding-right:16px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
           <div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:1px;">🌐 아이온2 공지사항</div>
-          <button class="btn btn-sm" onclick="loadNcNotices(true)" style="font-size:10px;padding:2px 7px;">↺</button>
+          <button id="nc-refresh-btn" class="btn btn-sm" onclick="loadNcNotices(true)" style="font-size:10px;padding:2px 7px;">↺</button>
         </div>
         <div id="nc-notice-list"><div style="color:var(--muted);font-size:13px;padding:8px 0;">불러오는 중...</div></div>
       </div>
       <!-- 구분선 -->
       <div style="width:1px;background:repeating-linear-gradient(to bottom,var(--border) 0,var(--border) 6px,transparent 6px,transparent 12px);flex-shrink:0;align-self:stretch;"></div>
-      <!-- 공지사항 -->
+      <!-- 아이온2 업데이트 -->
       <div style="flex:1;min-width:0;padding:0 16px;">
-        <div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:1px;margin-bottom:12px;">📢 공지사항</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:1px;">🔄 아이온2 업데이트</div>
+          <button id="nc-update-refresh-btn" class="btn btn-sm" onclick="loadNcUpdates(true)" style="font-size:10px;padding:2px 7px;">↺</button>
+        </div>
+        <div id="nc-update-list"><div style="color:var(--muted);font-size:13px;padding:8px 0;">불러오는 중...</div></div>
+      </div>
+      <!-- 구분선 -->
+      <div style="width:1px;background:repeating-linear-gradient(to bottom,var(--border) 0,var(--border) 6px,transparent 6px,transparent 12px);flex-shrink:0;align-self:stretch;"></div>
+      <!-- 레기온 공지사항 -->
+      <div style="flex:1;min-width:0;padding:0 16px;">
+        <div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:1px;margin-bottom:12px;">📢 레기온 공지사항</div>
         <div id="notice-ann-list"></div>
       </div>
       <!-- 구분선 -->
       <div style="width:1px;background:repeating-linear-gradient(to bottom,var(--border) 0,var(--border) 6px,transparent 6px,transparent 12px);flex-shrink:0;align-self:stretch;"></div>
-      <!-- 패치노트 -->
+      <!-- 관리 시스템 패치노트 -->
       <div style="flex:1;min-width:0;padding-left:16px;">
-        <div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:1px;margin-bottom:12px;">🛠 패치노트</div>
+        <div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:1px;margin-bottom:12px;">🛠 관리 시스템 패치노트</div>
         <div id="notice-patch-list"></div>
       </div>
     </div>
@@ -563,7 +594,7 @@
             <button class="vt" id="vt-list" onclick="setDistView('list')">목록</button>
           </div>
         </div>
-        <div id="dist-pie" style="height:100%;"><div class="pie-wrap"><div class="pie-rel"><canvas id="pie-chart" width="180" height="180"></canvas><div class="pie-center"><div class="pie-total" id="pie-total">—</div><div class="pie-sub">본캐 기준</div></div></div><div class="legend" id="pie-legend"></div></div></div>
+        <div id="dist-pie" style="height:100%;"><div class="pie-wrap"><div class="pie-rel"><canvas id="pie-chart" width="220" height="220"></canvas><div class="pie-center"><div class="pie-total" id="pie-total">—</div><div class="pie-sub">본캐 기준</div></div></div><div class="legend" id="pie-legend"></div></div></div>
         <div id="dist-list" style="display:none;gap:10px;flex-wrap:wrap;"></div>
       </div>
     </div>
@@ -648,9 +679,74 @@
     <div id="war-survey-list"><div class="empty" style="padding:40px;"><div class="empty-icon">⚔</div><p>불러오는 중...</p></div></div>
   </div>
 
-  <!-- 슈고 타이머 -->
+  <!-- 시공/슈고 타이머 -->
   <div id="tab-timer" class="tab-content">
     <div class="section-title">🐹 시공/슈고 알리미</div>
+
+    <!-- 시공의 균열 + 슈고 페스타 상태 카드 2열 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+
+      <!-- 시공의 균열 -->
+      <div class="card" style="padding:20px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <div style="width:36px;height:36px;border-radius:50%;background:rgba(99,102,241,.2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">🌀</div>
+          <div>
+            <div style="font-size:14px;font-weight:700;color:var(--text);">시공의 균열</div>
+            <div style="font-size:11px;color:var(--muted);">정각부터 10분간 입장</div>
+          </div>
+          <div id="rift-timer" style="margin-left:auto;font-size:18px;font-weight:700;font-family:monospace;color:#38bdf8;">--:--:--</div>
+        </div>
+        <div id="rift-status-badge" style="display:inline-block;font-size:12px;padding:4px 12px;border-radius:20px;background:var(--surface);border:1px solid var(--border);color:var(--muted);margin-bottom:14px;">대기 중</div>
+        <!-- 시간표 그리드 -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
+          <div class="rift-slot" data-h="2">02:00</div>
+          <div class="rift-slot" data-h="5">05:00</div>
+          <div class="rift-slot" data-h="8">08:00</div>
+          <div class="rift-slot" data-h="11">11:00</div>
+          <div class="rift-slot" data-h="14">14:00</div>
+          <div class="rift-slot" data-h="17">17:00</div>
+          <div class="rift-slot" data-h="20">20:00</div>
+          <div class="rift-slot" data-h="23">23:00</div>
+        </div>
+      </div>
+
+      <!-- 슈고 페스타 -->
+      <div class="card" style="padding:20px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <div style="width:36px;height:36px;border-radius:50%;background:rgba(234,179,8,.15);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">🐹</div>
+          <div>
+            <div style="font-size:14px;font-weight:700;color:var(--text);">슈고 페스타</div>
+            <div style="font-size:11px;color:var(--muted);">시작부터 3분간 입장</div>
+          </div>
+          <div id="shugo-festa-timer" style="margin-left:auto;font-size:18px;font-weight:700;font-family:monospace;color:var(--gold-l);">--:--</div>
+        </div>
+        <div id="shugo-festa-badge" style="display:inline-block;font-size:12px;padding:4px 12px;border-radius:20px;background:var(--surface);border:1px solid var(--border);color:var(--muted);margin-bottom:14px;">대기 중</div>
+        <!-- :15 / :45 퀘스트 목록 -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px;">
+            <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px;">매시 15분</div>
+            <div style="display:flex;flex-direction:column;gap:4px;">
+              <span class="shugo-quest">오드 방울 수집</span>
+              <span class="shugo-quest">슈고 상인 보호</span>
+              <span class="shugo-quest">이 타일 아닌가요?</span>
+              <span class="shugo-quest">망령 회피</span>
+              <span class="shugo-quest">점프 점프</span>
+            </div>
+          </div>
+          <div id="shugo-45-box" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px;">
+            <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px;">매시 45분</div>
+            <div style="display:flex;flex-direction:column;gap:4px;">
+              <span class="shugo-quest">높이 높이</span>
+              <span class="shugo-quest">신비로운 트랙</span>
+              <span class="shugo-quest">히든 루기</span>
+              <span class="shugo-quest">골드린의 보물</span>
+              <span class="shugo-quest">팡팡팡</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div style="max-width:480px;margin:0 auto;">
 
       <!-- 메인 시계 카드 -->
@@ -712,6 +808,81 @@
     </div>
   </div>
 
+  <!-- 숙제 도우미 -->
+  <div id="tab-homework" class="tab-content">
+    <div class="section-title">📋 숙제 도우미</div>
+    <div style="max-width:600px;">
+
+      <!-- 리셋 안내 -->
+      <div style="display:flex;gap:8px;margin-bottom:16px;font-size:12px;">
+        <span style="padding:4px 10px;background:rgba(0,200,138,.1);border:1px solid rgba(0,200,138,.3);color:#00c88a;border-radius:6px;">🌙 일일: 자정 리셋</span>
+        <span style="padding:4px 10px;background:rgba(234,179,8,.1);border:1px solid rgba(234,179,8,.3);color:var(--gold-l);border-radius:6px;">📅 주간: 매주 수요일 리셋</span>
+      </div>
+
+      <!-- 리모권 -->
+      <div class="card hw-section" style="padding:16px;">
+        <div class="hw-section-title">🎫 리모권 <span style="font-size:11px;color:var(--muted);font-weight:400;">(일일 리셋)</span></div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;" id="hw-rimo-area">
+          <!-- JS로 렌더링 -->
+        </div>
+      </div>
+
+      <!-- 일일 콘텐츠 -->
+      <div class="card hw-section" style="padding:16px;">
+        <div class="hw-section-title">⚡ 일일 콘텐츠 <span style="font-size:11px;color:var(--muted);font-weight:400;">(자정 리셋)</span></div>
+
+        <!-- 일일 체크 항목 -->
+        <div style="margin-bottom:14px;">
+          <div class="hw-row" onclick="hwToggleCheck('daily_sajung')" style="cursor:pointer;">
+            <div class="hw-check" id="hw-check-daily_sajung"></div>
+            <span class="hw-row-label">사명</span>
+          </div>
+          <div class="hw-row" onclick="hwToggleCheck('daily_attend')" style="cursor:pointer;">
+            <div class="hw-check" id="hw-check-daily_attend"></div>
+            <span class="hw-row-label">출석부</span>
+          </div>
+          <div class="hw-row" onclick="hwToggleCheck('daily_abyss_supply')" style="cursor:pointer;">
+            <div class="hw-check" id="hw-check-daily_abyss_supply"></div>
+            <span class="hw-row-label">어비스 긴급 보급 의뢰</span>
+          </div>
+        </div>
+
+        <!-- 입장권 카운터 -->
+        <div class="hw-section-title" style="margin-top:4px;">🎟 입장권 <span style="font-size:11px;color:var(--muted);font-weight:400;">(자정 리셋)</span></div>
+        <div id="hw-ticket-area"><!-- JS로 렌더링 --></div>
+
+        <!-- 어비스 회랑 -->
+        <div class="hw-section-title" style="margin-top:12px;">🌌 어비스 회랑</div>
+        <div class="hw-row" onclick="hwToggleCheck('daily_abyss_low')" style="cursor:pointer;">
+          <div class="hw-check" id="hw-check-daily_abyss_low"></div>
+          <span class="hw-row-label">하층</span>
+        </div>
+        <div class="hw-row" onclick="hwToggleCheck('daily_abyss_mid')" style="cursor:pointer;">
+          <div class="hw-check" id="hw-check-daily_abyss_mid"></div>
+          <span class="hw-row-label">중층</span>
+        </div>
+      </div>
+
+      <!-- 주간 콘텐츠 -->
+      <div class="card hw-section" style="padding:16px;">
+        <div class="hw-section-title">📅 주간 콘텐츠 <span style="font-size:11px;color:var(--muted);font-weight:400;">(수요일 리셋)</span></div>
+        <div id="hw-weekly-area"><!-- JS로 렌더링 --></div>
+        <!-- 주간 체크 항목 -->
+        <div class="hw-row" onclick="hwToggleCheck('weekly_abyss_supply')" style="cursor:pointer;">
+          <div class="hw-check" id="hw-check-weekly_abyss_supply"></div>
+          <span class="hw-row-label">어비스 주간 보급 의뢰</span>
+          <span class="hw-row-sub">수요일</span>
+        </div>
+        <div class="hw-row" onclick="hwToggleCheck('weekly_season_mission')" style="cursor:pointer;">
+          <div class="hw-check" id="hw-check-weekly_season_mission"></div>
+          <span class="hw-row-label">시즌 미션 주간</span>
+          <span class="hw-row-sub">수요일</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
   <!-- 멤버 등록 -->
   <div id="tab-register" class="tab-content">
     <div style="max-width:560px;">
@@ -767,6 +938,56 @@
           <div id="fetch-result" style="margin-top:10px;font-size:12px;color:var(--muted);"></div>
         </div>
 
+        <!-- 관리자 전용: 일괄 등록 -->
+        <div id="bulk-register-section" style="display:none;background:var(--surface);border:1px solid var(--gold-d);border-radius:8px;padding:16px;margin-bottom:16px;">
+          <div style="font-size:12px;color:var(--gold);font-weight:600;margin-bottom:4px;">⚡ 일괄 등록 (관리자 전용)</div>
+
+          <!-- 탭 선택 -->
+          <div style="display:flex;gap:6px;margin-bottom:10px;">
+            <button id="bulk-tab-legion" onclick="_bulkTab('legion')" style="flex:1;padding:6px;border-radius:6px;border:1px solid var(--gold-d);background:var(--gold-d);color:var(--text);font-size:12px;cursor:pointer;">레기온에서 가져오기</button>
+            <button id="bulk-tab-manual" onclick="_bulkTab('manual')" style="flex:1;padding:6px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--muted);font-size:12px;cursor:pointer;">직접 입력</button>
+          </div>
+
+          <!-- 레기온 가져오기 패널 -->
+          <div id="bulk-panel-legion">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">NC 공홈에서 내 캐릭터 ID를 입력하면 레기온 멤버 목록을 자동으로 가져옵니다.</div>
+            <div style="display:flex;gap:6px;margin-bottom:6px;">
+              <input id="bulk-legion-cid" class="form-input" placeholder="캐릭터 ID (NC 공홈 URL에서 복사)" style="flex:1;font-size:12px;">
+              <select class="form-select" id="bulk-legion-server" style="width:90px;font-size:12px;">
+                <option value="2001">카이네</option>
+              </select>
+              <button class="btn" style="white-space:nowrap;font-size:12px;" onclick="fetchLegionMembers()">목록 조회</button>
+            </div>
+            <div style="font-size:10px;color:var(--muted);margin-bottom:8px;">※ NC 공홈 URL 예시: /profile/character/2001/<b style="color:var(--gold);">캐릭터ID</b>/...</div>
+            <div id="bulk-legion-list" style="max-height:180px;overflow-y:auto;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:6px;display:none;margin-bottom:8px;"></div>
+          </div>
+
+          <!-- 직접 입력 패널 -->
+          <div id="bulk-panel-manual" style="display:none;">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">닉네임을 한 줄에 하나씩 입력 → NC 공홈에서 스펙 자동 조회 후 등록.</div>
+            <textarea id="bulk-nicknames" rows="6" class="form-input" placeholder="닉네임1&#10;닉네임2&#10;닉네임3" style="resize:vertical;font-size:13px;line-height:1.7;"></textarea>
+          </div>
+
+          <div style="display:flex;gap:8px;margin-top:8px;align-items:center;">
+            <select class="form-select" id="bulk-rank" style="flex:1;">
+              <option>군단병</option><option>엘리트장교</option><option>군단장</option>
+            </select>
+            <select class="form-select" id="bulk-is-main" style="flex:1;">
+              <option value="true">본캐</option><option value="false">부캐</option>
+            </select>
+            <button class="btn btn-primary" style="flex:2;" onclick="bulkRegister()">▶ 일괄 등록 시작</button>
+          </div>
+          <div id="bulk-progress" style="margin-top:10px;display:none;">
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:4px;">
+              <span id="bulk-status-text">처리 중...</span>
+              <span id="bulk-count-text">0 / 0</span>
+            </div>
+            <div style="background:var(--border);border-radius:4px;height:6px;overflow:hidden;">
+              <div id="bulk-bar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--gold-d),var(--gold-l));border-radius:4px;transition:width .3s;"></div>
+            </div>
+          </div>
+          <div id="bulk-result-list" style="margin-top:10px;max-height:200px;overflow-y:auto;font-size:12px;"></div>
+        </div>
 
       </div>
     </div>
@@ -995,10 +1216,10 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.34';
+const BUILD_VERSION = '1.5.52';
 const BUILD_PATCHNOTE = {
-  title: '최근 모집 카드 크기 + 스킬 설명 복구',
-  content: '• 대시보드 최근 모집: recruit-grid 동일한 3열 그리드 레이아웃 적용.\n• 스킬 설명: NC 가이드북 API 호출 복구 (CLASS_MAP 클래스명으로 정확히 요청).'
+  title: 'NC 아이온2 공지사항 파싱 수정',
+  content: '• noticesList[].articleMeta 구조 파싱 적용.\n• 아이온2 공홈 공지사항 정상 표시.'
 };
 
 // 시맨틱 버전 비교 (날짜형 구버전 호환)
@@ -1960,7 +2181,7 @@ function renderNotices(notices, showAll) {
     const d = n.created_at ? new Date(n.created_at) : new Date();
     const dateStr = d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0');
     const author = n.author || '';
-    const views  = n.views  || 0;
+    const views  = _getNoticeViews(n.id, n.views);
     const nid    = 'notice-body-'+n.id;
     return '<div class="card" style="padding:0;border-left:3px solid '+borderLeft3(n.type)+';margin-bottom:8px;overflow:hidden;">'
       +'<div style="padding:12px 14px;cursor:pointer;" onclick="toggleNoticeItem(\''+n.id+'\','+views+')">'
@@ -1987,13 +2208,30 @@ function renderNotices(notices, showAll) {
     ? announcements.map(renderItem).join('')
     : '<div style="color:var(--muted);font-size:13px;padding:8px 0;">공지사항이 없어요</div>';
 
+  const btnStyle = 'width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;margin-top:4px;';
   const moreBtn = hiddenCount > 0
-    ? '<button onclick="renderNotices(window._cachedNotices,true)" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;margin-top:4px;">▼ '+hiddenCount+'개 더보기</button>'
-    : '';
+    ? '<button onclick="renderNotices(window._cachedNotices,true)" style="'+btnStyle+'">▼ '+hiddenCount+'개 더보기</button>'
+    : (showAll && patches.length > 15
+      ? '<button onclick="renderNotices(window._cachedNotices,false)" style="'+btnStyle+'">▲ 접기</button>'
+      : '');
   if(patchEl) patchEl.innerHTML = (visiblePatches.length
     ? visiblePatches.map(renderItem).join('')
     : '<div style="color:var(--muted);font-size:13px;padding:8px 0;">패치노트가 없어요</div>')
     + moreBtn;
+}
+
+function _getNoticeViews(id, dbViews) {
+  try {
+    const stored = JSON.parse(localStorage.getItem('_nv') || '{}');
+    return Math.max(dbViews || 0, stored[id] || 0);
+  } catch(e) { return dbViews || 0; }
+}
+function _setNoticeViews(id, views) {
+  try {
+    const stored = JSON.parse(localStorage.getItem('_nv') || '{}');
+    stored[id] = views;
+    localStorage.setItem('_nv', JSON.stringify(stored));
+  } catch(e) {}
 }
 
 function toggleNoticeItem(noticeId, currentViews) {
@@ -2005,10 +2243,9 @@ function toggleNoticeItem(noticeId, currentViews) {
     const newViews = (currentViews||0) + 1;
     const viewEl = document.getElementById('views-'+noticeId);
     if(viewEl) viewEl.textContent = newViews;
-    // onclick 갱신 (다음 토글 시 최신값 전달)
     const header = body.previousElementSibling;
     if(header) header.setAttribute('onclick', 'toggleNoticeItem(\''+noticeId+'\','+newViews+')');
-    // DB 업데이트 (views 컬럼 있을 때만 반영, 없으면 조용히 무시)
+    _setNoticeViews(noticeId, newViews);
     db.from('notices').update({ views: newViews }).eq('id', noticeId).catch(function(){});
   }
 }
@@ -2091,12 +2328,25 @@ function showNoticeAlert(n) {
 let _ncNoticeLoaded = false;
 let _ncNoticeLastIds = [];
 let _ncPollTimer = null;
+let _ncLastSnowId = 0;
+let _ncInitialSnowId = 0;
+
+function _renderNcItem(n) {
+  const dateStr = (n.date||'').slice(0,10);
+  const cat = n.category ? '<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(100,160,255,.1);color:#6ab0ff;border:1px solid #1a3060;margin-right:6px;">'+n.category+'</span>' : '';
+  return '<a href="'+n.url+'" target="_blank" rel="noopener" style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border-radius:7px;background:var(--card);border:1px solid var(--border);text-decoration:none;transition:border-color .15s;margin-bottom:6px;" onmouseover="this.style.borderColor=\'var(--gold-d)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
+    +'<span style="font-size:13px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">'+cat+n.title+'</span>'
+    +'<span style="font-size:11px;color:var(--muted);flex-shrink:0;margin-left:12px;">'+dateStr+'</span>'
+    +'</a>';
+}
 
 async function loadNcNotices(force) {
   if(_ncNoticeLoaded && !force) return;
   const el = document.getElementById('nc-notice-list');
   if(!el) return;
-  if(!_ncNoticeLoaded) el.innerHTML = '<div style="color:var(--muted);font-size:13px;">불러오는 중...</div>';
+  const btn = document.getElementById('nc-refresh-btn');
+  if(btn) { btn.disabled = true; btn.style.opacity = '0.5'; btn.textContent = '⟳'; }
+  el.innerHTML = '<div style="color:var(--muted);font-size:13px;">불러오는 중...</div>';
   try {
     const r = await fetch('/api/ncnotice');
     const text = await r.text();
@@ -2108,31 +2358,139 @@ async function loadNcNotices(force) {
       const errMsg = data._err ? data._err : 'NC 서버 응답 없음';
       el.innerHTML = '<div style="color:var(--muted);font-size:13px;line-height:1.7;">공지를 불러올 수 없어요<br><span style="font-size:11px;">('+errMsg+')</span><br>'
         +'<a href="https://aion2.plaync.com/ko-kr/board/notice/list" target="_blank" style="color:var(--gold-l);font-size:11px;">공홈에서 직접 보기 →</a></div>';
+      if(btn) { btn.disabled = false; btn.style.opacity = ''; btn.textContent = '↺'; }
       return;
     }
     // 신규 공지 감지 (폴링용)
     const newIds = list.map(function(n){ return n.id; });
     if(_ncNoticeLastIds.length && newIds.length) {
       const newOnes = list.filter(function(n){ return !_ncNoticeLastIds.includes(n.id); });
-      newOnes.forEach(function(n) {
-        toast('🌐 아이온2 새 공지: '+n.title);
-      });
+      newOnes.forEach(function(n) { toast('🌐 아이온2 새 공지: '+n.title); });
     }
     _ncNoticeLastIds = newIds;
+    _ncLastSnowId = data.lastSnowId || 0;
+    _ncInitialSnowId = _ncLastSnowId;
+    console.log('[NC공지] lastSnowId=', _ncLastSnowId, 'hasMore=', data.hasMore, 'count=', list.length);
     _ncNoticeLoaded = true;
-    el.innerHTML = list.map(function(n) {
-      const dateStr = (n.date||'').slice(0,10);
-      const cat = n.category ? '<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(100,160,255,.1);color:#6ab0ff;border:1px solid #1a3060;margin-right:6px;">'+n.category+'</span>' : '';
-      return '<a href="'+n.url+'" target="_blank" rel="noopener" style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border-radius:7px;background:var(--card);border:1px solid var(--border);text-decoration:none;transition:border-color .15s;margin-bottom:6px;" onmouseover="this.style.borderColor=\'var(--gold-d)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
-        +'<span style="font-size:13px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">'+cat+n.title+'</span>'
-        +'<span style="font-size:11px;color:var(--muted);flex-shrink:0;margin-left:12px;">'+dateStr+'</span>'
-        +'</a>';
-    }).join('');
-    // 폴링 시작 (5분마다)
+    if(btn) { btn.disabled = false; btn.style.opacity = ''; btn.textContent = '↺'; }
+    const moreBtnHtml = data.hasMore
+      ? '<div id="nc-notice-btn-area"><button onclick="loadMoreNcNotices()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;">▼ 더보기</button></div>'
+      : '';
+    el.innerHTML = list.map(_renderNcItem).join('') + '<div id="nc-notice-extra"></div>' + moreBtnHtml;
     if(!_ncPollTimer) _ncPollTimer = setInterval(function(){ loadNcNotices(true); }, 30 * 1000);
   } catch(e) {
+    if(btn) { btn.disabled = false; btn.style.opacity = ''; btn.textContent = '↺'; }
     el.innerHTML = '<div style="color:var(--muted);font-size:13px;">불러오기 실패: '+e.message+'</div>';
   }
+}
+
+async function loadMoreNcNotices() {
+  const btnArea = document.getElementById('nc-notice-btn-area');
+  if(btnArea) btnArea.innerHTML = '<button disabled style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;">불러오는 중...</button>';
+  try {
+    console.log('[NC공지 더보기] prevId=', _ncLastSnowId);
+    const r = await fetch('/api/ncnotice?prevId=' + _ncLastSnowId);
+    const data = await r.json();
+    console.log('[NC공지 더보기] 응답:', data.notices?.length, '개, hasMore=', data.hasMore, 'lastSnowId=', data.lastSnowId, '_err=', data._err);
+    const list = data.notices || [];
+    if(!list.length) { if(btnArea) btnArea.innerHTML = '<button onclick="collapseNcNotices()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;">▲ 접기</button>'; return; }
+    _ncLastSnowId = data.lastSnowId || _ncLastSnowId;
+    const extra = document.getElementById('nc-notice-extra');
+    if(extra) extra.insertAdjacentHTML('beforeend', list.map(_renderNcItem).join(''));
+    const hasMoreBtn = data.hasMore ? '<button onclick="loadMoreNcNotices()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;margin-bottom:4px;">▼ 더보기</button>' : '';
+    const collapseBtn = '<button onclick="collapseNcNotices()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;">▲ 접기</button>';
+    if(btnArea) btnArea.innerHTML = hasMoreBtn + collapseBtn;
+  } catch(e) {
+    if(btnArea) btnArea.innerHTML = '<button onclick="loadMoreNcNotices()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;">▼ 더보기</button>';
+  }
+}
+
+function collapseNcNotices() {
+  const extra = document.getElementById('nc-notice-extra');
+  if(extra) extra.innerHTML = '';
+  _ncLastSnowId = _ncInitialSnowId;
+  const btnArea = document.getElementById('nc-notice-btn-area');
+  if(btnArea) btnArea.innerHTML = '<button onclick="loadMoreNcNotices()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;">▼ 더보기</button>';
+}
+
+// ─── NC 업데이트 ──────────────────
+let _ncUpdateLoaded = false;
+let _ncUpdateLastIds = [];
+let _ncUpdateLastSnowId = 0;
+let _ncUpdateInitialSnowId = 0;
+let _ncUpdatePollTimer = null;
+
+async function loadNcUpdates(force) {
+  if(_ncUpdateLoaded && !force) return;
+  const el = document.getElementById('nc-update-list');
+  if(!el) return;
+  const btn = document.getElementById('nc-update-refresh-btn');
+  if(btn) { btn.disabled = true; btn.style.opacity = '0.5'; btn.textContent = '⟳'; }
+  el.innerHTML = '<div style="color:var(--muted);font-size:13px;">불러오는 중...</div>';
+  try {
+    const r = await fetch('/api/ncupdate');
+    const text = await r.text();
+    let data;
+    try { data = JSON.parse(text); }
+    catch(e) { throw new Error('API 응답 오류'); }
+    const list = data.notices || [];
+    if(!list.length) {
+      const errMsg = data._err || 'NC 서버 응답 없음';
+      el.innerHTML = '<div style="color:var(--muted);font-size:13px;line-height:1.7;">불러올 수 없어요<br><span style="font-size:11px;">('+errMsg+')</span><br>'
+        +'<a href="https://aion2.plaync.com/ko-kr/board/update/list" target="_blank" style="color:var(--gold-l);font-size:11px;">공홈에서 직접 보기 →</a></div>';
+      if(btn) { btn.disabled = false; btn.style.opacity = ''; btn.textContent = '↺'; }
+      return;
+    }
+    // 신규 감지 (폴링용)
+    const newIds = list.map(function(n){ return n.id; });
+    if(_ncUpdateLastIds.length && newIds.length) {
+      list.filter(function(n){ return !_ncUpdateLastIds.includes(n.id); })
+        .forEach(function(n){ toast('🔄 아이온2 새 업데이트: '+n.title); });
+    }
+    _ncUpdateLastIds = newIds;
+    _ncUpdateLastSnowId = data.lastSnowId || 0;
+    _ncUpdateInitialSnowId = _ncUpdateLastSnowId;
+    console.log('[NC업데이트] lastSnowId=', _ncUpdateLastSnowId, 'hasMore=', data.hasMore, 'count=', list.length);
+    _ncUpdateLoaded = true;
+    if(btn) { btn.disabled = false; btn.style.opacity = ''; btn.textContent = '↺'; }
+    const moreBtnHtml2 = data.hasMore
+      ? '<div id="nc-update-btn-area"><button onclick="loadMoreNcUpdates()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;">▼ 더보기</button></div>'
+      : '';
+    el.innerHTML = list.map(_renderNcItem).join('') + '<div id="nc-update-extra"></div>' + moreBtnHtml2;
+    if(!_ncUpdatePollTimer) _ncUpdatePollTimer = setInterval(function(){ loadNcUpdates(true); }, 30 * 1000);
+  } catch(e) {
+    if(btn) { btn.disabled = false; btn.style.opacity = ''; btn.textContent = '↺'; }
+    el.innerHTML = '<div style="color:var(--muted);font-size:13px;">불러오기 실패: '+e.message+'</div>';
+  }
+}
+
+async function loadMoreNcUpdates() {
+  const btnArea = document.getElementById('nc-update-btn-area');
+  if(btnArea) btnArea.innerHTML = '<button disabled style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;">불러오는 중...</button>';
+  try {
+    console.log('[NC업데이트 더보기] prevId=', _ncUpdateLastSnowId);
+    const r = await fetch('/api/ncupdate?prevId=' + _ncUpdateLastSnowId);
+    const data = await r.json();
+    console.log('[NC업데이트 더보기] 응답:', data.notices?.length, '개, hasMore=', data.hasMore, 'lastSnowId=', data.lastSnowId, '_err=', data._err);
+    const list = data.notices || [];
+    if(!list.length) { if(btnArea) btnArea.innerHTML = '<button onclick="collapseNcUpdates()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;">▲ 접기</button>'; return; }
+    _ncUpdateLastSnowId = data.lastSnowId || _ncUpdateLastSnowId;
+    const extra = document.getElementById('nc-update-extra');
+    if(extra) extra.insertAdjacentHTML('beforeend', list.map(_renderNcItem).join(''));
+    const hasMoreBtn2 = data.hasMore ? '<button onclick="loadMoreNcUpdates()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;margin-bottom:4px;">▼ 더보기</button>' : '';
+    const collapseBtn2 = '<button onclick="collapseNcUpdates()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;">▲ 접기</button>';
+    if(btnArea) btnArea.innerHTML = hasMoreBtn2 + collapseBtn2;
+  } catch(e) {
+    if(btnArea) btnArea.innerHTML = '<button onclick="loadMoreNcUpdates()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;">▼ 더보기</button>';
+  }
+}
+
+function collapseNcUpdates() {
+  const extra = document.getElementById('nc-update-extra');
+  if(extra) extra.innerHTML = '';
+  _ncUpdateLastSnowId = _ncUpdateInitialSnowId;
+  const btnArea = document.getElementById('nc-update-btn-area');
+  if(btnArea) btnArea.innerHTML = '<button onclick="loadMoreNcUpdates()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;">▼ 더보기</button>';
 }
 
 function renderAll() {
@@ -2228,6 +2586,179 @@ async function fetchAndRegister() {
     btn.disabled = false;
     btn.textContent = '닉네임으로 스펙 불러와서 등록';
   }
+}
+
+// ─── 일괄 등록 (관리자 전용) ───────────
+function _showBulkSection() {
+  const el = document.getElementById('bulk-register-section');
+  if(el) el.style.display = isAdmin() ? '' : 'none';
+}
+
+function _bulkTab(tab) {
+  const isLegion = tab === 'legion';
+  document.getElementById('bulk-panel-legion').style.display = isLegion ? '' : 'none';
+  document.getElementById('bulk-panel-manual').style.display = isLegion ? 'none' : '';
+  const btnLegion = document.getElementById('bulk-tab-legion');
+  const btnManual = document.getElementById('bulk-tab-manual');
+  if(btnLegion) { btnLegion.style.background = isLegion ? 'var(--gold-d)' : 'var(--card)'; btnLegion.style.color = isLegion ? 'var(--text)' : 'var(--muted)'; btnLegion.style.borderColor = isLegion ? 'var(--gold-d)' : 'var(--border)'; }
+  if(btnManual) { btnManual.style.background = isLegion ? 'var(--card)' : 'var(--gold-d)'; btnManual.style.color = isLegion ? 'var(--muted)' : 'var(--text)'; btnManual.style.borderColor = isLegion ? 'var(--border)' : 'var(--gold-d)'; }
+  window._bulkCurrentTab = tab;
+}
+
+async function fetchLegionMembers() {
+  const cidEl = document.getElementById('bulk-legion-cid');
+  const serverEl = document.getElementById('bulk-legion-server');
+  const listEl = document.getElementById('bulk-legion-list');
+  if(!cidEl || !listEl) return;
+
+  const cid = cidEl.value.trim();
+  if(!cid) { toast('캐릭터 ID를 입력해주세요'); return; }
+  const serverId = serverEl ? serverEl.value : '2001';
+
+  listEl.style.display = '';
+  listEl.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:4px;">레기온 멤버 조회 중...</div>';
+
+  try {
+    const res = await fetch(`/api/legion?characterId=${encodeURIComponent(cid)}&serverId=${serverId}`);
+    const data = await res.json();
+
+    if(data._err) {
+      listEl.innerHTML = `<div style="color:var(--red);font-size:12px;padding:4px;">${data._err}</div>`;
+      if(data._debug) {
+        listEl.innerHTML += `<div style="color:var(--muted);font-size:10px;padding:4px;word-break:break-all;">디버그: ${JSON.stringify(data._debug).slice(0,300)}</div>`;
+      }
+      return;
+    }
+
+    const members = data.members || [];
+    if(!members.length) {
+      listEl.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:4px;">멤버를 찾을 수 없어요.</div>';
+      return;
+    }
+
+    window._legionMembers = members;
+    listEl.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span style="font-size:12px;color:var(--gold);font-weight:600;">${members.length}명 조회됨</span>
+        <label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px;cursor:pointer;">
+          <input type="checkbox" id="bulk-select-all" checked onchange="_toggleAllLegion(this.checked)"> 전체 선택
+        </label>
+      </div>
+      ${members.map((m,i)=>`
+        <label style="display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid var(--border);cursor:pointer;font-size:12px;">
+          <input type="checkbox" class="bulk-legion-chk" data-idx="${i}" checked>
+          <span style="color:var(--text);flex:1;">${m.nickname}</span>
+          <span style="color:var(--muted);font-size:11px;">${m.rank||''}</span>
+          <span style="color:var(--muted);font-size:11px;">${m.class||''} ${m.level?'Lv.'+m.level:''}</span>
+        </label>`).join('')}
+    `;
+  } catch(e) {
+    listEl.innerHTML = `<div style="color:var(--red);font-size:12px;padding:4px;">조회 실패: ${e.message}</div>`;
+  }
+}
+
+function _toggleAllLegion(checked) {
+  document.querySelectorAll('.bulk-legion-chk').forEach(el => el.checked = checked);
+}
+
+async function bulkRegister() {
+  if(!isAdmin()) { toast('관리자만 사용할 수 있어요'); return; }
+  const rankEl   = document.getElementById('bulk-rank');
+  const isMainEl = document.getElementById('bulk-is-main');
+
+  let nicknames = [];
+  const currentTab = window._bulkCurrentTab || 'legion';
+
+  if(currentTab === 'legion') {
+    const members = window._legionMembers || [];
+    const checked = document.querySelectorAll('.bulk-legion-chk:checked');
+    checked.forEach(el => {
+      const idx = parseInt(el.dataset.idx);
+      if(members[idx]) nicknames.push(members[idx].nickname);
+    });
+    if(!nicknames.length) { toast('등록할 멤버를 선택해주세요'); return; }
+  } else {
+    const textarea = document.getElementById('bulk-nicknames');
+    if(!textarea) return;
+    nicknames = textarea.value.split('\n').map(s=>s.trim()).filter(Boolean);
+  }
+
+  if(!nicknames.length) { toast('닉네임을 입력해주세요'); return; }
+  if(!nicknames.length) { toast('닉네임을 입력해주세요'); return; }
+
+  const rank   = rankEl   ? rankEl.value   : '군단병';
+  const isMain = isMainEl ? isMainEl.value === 'true' : true;
+  const serverId = '2001';
+
+  const progressEl  = document.getElementById('bulk-progress');
+  const statusEl    = document.getElementById('bulk-status-text');
+  const countEl     = document.getElementById('bulk-count-text');
+  const barEl       = document.getElementById('bulk-bar');
+  const resultList  = document.getElementById('bulk-result-list');
+  if(progressEl) progressEl.style.display = '';
+  if(resultList) resultList.innerHTML = '';
+
+  // 이미 등록된 닉네임 목록 조회
+  let existingNicks = new Set();
+  try {
+    const { data: existing } = await db.from('members').select('nickname');
+    (existing || []).forEach(m => existingNicks.add(m.nickname));
+  } catch(e) {}
+
+  let done = 0, skipped = 0, failed = 0;
+  const total = nicknames.length;
+  const addLog = (msg, color) => {
+    if(!resultList) return;
+    const div = document.createElement('div');
+    div.style.cssText = 'padding:3px 0;border-bottom:1px solid var(--border);color:'+color+';';
+    div.textContent = msg;
+    resultList.prepend(div);
+  };
+
+  for(let i = 0; i < total; i++) {
+    const nick = nicknames[i];
+    if(statusEl) statusEl.textContent = nick + ' 처리 중...';
+    if(countEl)  countEl.textContent  = (i+1) + ' / ' + total;
+    if(barEl)    barEl.style.width    = ((i+1)/total*100) + '%';
+
+    if(existingNicks.has(nick)) {
+      skipped++;
+      addLog('⏭ ' + nick + ' — 이미 등록됨 (건너뜀)', 'var(--muted)');
+      continue;
+    }
+
+    try {
+      const data = await fetchCharacterData(nick, serverId);
+      const cls  = CLASS_MAP[data.class] || data.class || '';
+      await db.from('members').upsert({
+        id: nick+'_'+serverId,
+        nickname: nick, server: serverId, rank: isMain ? rank : '',
+        is_main: isMain, player_id: nick,
+        class: cls, level: data.level||0, combat_power: data.combat_power||0,
+        item_level: data.item_level||0, equipment: data.equipment||[],
+        stats: data.stats||[], daevanion: data.daevanion||[],
+        ranking: data.ranking||[], stigma: data.stigma||data.skills||[],
+        arcana: data.arcana||[], titles: data.titles||[],
+        pet: data.pet||null, wing: data.wing||null,
+        server_name: data.server_name||'', guild_name: data.guild_name||'',
+        race: data.race||'', profile_img: data.profile_img||'',
+        character_id: data.characterId||'',
+        last_synced: new Date().toISOString(), updated_at: new Date().toISOString(),
+      });
+      done++;
+      addLog('✓ ' + nick + ' — 등록 완료 (전투력 ' + (data.combat_power||0).toLocaleString() + ')', '#6acd8a');
+    } catch(e) {
+      failed++;
+      addLog('✗ ' + nick + ' — 실패: ' + e.message, 'var(--red)');
+    }
+
+    // 요청 간 딜레이 (API 과부하 방지)
+    if(i < total - 1) await new Promise(r => setTimeout(r, 800));
+  }
+
+  if(statusEl) statusEl.textContent = `완료! 등록 ${done}명 / 건너뜀 ${skipped}명 / 실패 ${failed}명`;
+  toast(`일괄 등록 완료: ${done}명 등록, ${skipped}명 건너뜀`);
+  if(done > 0) loadData();
 }
 
 // ─── 갱신 버튼 (멤버 테이블) ───────────
@@ -2348,7 +2879,7 @@ function openDetail(m) {
     Helmet:'투구',Shoulder:'어깨',Gloves:'장갑',Boots:'신발',
     Cape:'망토',Belt:'허리띠',Necklace:'목걸이',
     Earring1:'귀걸이',Earring2:'귀걸이',Ring1:'반지',Ring2:'반지',
-    Bracelet1:'팔찌',Bracelet2:'팔찌',Rune1:'룬',Rune2:'룬',
+    Bracelet1:'팔찌',Bracelet2:'팔찌',Rune1:'신석',Rune2:'신석',
     Amulet:'아뮬렛',
     Arcana1:'아르카나',Arcana2:'아르카나',Arcana3:'아르카나',
     Arcana4:'아르카나',Arcana5:'아르카나',Arcana6:'아르카나',
@@ -2552,7 +3083,7 @@ function openDetail(m) {
         ${godStones.length ? `
           ${ncSec('신석')}
           <div style="padding:8px 20px;">
-            ${godStones.map(s=>{const sc=GC[s.grade]||'#e0c97a';const desc=s.description||s.desc||'';const effects=(s.skillEffectList||s.effectList||[]).map(ef=>`<div style="font-size:11px;color:#aaa;line-height:1.6;">${ef.description||ef.desc||ef.name||ef}</div>`).join('');return`<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;">${s.icon?`<img src="${s.icon}" style="width:22px;height:22px;border-radius:3px;flex-shrink:0;">`:`<div style="width:22px;height:22px;border-radius:3px;background:${sc}22;flex-shrink:0;"></div>`}<div><div style="font-size:12px;color:${sc};font-weight:600;">${s.name||''}</div>${desc?`<div style="font-size:11px;color:#aaa;line-height:1.6;margin-top:2px;">${desc}</div>`:''}${effects}</div></div>`;}).join('')}
+            ${godStones.map(s=>{const _rg=s.grade||s.itemGrade||s.gradeType||s.quality||'';const _gk=_rg.charAt(0).toUpperCase()+_rg.slice(1).toLowerCase();const _nm={'1':'Common','2':'Rare','3':'Hero','4':'Unique','5':'Legendary','6':'Special'};const _fg=GC[_rg]?_rg:GC[_gk]?_gk:(_nm[String(_rg)]||'');const sc=GC[_fg]||'#e0c97a';const desc=s.description||s.desc||'';const effects=(s.skillEffectList||s.effectList||[]).map(ef=>`<div style="font-size:11px;color:#aaa;line-height:1.6;">${ef.description||ef.desc||ef.name||ef}</div>`).join('');return`<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;">${s.icon?`<img src="${s.icon}" style="width:22px;height:22px;border-radius:3px;flex-shrink:0;">`:`<div style="width:22px;height:22px;border-radius:3px;background:${sc}22;flex-shrink:0;"></div>`}<div><div style="font-size:12px;color:${sc};font-weight:600;">${s.name||''}</div>${desc?`<div style="font-size:11px;color:#aaa;line-height:1.6;margin-top:2px;">${desc}</div>`:''}${effects}</div></div>`;}).join('')}
           </div>` : ''}
 
         <!-- 세트 효과 + 획득처 -->
@@ -3075,12 +3606,8 @@ function renderMembers() {
   const rankLabel = r => rankMigrate(r) || '군단병';
   const fmtTime = iso => { if(!iso) return '—'; const d=new Date(iso); return `${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
   const gradeColors = {Common:'#aaaaaa',Rare:'#4a90e8',Hero:'#d44040',Epic:'#d44040',Unique:'#e8c030',Legendary:'#ff6a20',Special:'#40d4c0'};
-  const _GC2 = {Common:'#aaaaaa',Rare:'#4a90e8',Hero:'#d44040',Epic:'#d44040',Unique:'#e8c030',Legendary:'#ff6a20',Special:'#40d4c0'};
-  const _EQUIP1_SLOTS = ['MainHand','SubHand','Helmet','Shoulder','Torso','Gloves','Pants','Boots','Cape','Belt'];
-  const _EQUIP2_SLOTS = ['Necklace','Earring1','Earring2','Ring1','Ring2','Bracelet1','Bracelet2','Amulet','Rune1','Rune2'];
-  const _GC3 = {Common:'#aaaaaa',Rare:'#4a90e8',Hero:'#d44040',Epic:'#d44040',Unique:'#e8c030',Legendary:'#ff6a20',Special:'#40d4c0'};
-  
-    const _SLOTS1 = ['MainHand','SubHand','Helmet','Shoulder','Torso','Gloves','Pants','Boots','Cape','Belt'];
+  const _GC3 = gradeColors;
+  const _SLOTS1 = ['MainHand','SubHand','Helmet','Shoulder','Torso','Gloves','Pants','Boots','Cape','Belt'];
   const _SLOTS2 = ['Necklace','Earring1','Earring2','Ring1','Ring2','Bracelet1','Bracelet2','Amulet','Rune1','Rune2'];
   const _mkGrid = (eq, slots) => {
     const eqMap = {}; (eq||[]).forEach(x => { if(x.slot) eqMap[x.slot]=x; });
@@ -3593,9 +4120,10 @@ function showTab(id) {
   document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   tabEl.classList.add('active');
-  ['notice','dashboard','members','recruit','war','timer','register'].forEach((t,i)=>{ if(t===id) document.querySelectorAll('.nav-btn')[i].classList.add('active'); });
+  ['notice','dashboard','members','recruit','war','timer','homework','register'].forEach((t,i)=>{ if(t===id) document.querySelectorAll('.nav-btn')[i].classList.add('active'); });
   if(id==='war'){const wb=document.getElementById('war-create-btn');if(wb)wb.style.display=isAdmin()?'inline-block':'none';const wr=document.getElementById('war-reset-btn');if(wr)wr.style.display=isAdmin()?'inline-block':'none';renderWarSurveys();}
-  if(id==='notice') { refreshNoticeWriteBtn(); loadNcNotices(); }
+  if(id==='notice') { refreshNoticeWriteBtn(); loadNcNotices(); loadNcUpdates(); }
+  if(id==='register') { _showBulkSection(); }
   try { localStorage.setItem('activeTab', id); } catch(e) {}
 }
 function openModal(id) { 
@@ -3947,6 +4475,332 @@ function toggleShugoTimer() {
     if(localStorage.getItem('shugo_running') === '1') {
       setTimeout(function() { toggleShugoTimer(); }, 500);
     }
+  } catch(e) {}
+})();
+
+// ─── 시공의 균열 + 슈고 페스타 타이머 ────────────────────────────
+const RIFT_HOURS = [2, 5, 8, 11, 14, 17, 20, 23];
+const RIFT_OPEN_MIN = 10;   // 10분간 입장
+const SHUGO_OPEN_SEC = 180; // 3분간 입장
+
+function _fmtMs(ms) {
+  if(ms <= 0) return '00:00:00';
+  const s = Math.floor(ms / 1000);
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');
+}
+function _fmtMmSs(ms) {
+  if(ms <= 0) return '00:00';
+  const s = Math.floor(ms / 1000);
+  return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+}
+
+function updateRiftDisplay() {
+  try {
+    const now = new Date();
+    const h = now.getHours(), m = now.getMinutes();
+    const isOpen = RIFT_HOURS.includes(h) && m < RIFT_OPEN_MIN;
+
+    // 다음 오픈 시간 계산
+    let nextH = RIFT_HOURS.find(rh => rh > h || (rh === h && m < RIFT_OPEN_MIN));
+    const openTime = new Date(now);
+    if(nextH === undefined) { nextH = RIFT_HOURS[0]; openTime.setDate(openTime.getDate()+1); }
+    openTime.setHours(nextH, 0, 0, 0);
+
+    let remainMs, timerColor;
+    if(isOpen) {
+      const closeTime = new Date(now); closeTime.setHours(h, RIFT_OPEN_MIN, 0, 0);
+      remainMs = closeTime - now;
+      timerColor = '#00c88a';
+    } else {
+      remainMs = openTime - now;
+      timerColor = '#38bdf8';
+    }
+
+    const timerEl = document.getElementById('rift-timer');
+    if(timerEl) { timerEl.textContent = _fmtMs(remainMs); timerEl.style.color = timerColor; }
+
+    const badge = document.getElementById('rift-status-badge');
+    if(badge) {
+      if(isOpen) {
+        badge.textContent = '✅ 입장 가능';
+        badge.style.background = 'rgba(0,200,138,.15)'; badge.style.borderColor = '#00c88a'; badge.style.color = '#00c88a';
+      } else {
+        badge.textContent = `⏳ 대기 중 (${String(nextH).padStart(2,'0')}:00)`;
+        badge.style.background = 'var(--surface)'; badge.style.borderColor = 'var(--border)'; badge.style.color = 'var(--muted)';
+      }
+    }
+
+    // 슬롯 하이라이트
+    document.querySelectorAll('.rift-slot').forEach(function(el) {
+      const slotH = parseInt(el.dataset.h);
+      el.classList.remove('active','next');
+      if(slotH === h && m < RIFT_OPEN_MIN) el.classList.add('active');
+      else if(slotH === nextH && !isOpen) el.classList.add('next');
+    });
+  } catch(e) {}
+}
+
+function updateShugoFestaDisplay() {
+  try {
+    const now = new Date();
+    const m = now.getMinutes(), s = now.getSeconds();
+    const totalSec = m * 60 + s;
+    const open15 = totalSec >= 15*60 && totalSec < 15*60 + SHUGO_OPEN_SEC;
+    const open45 = totalSec >= 45*60 && totalSec < 45*60 + SHUGO_OPEN_SEC;
+    const isOpen = open15 || open45;
+
+    let remainMs;
+    if(open15) {
+      remainMs = ((15*60 + SHUGO_OPEN_SEC) - totalSec) * 1000;
+    } else if(open45) {
+      remainMs = ((45*60 + SHUGO_OPEN_SEC) - totalSec) * 1000;
+    } else if(totalSec < 15*60) {
+      remainMs = (15*60 - totalSec) * 1000;
+    } else if(totalSec < 45*60) {
+      remainMs = (45*60 - totalSec) * 1000;
+    } else {
+      remainMs = (60*60 - totalSec + 15*60) * 1000;
+    }
+
+    const timerEl = document.getElementById('shugo-festa-timer');
+    if(timerEl) { timerEl.textContent = _fmtMmSs(remainMs); timerEl.style.color = isOpen ? '#00c88a' : 'var(--gold-l)'; }
+
+    const badge = document.getElementById('shugo-festa-badge');
+    if(badge) {
+      if(isOpen) {
+        badge.textContent = '✅ 입장 가능';
+        badge.style.background = 'rgba(0,200,138,.15)'; badge.style.borderColor = '#00c88a'; badge.style.color = '#00c88a';
+      } else {
+        const nextMin = totalSec < 15*60 ? '15' : totalSec < 45*60 ? '45' : '15(다음 시)';
+        badge.textContent = `⏳ 매시 ${nextMin}분`;
+        badge.style.background = 'var(--surface)'; badge.style.borderColor = 'var(--border)'; badge.style.color = 'var(--muted)';
+      }
+    }
+
+    // :45분 박스 하이라이트
+    const box45 = document.getElementById('shugo-45-box');
+    if(box45) {
+      const is45Active = m >= 45 && m < 48;
+      box45.style.borderColor = is45Active ? '#38bdf8' : 'var(--border)';
+    }
+  } catch(e) {}
+}
+
+setInterval(function() { updateRiftDisplay(); updateShugoFestaDisplay(); }, 1000);
+updateRiftDisplay(); updateShugoFestaDisplay();
+
+// ─── 숙제 도우미 ────────────────────────────
+const HW_RIMO_LIST = [
+  '정복 보상','정복 2배','초월 보상','초월 2배',
+  '악몽','슈고페스타','차원침공',
+  '루드라도전','루드라보상','루드라2배',
+  '2차성역도전','2차성역보상','2차성역2배',
+  '각성전','토벌전','일일던전'
+];
+const HW_TICKETS = [
+  {id:'ticket_conquest', label:'원정 - 정복', max:21},
+  {id:'ticket_chowon',   label:'초원',        max:14},
+  {id:'ticket_akmon',    label:'악몽',         max:14},
+  {id:'ticket_shugo',    label:'슈고 페스타',  max:14},
+  {id:'ticket_dimension',label:'차원 침공',    max:7},
+];
+const HW_WEEKLY_COUNTERS = [
+  {id:'weekly_sanctuary_rude_ch', label:'성역 도전[루드라]',    max:1,  unit:'회', isCheck:true},
+  {id:'weekly_sanctuary_rude_rw', label:'성역 보상[루드라]',    max:1,  unit:'회', isCheck:true},
+  {id:'weekly_sanctuary2_ch',     label:'성역 도전[2차성역]',   max:4,  unit:'회'},
+  {id:'weekly_sanctuary2_rw',     label:'성역 보상[2차성역]',   max:2,  unit:'회'},
+  {id:'weekly_gakseong',          label:'각성전',               max:3,  unit:'회'},
+  {id:'weekly_tobul',             label:'토벌전',               max:3,  unit:'회'},
+  {id:'weekly_daily_face',        label:'일일 면전',            max:7,  unit:'회'},
+  {id:'weekly_abyss_low',         label:'어비스 하층',          max:14, unit:'시간'},
+  {id:'weekly_abyss_mid',         label:'어비스 중층',          max:14, unit:'시간'},
+  {id:'weekly_od_buy',            label:'오드에너지 구매',      max:4,  unit:'회'},
+  {id:'weekly_od_make',           label:'오드에너지 제조',      max:4,  unit:'회'},
+  {id:'weekly_abyss_low_order',   label:'하층 어비스 지령서',   max:20, unit:'회'},
+  {id:'weekly_abyss_mid_order',   label:'중층 어비스 지령서',   max:5,  unit:'회'},
+  {id:'weekly_normal_order',      label:'일반 지령서',          max:12, unit:'회'},
+  {id:'weekly_od_server1',        label:'오드에너지[서버]①',   max:12, unit:'회'},
+  {id:'weekly_od_server2',        label:'오드에너지[서버]②',   max:12, unit:'회'},
+];
+
+function _hwDailyKey() {
+  const d = new Date(); return 'hw_d_'+d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
+}
+function _hwWeeklyKey() {
+  const d = new Date(), day = d.getDay();
+  const diff = day >= 3 ? day - 3 : day + 4;
+  const wed = new Date(d); wed.setDate(d.getDate() - diff);
+  return 'hw_w_'+wed.getFullYear()+'-'+(wed.getMonth()+1)+'-'+wed.getDate();
+}
+function _hwLoad(key) { try { return JSON.parse(localStorage.getItem(key)||'{}'); } catch(e) { return {}; } }
+function _hwSave(key, data) { try { localStorage.setItem(key, JSON.stringify(data)); } catch(e) {} }
+
+function hwToggleCheck(id) {
+  try {
+    const isWeekly = id.startsWith('weekly_');
+    const storeKey = isWeekly ? _hwWeeklyKey() : _hwDailyKey();
+    const data = _hwLoad(storeKey);
+    data[id] = !data[id];
+    _hwSave(storeKey, data);
+    _hwRefreshCheck(id, data[id]);
+  } catch(e) {}
+}
+function _hwRefreshCheck(id, checked) {
+  const el = document.getElementById('hw-check-'+id);
+  if(!el) return;
+  el.classList.toggle('checked', !!checked);
+  el.innerHTML = checked ? '✓' : '';
+  el.style.color = checked ? '#fff' : '';
+}
+
+function hwSetTicket(id, val, max) {
+  try {
+    const data = _hwLoad(_hwDailyKey()); data[id] = Math.max(0, Math.min(max, val)); _hwSave(_hwDailyKey(), data);
+    _hwRefreshTicket(id, data[id], max);
+  } catch(e) {}
+}
+function _hwRefreshTicket(id, val, max) {
+  const valEl = document.getElementById('hw-tv-'+id);
+  const maxBadge = document.getElementById('hw-tb-'+id);
+  if(valEl) valEl.textContent = val;
+  if(maxBadge) { const isFull = val >= max; maxBadge.style.display = isFull ? '' : 'none'; }
+}
+
+function hwSetWeekly(id, val, max) {
+  try {
+    const data = _hwLoad(_hwWeeklyKey()); data[id] = Math.max(0, Math.min(max, val)); _hwSave(_hwWeeklyKey(), data);
+    _hwRefreshWeekly(id, data[id], max);
+  } catch(e) {}
+}
+function _hwRefreshWeekly(id, val, max) {
+  const valEl = document.getElementById('hw-wv-'+id);
+  const maxBadge = document.getElementById('hw-wb-'+id);
+  if(valEl) valEl.textContent = val;
+  if(maxBadge) { const isFull = val >= max; maxBadge.style.display = isFull ? '' : 'none'; }
+}
+
+function _hwRenderAll() {
+  try {
+    const daily = _hwLoad(_hwDailyKey());
+    const weekly = _hwLoad(_hwWeeklyKey());
+
+    // 리모권
+    const rimoArea = document.getElementById('hw-rimo-area');
+    if(rimoArea && !rimoArea.dataset.rendered) {
+      rimoArea.dataset.rendered = '1';
+      rimoArea.innerHTML = HW_RIMO_LIST.map(function(label) {
+        const id = 'rimo_'+label.replace(/\s/g,'_');
+        const used = !!daily[id];
+        return '<button class="hw-rimo-btn'+(used?' used':'')+'" id="hw-rimo-'+id+'" onclick="hwToggleRimo(\''+id+'\')">'+label+'</button>';
+      }).join('');
+    } else if(rimoArea) {
+      HW_RIMO_LIST.forEach(function(label) {
+        const id = 'rimo_'+label.replace(/\s/g,'_');
+        const btn = document.getElementById('hw-rimo-'+id);
+        if(btn) btn.className = 'hw-rimo-btn'+(daily[id]?' used':'');
+      });
+    }
+
+    // 체크항목 (일일)
+    ['daily_sajung','daily_attend','daily_abyss_supply','daily_abyss_low','daily_abyss_mid'].forEach(function(id) {
+      _hwRefreshCheck(id, !!daily[id]);
+    });
+    // 체크항목 (주간)
+    ['weekly_abyss_supply','weekly_season_mission'].forEach(function(id) {
+      _hwRefreshCheck(id, !!weekly[id]);
+    });
+
+    // 입장권
+    const ticketArea = document.getElementById('hw-ticket-area');
+    if(ticketArea && !ticketArea.dataset.rendered) {
+      ticketArea.dataset.rendered = '1';
+      ticketArea.innerHTML = HW_TICKETS.map(function(t) {
+        const val = daily[t.id] !== undefined ? daily[t.id] : t.max;
+        const isFull = val >= t.max;
+        return '<div class="hw-row">'
+          +'<span class="hw-row-label">'+t.label+'</span>'
+          +'<div class="hw-counter">'
+          +'<button class="hw-counter-btn" onclick="hwSetTicket(\''+t.id+'\','+(val-1)+','+t.max+')">−</button>'
+          +'<span class="hw-counter-val" id="hw-tv-'+t.id+'">'+val+'</span>'
+          +'<span style="font-size:12px;color:var(--muted);">/'+t.max+'</span>'
+          +'<button class="hw-counter-btn" onclick="hwSetTicket(\''+t.id+'\','+(val+1)+','+t.max+')">+</button>'
+          +'<span class="hw-max-badge" id="hw-tb-'+t.id+'" style="'+(isFull?'':'display:none')+'">MAX</span>'
+          +'</div></div>';
+      }).join('');
+    } else if(ticketArea) {
+      HW_TICKETS.forEach(function(t) {
+        const val = daily[t.id] !== undefined ? daily[t.id] : t.max;
+        _hwRefreshTicket(t.id, val, t.max);
+        // 버튼 onclick 업데이트
+        const valEl = document.getElementById('hw-tv-'+t.id);
+        if(valEl) {
+          const row = valEl.closest('.hw-row');
+          if(row) {
+            const btns = row.querySelectorAll('.hw-counter-btn');
+            if(btns[0]) btns[0].onclick = function(){ hwSetTicket(t.id, val-1, t.max); };
+            if(btns[1]) btns[1].onclick = function(){ hwSetTicket(t.id, val+1, t.max); };
+          }
+        }
+      });
+    }
+
+    // 주간 카운터
+    const weeklyArea = document.getElementById('hw-weekly-area');
+    if(weeklyArea && !weeklyArea.dataset.rendered) {
+      weeklyArea.dataset.rendered = '1';
+      weeklyArea.innerHTML = HW_WEEKLY_COUNTERS.map(function(t) {
+        if(t.isCheck) {
+          const checked = !!weekly[t.id];
+          return '<div class="hw-row" onclick="hwToggleCheck(\''+t.id+'\')" style="cursor:pointer;">'
+            +'<div class="hw-check'+(checked?' checked':'')+'" id="hw-check-'+t.id+'">'+(checked?'✓':'')+'</div>'
+            +'<span class="hw-row-label">'+t.label+'</span>'
+            +'<span class="hw-row-sub">수요일</span></div>';
+        }
+        const val = weekly[t.id] !== undefined ? weekly[t.id] : 0;
+        const isFull = val >= t.max;
+        return '<div class="hw-row">'
+          +'<span class="hw-row-label">'+t.label+'</span>'
+          +'<span class="hw-row-sub">수요일</span>'
+          +'<div class="hw-counter" style="margin-left:auto;">'
+          +'<button class="hw-counter-btn" onclick="hwSetWeekly(\''+t.id+'\','+(val-1)+','+t.max+')">−</button>'
+          +'<span class="hw-counter-val" id="hw-wv-'+t.id+'">'+val+'</span>'
+          +'<span style="font-size:12px;color:var(--muted);">/'+t.max+' '+t.unit+'</span>'
+          +'<button class="hw-counter-btn" onclick="hwSetWeekly(\''+t.id+'\','+(val+1)+','+t.max+')">+</button>'
+          +'<span class="hw-max-badge" id="hw-wb-'+t.id+'" style="'+(isFull?'':'display:none')+'">MAX</span>'
+          +'</div></div>';
+      }).join('');
+    } else if(weeklyArea) {
+      HW_WEEKLY_COUNTERS.forEach(function(t) {
+        if(!t.isCheck) {
+          const val = weekly[t.id] !== undefined ? weekly[t.id] : 0;
+          _hwRefreshWeekly(t.id, val, t.max);
+        } else {
+          _hwRefreshCheck(t.id, !!weekly[t.id]);
+        }
+      });
+    }
+  } catch(e) {}
+}
+
+function hwToggleRimo(id) {
+  try {
+    const data = _hwLoad(_hwDailyKey());
+    data[id] = !data[id];
+    _hwSave(_hwDailyKey(), data);
+    const btn = document.getElementById('hw-rimo-'+id);
+    if(btn) btn.className = 'hw-rimo-btn'+(data[id]?' used':'');
+  } catch(e) {}
+}
+
+// 숙제 탭 클릭 시 렌더 + 주기 갱신
+(function() {
+  try {
+    const origShow = window.showTab;
+    window.showTab = function(tab) {
+      origShow(tab);
+      if(tab === 'homework') _hwRenderAll();
+    };
   } catch(e) {}
 })();
 
