@@ -376,6 +376,18 @@
 
 <div id="toast"></div>
 
+<!-- 스킬 설명 로딩 팝업 -->
+<div id="skill-loading-popup" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:800;align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border:1px solid var(--gold-d);border-radius:14px;padding:28px 36px;display:flex;flex-direction:column;align-items:center;gap:14px;min-width:260px;box-shadow:0 8px 32px rgba(0,0,0,.6);">
+    <img id="skill-loading-img" style="width:64px;height:64px;object-fit:contain;" src="">
+    <div style="font-size:14px;font-weight:600;color:var(--text);">스킬 설명 로딩 중...</div>
+    <div style="width:200px;background:var(--border);border-radius:6px;overflow:hidden;height:7px;">
+      <div id="skill-loading-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#c8a040,#f0d070);border-radius:6px;transition:width 0.25s ease;"></div>
+    </div>
+    <div id="skill-loading-pct" style="font-size:11px;color:var(--muted);">0%</div>
+  </div>
+</div>
+
 <div id="login-screen" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:9998;align-items:center;justify-content:center;">
   <div style="background:var(--surface);border:1px solid var(--gold-d);border-radius:14px;padding:32px;width:90%;max-width:380px;">
     <div style="text-align:center;margin-bottom:24px;">
@@ -981,7 +993,7 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.32';
+const BUILD_VERSION = '1.5.33';
 const BUILD_PATCHNOTE = {
   title: '최근 모집 카드 크기 + 스킬 설명 복구',
   content: '• 대시보드 최근 모집: recruit-grid 동일한 3열 그리드 레이아웃 적용.\n• 스킬 설명: NC 가이드북 API 호출 복구 (CLASS_MAP 클래스명으로 정확히 요청).'
@@ -2885,6 +2897,41 @@ function switchDetailTab(tab) {
 
 /// ─── 스킬 설명 가이드북 로딩 (NC 가이드 파싱) ───────────────
 const _skillGuideCache = {};
+let _skillLoadTimer = null;
+
+function _showSkillLoading() {
+  const popup = document.getElementById('skill-loading-popup');
+  const bar   = document.getElementById('skill-loading-bar');
+  const pct   = document.getElementById('skill-loading-pct');
+  const img   = document.getElementById('skill-loading-img');
+  if(!popup) return;
+  // 기존 로딩 이미지 src 복사
+  const srcImg = document.querySelector('#loading-screen img');
+  if(srcImg && img) img.src = srcImg.src;
+  bar.style.width = '0%'; pct.textContent = '0%';
+  popup.style.display = 'flex';
+  let progress = 0;
+  clearInterval(_skillLoadTimer);
+  _skillLoadTimer = setInterval(function() {
+    progress = Math.min(progress + Math.random() * 12, 88);
+    bar.style.width = progress + '%';
+    pct.textContent = Math.round(progress) + '%';
+  }, 200);
+}
+
+function _hideSkillLoading(success) {
+  clearInterval(_skillLoadTimer);
+  const popup = document.getElementById('skill-loading-popup');
+  const bar   = document.getElementById('skill-loading-bar');
+  const pct   = document.getElementById('skill-loading-pct');
+  if(!popup) return;
+  bar.style.width = '100%'; pct.textContent = '100%';
+  setTimeout(function() {
+    if(popup) popup.style.display = 'none';
+    bar.style.width = '0%'; pct.textContent = '0%';
+  }, 350);
+}
+
 function _loadSkillDescriptions() {
   const m = window._currentDetailMember;
   if(!m) return;
@@ -2896,14 +2943,19 @@ function _loadSkillDescriptions() {
     return;
   }
   _skillGuideCache[cls] = null;
+  _showSkillLoading();
   fetch('/api/skillguide?class=' + encodeURIComponent(cls))
     .then(function(r){ return r.json(); })
     .then(function(data) {
       const skills = data.skills || {};
       _skillGuideCache[cls] = Object.keys(skills).length ? skills : null;
+      _hideSkillLoading(!!_skillGuideCache[cls]);
       if(_skillGuideCache[cls]) _applySkillDescriptions(skills);
     })
-    .catch(function() { _skillGuideCache[cls] = null; });
+    .catch(function() {
+      _skillGuideCache[cls] = null;
+      _hideSkillLoading(false);
+    });
 }
 function _applySkillDescriptions(skills) {
   const skillTab = document.getElementById('detail-skill');

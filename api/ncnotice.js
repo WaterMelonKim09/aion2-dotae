@@ -11,14 +11,15 @@ module.exports = async function handler(req, res) {
     'Origin': 'https://aion2.plaync.com',
   };
 
-  // 완전히 다른 패턴 시도 - AJAX boardList 계열
+  // board config: id=681c7d485be6481dfc46c48d, snow.boardId=501, boardAlias=notice_ko
+  // boardUrlPattern uses articleId (MongoDB ObjectId)
   const endpoints = [
-    'https://aion2.plaync.com/api/board/notice_ko/boardList?serviceAlias=aion2&page=1&pageSize=20',
-    'https://aion2.plaync.com/api/board/notice/boardList?serviceAlias=aion2&boardAlias=notice_ko&page=1&pageSize=20',
-    'https://aion2.plaync.com/ko-kr/board/notice/boardList?page=1&pageSize=20',
-    'https://aion2.plaync.com/api/board/notice_ko/content?serviceAlias=aion2&page=1&pageSize=20',
-    'https://aion2.plaync.com/api/board/content?serviceAlias=aion2&boardAlias=notice_ko&page=1&pageSize=20',
-    'https://aion2.plaync.com/api/board/notice_ko/board?serviceAlias=aion2&page=1&pageSize=20',
+    'https://aion2.plaync.com/api/board/681c7d485be6481dfc46c48d/articles?page=1&pageSize=20',
+    'https://aion2.plaync.com/api/board/notice_ko/articles?page=0&pageSize=20&serviceAlias=aion2',
+    'https://aion2.plaync.com/api/board/notice_ko/article?serviceAlias=aion2&page=1&pageSize=20',
+    'https://aion2.plaync.com/api/board/aion2/notice_ko/article?page=1&pageSize=20',
+    'https://aion2.plaync.com/api/v1/board/notice_ko/articles?serviceAlias=aion2&page=0&pageSize=20',
+    'https://aion2.plaync.com/ko-kr/api/board/notice_ko/articles?serviceAlias=aion2&page=1&pageSize=20',
   ];
 
   if (req.query.debug === '1') {
@@ -41,14 +42,15 @@ module.exports = async function handler(req, res) {
       const text = await r.text();
       let data; try { data = JSON.parse(text); } catch(e) { continue; }
 
-      const rawList = data?.result?.boardList || data?.result?.list || data?.result?.articles
-        || data?.boardList || data?.list || data?.articles || data?.data?.list || data?.data
+      // articleId 기반 URL 패턴: /ko-kr/board/notice/view?articleId={articleId}
+      const rawList = data?.result?.articles || data?.result?.boardList || data?.result?.list
+        || data?.articles || data?.boardList || data?.list || data?.data?.list || data?.data
         || (Array.isArray(data) ? data : null) || [];
 
       if (!Array.isArray(rawList) || rawList.length === 0) continue;
 
       const notices = rawList.slice(0, 20).map(n => ({
-        id:       String(n.boardNo || n.articleNo || n.id || ''),
+        id:       String(n.articleId || n.boardNo || n.id || ''),
         title:    n.subject || n.title || n.boardTitle || '',
         date:     (n.createDate || n.regDate || n.date || '').slice(0, 10).replace(/-/g, '.'),
         url:      buildUrl(n),
@@ -63,9 +65,11 @@ module.exports = async function handler(req, res) {
 };
 
 function buildUrl(n) {
-  const no = n.boardNo || n.articleNo || n.id || '';
+  const articleId = n.articleId || '';
+  const boardNo   = n.boardNo || n.id || '';
   if (n.linkUrl) return n.linkUrl;
   if (n.url) return n.url.startsWith('http') ? n.url : 'https://aion2.plaync.com' + n.url;
-  if (no) return `https://aion2.plaync.com/ko-kr/board/notice/view/${no}`;
+  if (articleId) return `https://aion2.plaync.com/ko-kr/board/notice/view?articleId=${articleId}`;
+  if (boardNo)   return `https://aion2.plaync.com/ko-kr/board/notice/view/${boardNo}`;
   return 'https://aion2.plaync.com/ko-kr/board/notice/list';
 }
