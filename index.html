@@ -2206,6 +2206,7 @@ function initFirebase() {
     // 캐시 클리어 + 로딩 화면 표시 후 데이터 재로드
     try { localStorage.removeItem(_CACHE_KEY); } catch(e) {}
     window._realtimeSetup = false;
+    window._loadingHidden = false;
     var loadEl = document.getElementById('loading-screen');
     if(loadEl) loadEl.style.display = 'flex';
     var bar = document.getElementById('loading-bar');
