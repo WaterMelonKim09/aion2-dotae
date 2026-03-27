@@ -1196,7 +1196,7 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.82';
+const BUILD_VERSION = '1.5.83';
 const BUILD_PATCHNOTE = {
   title: '장비 상세 팝업 hang 수정',
   content: '• fetch + res.json() 전체 구간 타임아웃 커버 (기존 clearTimeout 위치 오류 수정).\n• 렌더링 에러 try-catch 추가 — 어떤 경우에도 "불러오는 중..." 으로 굳지 않도록 처리.'
@@ -2142,13 +2142,21 @@ function initFirebase() {
 
   // 백그라운드 갱신 (캐시 히트 후 실행) — 토큰으로 stale 결과 무시
   var _bgRefreshToken = 0;
+  var _bgRefreshRunning = false;
   function _bgRefresh() {
+    if(_bgRefreshRunning) return; // 동시 실행 방지
+    _bgRefreshRunning = true;
     var token = ++_bgRefreshToken;
-    Promise.all([
-      db.from('members').select(_MEMBER_COLS).order('combat_power', { ascending: false }),
-      db.from('notices').select('*').order('created_at', { ascending: false })
+    var _timeout = new Promise(function(_, reject){ setTimeout(function(){ reject(new Error('timeout')); }, 12000); });
+    Promise.race([
+      Promise.all([
+        db.from('members').select(_MEMBER_COLS).order('combat_power', { ascending: false }),
+        db.from('notices').select('*').order('created_at', { ascending: false })
+      ]),
+      _timeout
     ]).then(function(results) {
-      if(token !== _bgRefreshToken) return; // 더 최신 갱신이 있으면 무시
+      _bgRefreshRunning = false;
+      if(token !== _bgRefreshToken) return;
       var mRes = results[0], nRes = results[1];
       if(mRes.error) return;
       var freshMembers = mRes.data || [];
@@ -2161,7 +2169,7 @@ function initFirebase() {
       renderAll();
       renderNotices(freshNotices);
       _fetchAndMergeEquipment(true, freshNotices);
-    }).catch(function(){});
+    }).catch(function(){ _bgRefreshRunning = false; });
   }
 
   // Supabase REST 기반 데이터 로딩
@@ -2977,10 +2985,14 @@ async function openDetailById(id) {
   showActionLoading(basic.nickname + ' 스펙 불러오는 중...', basic.profile_img || '');
   let full = null;
   try {
-    const res = await db.from('members').select('*').eq('id', basic.id).maybeSingle();
+    const _timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 10000));
+    const res = await Promise.race([
+      db.from('members').select('*').eq('id', basic.id).maybeSingle(),
+      _timeout
+    ]);
     full = res.data || null;
   } catch(e) {
-    // 쿼리 실패 시 기존 데이터로 열기
+    // 타임아웃 또는 쿼리 실패 → 기존 데이터로 열기
   } finally {
     hideActionLoading();
   }
