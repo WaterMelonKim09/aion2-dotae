@@ -638,6 +638,24 @@
         <tbody id="member-body"></tbody>
       </table>
     </div>
+    <!-- 관리자 전용: 탈퇴 멤버 감지 -->
+    <div id="leave-scan-section" style="display:none;margin-top:12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <span style="font-size:12px;color:var(--gold);font-weight:600;">탈퇴 멤버 감지 (관리자 전용)</span>
+        <span style="font-size:11px;color:var(--muted);">NC 공홈에서 각 멤버의 레기온 정보를 조회해 "도태"가 아니면 탈퇴로 표시합니다.</span>
+        <button class="btn btn-sm" style="margin-left:auto;white-space:nowrap;" onclick="scanLeaveMembers()">스캔 시작</button>
+      </div>
+      <div id="leave-scan-progress" style="display:none;margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:4px;">
+          <span id="leave-scan-status">스캔 중...</span>
+          <span id="leave-scan-count">0 / 0</span>
+        </div>
+        <div style="background:var(--border);border-radius:4px;height:5px;overflow:hidden;">
+          <div id="leave-scan-bar" style="height:100%;width:0%;background:var(--red);border-radius:4px;transition:width .3s;"></div>
+        </div>
+      </div>
+      <div id="leave-scan-result" style="font-size:12px;"></div>
+    </div>
   </div>
 
   <!-- 파티 모집 -->
@@ -950,15 +968,14 @@
 
           <!-- 레기온 가져오기 패널 -->
           <div id="bulk-panel-legion">
-            <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">NC 공홈에서 내 캐릭터 ID를 입력하면 레기온 멤버 목록을 자동으로 가져옵니다.</div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">본인 캐릭터 닉네임을 입력하면 같은 레기온 멤버 목록을 자동으로 가져옵니다.</div>
             <div style="display:flex;gap:6px;margin-bottom:6px;">
-              <input id="bulk-legion-cid" class="form-input" placeholder="캐릭터 ID (NC 공홈 URL에서 복사)" style="flex:1;font-size:12px;">
+              <input id="bulk-legion-nick" class="form-input" placeholder="내 캐릭터 닉네임" style="flex:1;font-size:12px;">
               <select class="form-select" id="bulk-legion-server" style="width:90px;font-size:12px;">
                 <option value="2001">카이네</option>
               </select>
               <button class="btn" style="white-space:nowrap;font-size:12px;" onclick="fetchLegionMembers()">목록 조회</button>
             </div>
-            <div style="font-size:10px;color:var(--muted);margin-bottom:8px;">※ NC 공홈 URL 예시: /profile/character/2001/<b style="color:var(--gold);">캐릭터ID</b>/...</div>
             <div id="bulk-legion-list" style="max-height:180px;overflow-y:auto;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:6px;display:none;margin-bottom:8px;"></div>
           </div>
 
@@ -1216,10 +1233,10 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.52';
+const BUILD_VERSION = '1.5.54';
 const BUILD_PATCHNOTE = {
-  title: 'NC 아이온2 공지사항 파싱 수정',
-  content: '• noticesList[].articleMeta 구조 파싱 적용.\n• 아이온2 공홈 공지사항 정상 표시.'
+  title: '레기온 일괄 등록, 신석 등급 색상, 탈퇴 멤버 감지',
+  content: '• 일괄 등록: 닉네임 입력으로 레기온 멤버 자동 조회 후 등록.\n• 신석 등급별 색상 표시 robust 파싱 적용.\n• 탈퇴 멤버 감지: 멤버 탭 → 관리자 전용 "탈퇴 스캔" 기능 추가.'
 };
 
 // 시맨틱 버전 비교 (날짜형 구버전 호환)
@@ -1979,7 +1996,7 @@ function initFirebase() {
           checkVersion();
           if(!window._versionPollingStarted) {
             window._versionPollingStarted = true;
-            setInterval(checkVersion, 1000);
+            setInterval(checkVersion, 60000);
           }
           db.channel('config-realtime')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'config', filter: 'key=eq.system' }, () => { checkVersion(); })
@@ -2592,6 +2609,76 @@ async function fetchAndRegister() {
 function _showBulkSection() {
   const el = document.getElementById('bulk-register-section');
   if(el) el.style.display = isAdmin() ? '' : 'none';
+  const ls = document.getElementById('leave-scan-section');
+  if(ls) ls.style.display = isAdmin() ? '' : 'none';
+}
+
+async function scanLeaveMembers() {
+  if(!isAdmin()) { toast('관리자만 사용할 수 있어요'); return; }
+  const progressEl = document.getElementById('leave-scan-progress');
+  const statusEl   = document.getElementById('leave-scan-status');
+  const countEl    = document.getElementById('leave-scan-count');
+  const barEl      = document.getElementById('leave-scan-bar');
+  const resultEl   = document.getElementById('leave-scan-result');
+  if(!resultEl) return;
+
+  const targets = members.filter(m => m.is_main !== false); // 본캐만 스캔
+  const total = targets.length;
+  if(!total) { toast('등록된 멤버가 없어요'); return; }
+
+  if(progressEl) progressEl.style.display = '';
+  resultEl.innerHTML = '';
+
+  const left = []; // 탈퇴 감지된 멤버
+
+  for(let i = 0; i < total; i++) {
+    const m = targets[i];
+    if(statusEl) statusEl.textContent = `${m.nickname} 조회 중...`;
+    if(countEl)  countEl.textContent  = `${i+1} / ${total}`;
+    if(barEl)    barEl.style.width    = `${(i+1)/total*100}%`;
+
+    try {
+      const res = await fetch(`/api/character?nickname=${encodeURIComponent(m.nickname)}&serverId=${m.server||'2001'}`);
+      const data = await res.json();
+      const guildName = data.guild_name || '';
+      if(guildName && guildName !== '도태') {
+        left.push({ ...m, currentGuild: guildName });
+      }
+    } catch(e) {
+      // 조회 실패 시 스킵
+    }
+    if(i < total - 1) await new Promise(r => setTimeout(r, 500));
+  }
+
+  if(statusEl) statusEl.textContent = '스캔 완료';
+
+  if(!left.length) {
+    resultEl.innerHTML = '<div style="color:#6acd8a;padding:8px 0;">탈퇴 멤버 없음 — 전원 도태 소속입니다.</div>';
+    return;
+  }
+
+  resultEl.innerHTML = `
+    <div style="color:var(--red);font-weight:600;margin-bottom:8px;">${left.length}명 탈퇴 감지됨</div>
+    ${left.map(m=>`
+      <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);">
+        <span style="flex:1;font-size:13px;">${m.nickname}</span>
+        <span style="font-size:11px;color:var(--muted);">현재 레기온: <b style="color:var(--red);">${m.currentGuild||'없음'}</b></span>
+        <button class="btn btn-sm" style="border-color:var(--red);color:var(--red);" onclick="removeMember('${m.id}','${m.nickname}',this)">제거</button>
+      </div>`).join('')}
+    <div style="margin-top:10px;">
+      <button class="btn" style="width:100%;border-color:var(--red);color:var(--red);" onclick="removeAllLeft(${JSON.stringify(left.map(m=>({id:m.id,nickname:m.nickname}))).replace(/"/g,'&quot;')})">위 ${left.length}명 전체 제거</button>
+    </div>
+  `;
+}
+
+async function removeAllLeft(list) {
+  if(!confirm(`탈퇴 멤버 ${list.length}명을 전체 제거하시겠어요?`)) return;
+  for(const m of list) {
+    await db.from('members').delete().eq('id', m.id).catch(()=>{});
+  }
+  toast(`${list.length}명 제거 완료`);
+  loadData();
+  document.getElementById('leave-scan-result').innerHTML = '<div style="color:#6acd8a;padding:8px 0;">제거 완료되었습니다.</div>';
 }
 
 function _bulkTab(tab) {
@@ -2606,20 +2693,20 @@ function _bulkTab(tab) {
 }
 
 async function fetchLegionMembers() {
-  const cidEl = document.getElementById('bulk-legion-cid');
+  const nickEl = document.getElementById('bulk-legion-nick');
   const serverEl = document.getElementById('bulk-legion-server');
   const listEl = document.getElementById('bulk-legion-list');
-  if(!cidEl || !listEl) return;
+  if(!nickEl || !listEl) return;
 
-  const cid = cidEl.value.trim();
-  if(!cid) { toast('캐릭터 ID를 입력해주세요'); return; }
+  const nick = nickEl.value.trim();
+  if(!nick) { toast('닉네임을 입력해주세요'); return; }
   const serverId = serverEl ? serverEl.value : '2001';
 
   listEl.style.display = '';
   listEl.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:4px;">레기온 멤버 조회 중...</div>';
 
   try {
-    const res = await fetch(`/api/legion?characterId=${encodeURIComponent(cid)}&serverId=${serverId}`);
+    const res = await fetch(`/api/legion?nickname=${encodeURIComponent(nick)}&serverId=${serverId}`);
     const data = await res.json();
 
     if(data._err) {
@@ -2683,7 +2770,6 @@ async function bulkRegister() {
     nicknames = textarea.value.split('\n').map(s=>s.trim()).filter(Boolean);
   }
 
-  if(!nicknames.length) { toast('닉네임을 입력해주세요'); return; }
   if(!nicknames.length) { toast('닉네임을 입력해주세요'); return; }
 
   const rank   = rankEl   ? rankEl.value   : '군단병';
@@ -3418,7 +3504,9 @@ function updateVersionDisplay(latestVersion) {
 }
 
 function doSystemUpdate() {
-  location.reload(true);
+  const url = new URL(location.href);
+  url.searchParams.set('_v', Date.now());
+  location.href = url.toString();
 }
 
 function toggleExtraStats() {
