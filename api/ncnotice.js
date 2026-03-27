@@ -11,15 +11,14 @@ module.exports = async function handler(req, res) {
     'Origin': 'https://aion2.plaync.com',
   };
 
-  // notice_ko / notice_ko_ko boardAlias 기반으로 시도
+  // 완전히 다른 패턴 시도 - AJAX boardList 계열
   const endpoints = [
-    'https://aion2.plaync.com/api/board/notice_ko/articles?page=1&pageSize=20&serviceAlias=aion2',
-    'https://aion2.plaync.com/api/board/notice_ko_ko/articles?page=1&pageSize=20&serviceAlias=aion2',
-    'https://aion2.plaync.com/api/board/notice_ko/list/articles?page=1&pageSize=20&serviceAlias=aion2',
-    'https://aion2.plaync.com/api/board/aion2/notice_ko/articles?page=1&pageSize=20',
-    'https://aion2.plaync.com/ko-kr/api/board/notice_ko/articles?page=1&pageSize=20',
-    'https://aion2.plaync.com/api/board/notice_ko/posts?page=1&pageSize=20&serviceAlias=aion2',
-    'https://aion2.plaync.com/api/board/aion2/notice/articles?page=1&pageSize=20',
+    'https://aion2.plaync.com/api/board/notice_ko/boardList?serviceAlias=aion2&page=1&pageSize=20',
+    'https://aion2.plaync.com/api/board/notice/boardList?serviceAlias=aion2&boardAlias=notice_ko&page=1&pageSize=20',
+    'https://aion2.plaync.com/ko-kr/board/notice/boardList?page=1&pageSize=20',
+    'https://aion2.plaync.com/api/board/notice_ko/content?serviceAlias=aion2&page=1&pageSize=20',
+    'https://aion2.plaync.com/api/board/content?serviceAlias=aion2&boardAlias=notice_ko&page=1&pageSize=20',
+    'https://aion2.plaync.com/api/board/notice_ko/board?serviceAlias=aion2&page=1&pageSize=20',
   ];
 
   if (req.query.debug === '1') {
