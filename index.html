@@ -918,7 +918,7 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.24';
+const BUILD_VERSION = '1.5.25';
 const BUILD_PATCHNOTE = {
   title: '최근 모집 카드 크기 + 스킬 설명 복구',
   content: '• 대시보드 최근 모집: recruit-grid 동일한 3열 그리드 레이아웃 적용.\n• 스킬 설명: NC 가이드북 API 호출 복구 (CLASS_MAP 클래스명으로 정확히 요청).'
@@ -1875,12 +1875,27 @@ function renderNotices(notices, showAll) {
       +'<div style="font-size:13px;color:var(--muted);line-height:1.8;white-space:pre-wrap;">'+(n.content||'')+'</div></div>';
   };
 
-  const allItems = [...announcements, ...visiblePatches].map(renderItem).join('');
+  const leftHTML = announcements.length
+    ? announcements.map(renderItem).join('')
+    : '<div style="color:var(--muted);font-size:13px;padding:12px">공지사항이 없어요</div>';
+
   const moreBtn = hiddenCount > 0
     ? '<button onclick="renderNotices(window._cachedNotices, true)" style="width:100%;padding:10px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:13px;cursor:pointer;margin-top:4px;">▼ 이전 패치노트 '+hiddenCount+'개 더보기</button>'
     : '';
+  const rightHTML = (visiblePatches.length
+    ? visiblePatches.map(renderItem).join('')
+    : '<div style="color:var(--muted);font-size:13px;padding:12px">패치노트가 없어요</div>')
+    + moreBtn;
 
-  list.innerHTML = (allItems || '<div style="color:var(--muted);font-size:13px;padding:12px">공지사항이 없어요</div>') + moreBtn;
+  list.innerHTML = '<div style="display:flex;gap:0;align-items:stretch;">'
+    + '<div style="flex:1;min-width:0;padding-right:16px;">'
+    + '<div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:1px;margin-bottom:12px;text-transform:uppercase;">📢 공지사항</div>'
+    + leftHTML + '</div>'
+    + '<div style="width:1px;background:repeating-linear-gradient(to bottom,var(--border) 0,var(--border) 6px,transparent 6px,transparent 12px);flex-shrink:0;"></div>'
+    + '<div style="flex:1;min-width:0;padding-left:16px;">'
+    + '<div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:1px;margin-bottom:12px;text-transform:uppercase;">🛠 패치노트</div>'
+    + rightHTML + '</div>'
+    + '</div>';
   window._cachedNotices = notices;
 }
 
@@ -2666,7 +2681,8 @@ const _skillGuideCache = {};
 function _loadSkillDescriptions() {
   const m = window._currentDetailMember;
   if(!m) return;
-  const cls = CLASS_MAP[m.class] || m.class || '';
+  const rawCls = CLASS_MAP[m.class] || m.class || '';
+  const cls = rawCls.replace(/:\d+$/, '').trim();
   if(!cls) return;
   if(_skillGuideCache[cls] !== undefined) {
     if(_skillGuideCache[cls]) _applySkillDescriptions(_skillGuideCache[cls]);
