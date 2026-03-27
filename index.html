@@ -1196,10 +1196,10 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.72';
+const BUILD_VERSION = '1.5.73';
 const BUILD_PATCHNOTE = {
-  title: '신석 이름 기반 색상, 아이템 아이콘 로딩 표시',
-  content: '• 신석 색상: 등급 대신 이름 기반으로 변경 (불/물/땅/바람/상태이상 각각 고유 색).\n• 장비·마석·신석 아이콘 로딩 중 펄스 애니메이션 표시, 실패 시 ? 표시.'
+  title: '신석 효과 키워드 기반 색상 개선',
+  content: '• 신석 색상: 아이템 설명의 [실명]/[봉인]/[속박]/[기절]/[마비]/속도감소 키워드로 자동 색상 결정.\n• 이름 직접 매핑(NC 공홈 확인 이름) + 설명 키워드 1순위 파싱으로 51종 전체 대응.'
 };
 
 // 전체 패치 내역 (버전별 정확한 설명)
@@ -1242,7 +1242,7 @@ const _PATCH_HISTORY = [
     content:'• 상세 보기 클릭 시 로딩 팝업이 닫히지 않던 버그 수정.\n• openDetailById try-finally로 로딩 팝업 항상 해제 보장.\n• 백그라운드 갱신 AbortController 제거, 토큰 방식으로 교체 (안정성).' },
   { version:'1.5.71', title:'살성·마도성 엠블렘 색상 수정',
     content:'• 살성 황록색(#7acc40)·마도성 바이올렛(#9966dd) 엠블렘 색으로 통일.' },
-  { version:'1.5.72', title:'신석 이름 기반 색상, 아이템 아이콘 로딩 표시',
+  { version:'1.5.73', title:'신석 이름 기반 색상, 아이템 아이콘 로딩 표시',
     content:'• 신석 색상: 등급 대신 이름 기반으로 변경 (불/물/땅/바람/상태이상 각각 고유 색).\n• 장비·마석·신석 아이콘 로딩 중 펄스 애니메이션 표시, 실패 시 ? 표시.' },
 ];
 
@@ -1598,30 +1598,45 @@ function hideActionLoading() {
 }
 
 // ─── 신석 이름 기반 색상 ──────────────────
+// ─── 신석 색상: 효과 설명 기반 ─────────────
+// 이름 직접 매핑 (스크린샷에서 확인된 실제 이름 — "신석:" 접두사 포함/제외 모두 처리)
 const RUNE_COLORS = {
-  '지켈의 편린':'#ff5522',  '바고트의 불씨':'#ff6633',   // 불
-  '타신의 명령':'#44aaff',  '아울라프리의 주술':'#66bbff', // 물
-  '울고른의 의지':'#cc9944','가르투아의 힘':'#ddaa55',     // 땅
-  '아울트로스의 약속':'#55cc88','라트만의 욕심':'#66dd99', // 바람
-  '카이시넬의 편린':'#8899bb',                            // 실명
-  '페리온의 비극':'#cc44aa',                              // 봉인
-  '힐라드르의 사슬':'#6688cc',                            // 속박
-  '울라크의 포효':'#ffcc22',                              // 기절
-  '누아의 흉계':'#ffaa00',                                // 마비
-  '레다의 집요함':'#44ccdd',                              // 이동속도 감소
-  '노툰의 기교':'#9966cc',                                // 전투속도 감소
+  '프레기온의 술책':'#8899bb', '신석: 프레기온의 술책':'#8899bb', // 실명
+  '브리트라의 음모':'#cc44aa', '신석: 브리트라의 음모':'#cc44aa', // 봉인
+  '네자칸의 진군':'#6688cc',   '신석: 네자칸의 진군':'#6688cc',   // 속박
+  '메스람타에다의 욕심':'#ffcc22','신석: 메스람타에다의 욕심':'#ffcc22', // 기절
+  '에레슈키갈의 명예':'#ffaa00','신석: 에레슈키갈의 명예':'#ffaa00',   // 마비
+  '카이시넬의 환상':'#44ccdd', '신석: 카이시넬의 환상':'#44ccdd',  // 이동속도 감소
+  '루미엘의 참견':'#9966cc',   '신석: 루미엘의 참견':'#9966cc',   // 전투속도 감소
 };
-function _runeColor(name) {
-  if(!name) return '#e0c97a';
+// 설명(description) 안의 효과 키워드로 색상 결정 — 가장 신뢰도 높음
+const _RUNE_EFFECT_COLORS = [
+  { keys:['[실명]'],                                     color:'#8899bb' },
+  { keys:['[봉인]'],                                     color:'#cc44aa' },
+  { keys:['[속박]'],                                     color:'#6688cc' },
+  { keys:['[기절]'],                                     color:'#ffcc22' },
+  { keys:['[마비]'],                                     color:'#ffaa00' },
+  { keys:['이동 속도','이동속도'],                         color:'#44ccdd' },
+  { keys:['전투 속도','전투속도'],                         color:'#9966cc' },
+  { keys:['불 속성','화염','[화',']불'],                  color:'#ff5522' },
+  { keys:['물 속성','냉기','[수',']물'],                  color:'#44aaff' },
+  { keys:['땅 속성','대지','[토',']땅'],                  color:'#cc9944' },
+  { keys:['바람 속성','[풍',']바람'],                     color:'#55cc88' },
+  { keys:['번개 속성','[뇌'],                             color:'#ffdd44' },
+  { keys:['어둠 속성','[암',']어둠'],                     color:'#9966cc' },
+  { keys:['빛 속성','[광',']빛'],                         color:'#ffee88' },
+];
+function _runeColor(name, desc) {
+  const n = (name || '').replace(/^신석:\s*/, ''); // "신석:" 접두사 제거
+  const d = desc || '';
+  // 1순위: 설명 텍스트의 효과 키워드
+  for(const { keys, color } of _RUNE_EFFECT_COLORS) {
+    if(keys.some(k => d.includes(k))) return color;
+  }
+  // 2순위: 이름 직접 매핑
   if(RUNE_COLORS[name]) return RUNE_COLORS[name];
-  if(name.includes('불')||name.includes('화')) return '#ff5522';
-  if(name.includes('물')||name.includes('수')) return '#44aaff';
-  if(name.includes('땅')||name.includes('지')||name.includes('토')) return '#cc9944';
-  if(name.includes('바람')||name.includes('풍')) return '#55cc88';
-  if(name.includes('번개')||name.includes('뇌')) return '#ffdd44';
-  if(name.includes('어둠')||name.includes('암')||name.includes('흑')) return '#9966cc';
-  if(name.includes('빛')||name.includes('광')) return '#ffee88';
-  return '#e0c97a';
+  if(RUNE_COLORS[n]) return RUNE_COLORS[n];
+  return '#e0c97a'; // fallback
 }
 
 // ─── 아이템 아이콘 로딩 헬퍼 ─────────────
@@ -3218,7 +3233,7 @@ function openDetail(m) {
         ${godStones.length ? `
           ${ncSec('신석')}
           <div style="padding:8px 20px;">
-            ${godStones.map(s=>{const sc=_runeColor(s.name);const desc=s.description||s.desc||'';const effects=(s.skillEffectList||s.effectList||[]).map(ef=>`<div style="font-size:11px;color:#aaa;line-height:1.6;">${ef.description||ef.desc||ef.name||ef}</div>`).join('');return`<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;">${s.icon?`<img src="${s.icon}" style="width:22px;height:22px;border-radius:3px;flex-shrink:0;background:var(--surface);animation:imgPulse 1.5s ease infinite;" onload="_imgLoad(this)" onerror="_imgErr(this)">`:`<div style="width:22px;height:22px;border-radius:3px;background:${sc}22;flex-shrink:0;"></div>`}<div><div style="font-size:12px;color:${sc};font-weight:600;">${s.name||''}</div>${desc?`<div style="font-size:11px;color:#aaa;line-height:1.6;margin-top:2px;">${desc}</div>`:''}${effects}</div></div>`;}).join('')}
+            ${godStones.map(s=>{const desc=s.description||s.desc||'';const sc=_runeColor(s.name,desc);const effects=(s.skillEffectList||s.effectList||[]).map(ef=>`<div style="font-size:11px;color:#aaa;line-height:1.6;">${ef.description||ef.desc||ef.name||ef}</div>`).join('');return`<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;">${s.icon?`<img src="${s.icon}" style="width:22px;height:22px;border-radius:3px;flex-shrink:0;background:var(--surface);animation:imgPulse 1.5s ease infinite;" onload="_imgLoad(this)" onerror="_imgErr(this)">`:`<div style="width:22px;height:22px;border-radius:3px;background:${sc}22;flex-shrink:0;"></div>`}<div><div style="font-size:12px;color:${sc};font-weight:600;">${s.name||''}</div>${desc?`<div style="font-size:11px;color:#aaa;line-height:1.6;margin-top:2px;">${desc}</div>`:''}${effects}</div></div>`;}).join('')}
           </div>` : ''}
 
         <!-- 세트 효과 + 획득처 -->
