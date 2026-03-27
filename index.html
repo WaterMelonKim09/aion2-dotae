@@ -156,9 +156,9 @@
   .legend { display:flex; flex-direction:column; gap:4px; flex:1; min-width:120px; }
   .leg-item { display:flex; align-items:center; gap:6px; padding:4px 8px; border-radius:6px; }
   .leg-dot  { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
-  .leg-name { font-size:13px; flex:1; }
-  .leg-cnt  { font-size:13px; font-weight:600; color:var(--gold-l); }
-  .leg-pct  { font-size:11px; color:var(--muted); min-width:30px; text-align:right; }
+  .leg-name { font-size:12px; flex:1; min-width:0; }
+  .leg-cnt  { font-size:12px; font-weight:600; color:var(--gold-l); white-space:nowrap; }
+  .leg-pct  { font-size:11px; color:var(--muted); min-width:28px; text-align:right; white-space:nowrap; }
 
   /* 뷰 토글 */
   .view-toggle { display:flex; gap:3px; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:3px; }
@@ -1005,7 +1005,7 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.47';
+const BUILD_VERSION = '1.5.48';
 const BUILD_PATCHNOTE = {
   title: 'NC 아이온2 공지사항 파싱 수정',
   content: '• noticesList[].articleMeta 구조 파싱 적용.\n• 아이온2 공홈 공지사항 정상 표시.'
@@ -1997,9 +1997,12 @@ function renderNotices(notices, showAll) {
     ? announcements.map(renderItem).join('')
     : '<div style="color:var(--muted);font-size:13px;padding:8px 0;">공지사항이 없어요</div>';
 
+  const btnStyle = 'width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;margin-top:4px;';
   const moreBtn = hiddenCount > 0
-    ? '<button onclick="renderNotices(window._cachedNotices,true)" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;margin-top:4px;">▼ '+hiddenCount+'개 더보기</button>'
-    : '';
+    ? '<button onclick="renderNotices(window._cachedNotices,true)" style="'+btnStyle+'">▼ '+hiddenCount+'개 더보기</button>'
+    : (showAll && patches.length > 15
+      ? '<button onclick="renderNotices(window._cachedNotices,false)" style="'+btnStyle+'">▲ 접기</button>'
+      : '');
   if(patchEl) patchEl.innerHTML = (visiblePatches.length
     ? visiblePatches.map(renderItem).join('')
     : '<div style="color:var(--muted);font-size:13px;padding:8px 0;">패치노트가 없어요</div>')

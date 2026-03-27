@@ -63,7 +63,7 @@ module.exports = async function handler(req, res) {
     }).filter(n => n.title);
 
     const hasMore = data?.hasMore ?? false;
-    const lastSnowId = notices.length > 0 ? notices[notices.length - 1].snowId : 0;
+    const lastSnowId = notices.length > 0 ? (notices[notices.length - 1].snowId || notices[notices.length - 1].id || 0) : 0;
 
     return res.status(200).json({ notices, hasMore, lastSnowId, _src: moreEndpoint });
   } catch(e) {
