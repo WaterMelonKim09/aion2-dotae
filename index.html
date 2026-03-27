@@ -394,6 +394,14 @@
   <div id="loading-pct" style="font-size:12px;color:var(--muted);margin-top:2px;">0%</div>
 </div>
 
+<!-- 범용 액션 로딩 팝업 -->
+<div id="action-loading-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:6000;align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border:1px solid var(--gold-d);border-radius:12px;padding:22px 32px;text-align:center;min-width:160px;box-shadow:0 8px 32px rgba(0,0,0,.5);">
+    <div style="margin:0 auto 12px;width:26px;height:26px;border:3px solid var(--gold-d);border-top-color:var(--gold-l);border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+    <div id="action-loading-msg" style="font-size:13px;color:var(--text);font-weight:500;">불러오는 중...</div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <!-- 스킬 설명 로딩 팝업 -->
@@ -1184,10 +1192,10 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.63';
+const BUILD_VERSION = '1.5.64';
 const BUILD_PATCHNOTE = {
-  title: 'localStorage 캐시 + equipment 지연 로딩',
-  content: '• localStorage 캐시 적용: 재방문 시 즉시 화면 표시, 백그라운드에서 최신 데이터 동기화.\n• equipment 지연 로딩: 초기 쿼리에서 제외 → 멤버 목록 먼저 표시 후 장비 데이터 별도 로드.\n• 갱신/전체 갱신 후 캐시 자동 무효화.'
+  title: '탭 우선 로딩, 액션 로딩 팝업 추가',
+  content: '• 탭 전환 시 해당 탭 콘텐츠 우선 로드, 나머지 백그라운드에서 처리.\n• 스펙 상세 열기·공지/업데이트 새로고침 시 로딩 팝업 표시.\n• timer/homework 탭: DB 불필요하므로 즉시 로딩창 해제.\n• 캐시 없을 때 타임아웃 15초 적용.'
 };
 
 // 전체 패치 내역 (버전별 정확한 설명)
@@ -1216,6 +1224,8 @@ const _PATCH_HISTORY = [
     content:'• 초기 로딩: 멤버+공지 병렬 로드 후 로딩창 해제 (빈 화면 방지).\n• 멤버 목록 쿼리 최적화: 필요 컬럼만 선택해 로딩 속도 개선.\n• 상세 모달: 클릭 시 전체 데이터 별도 로드.\n• 패치 내역 수정 버튼 제거.' },
   { version:'1.5.63', title:'localStorage 캐시 + equipment 지연 로딩',
     content:'• localStorage 캐시: 재방문 시 즉시 화면 표시, 백그라운드에서 최신 데이터 동기화.\n• equipment 지연 로딩: 초기 쿼리에서 제외 후 별도 로드 (쿼리 부하 감소).\n• 갱신 후 캐시 자동 무효화.' },
+  { version:'1.5.64', title:'탭 우선 로딩, 액션 로딩 팝업 추가',
+    content:'• 탭 전환 시 해당 탭 콘텐츠 우선 로드, 나머지 백그라운드에서 처리.\n• 스펙 상세 열기·공지/업데이트 새로고침 시 로딩 팝업 표시.\n• timer/homework 탭: DB 불필요하므로 즉시 로딩창 해제.\n• 캐시 없을 때 타임아웃 15초 적용.' },
 ];
 
 // 시맨틱 버전 비교 (날짜형 구버전 호환)
@@ -1551,6 +1561,17 @@ function isAdmin() {
   const m = members.find(x => x.nickname === currentUser.nickname);
   const rank = (m && m.rank) || currentUser.rank || '';
   return rank === '군단장' || rank === '엘리트장교';
+}
+
+function showActionLoading(msg) {
+  const el = document.getElementById('action-loading-overlay');
+  const msgEl = document.getElementById('action-loading-msg');
+  if(msgEl) msgEl.textContent = msg || '불러오는 중...';
+  if(el) el.style.display = 'flex';
+}
+function hideActionLoading() {
+  const el = document.getElementById('action-loading-overlay');
+  if(el) el.style.display = 'none';
 }
 
 async function autoInsertPatchNote() {
@@ -1971,6 +1992,8 @@ function initFirebase() {
     } catch(e) { return null; }
   }
   function _hideLoading() {
+    if(window._loadingHidden) return;
+    window._loadingHidden = true;
     if(window._loadingBarDone) window._loadingBarDone();
     clearTimeout(window.loadingTimeout);
     setTimeout(function() { var el=document.getElementById('loading-screen'); if(el) el.style.display='none'; }, 150);
@@ -2042,6 +2065,9 @@ function initFirebase() {
 
   // Supabase REST 기반 데이터 로딩
   function loadAllData() {
+    var _activeTab = localStorage.getItem('activeTab') || 'notice';
+    var _noDbTabs  = ['timer', 'homework'];
+
     // ── 캐시 히트: 즉시 렌더 ──
     var cache = _loadCache();
     if(cache) {
@@ -2055,6 +2081,13 @@ function initFirebase() {
         .then(function({ data, error }){ if(!error){ recruits=data||[]; renderRecruit(); document.getElementById('stat-recruit').textContent=recruits.length; } });
       _setupRealtimeSubscriptions();
       return;
+    }
+
+    // timer/homework 탭: DB 불필요하므로 즉시 로딩창 해제
+    if(_noDbTabs.includes(_activeTab)) {
+      _hideLoading();
+      var isFirstLoad0 = !sessionStorage.getItem("_loginInit");
+      if(isFirstLoad0){ sessionStorage.setItem("_loginInit","1"); initLoginScreen(); }
     }
 
     // ── 캐시 없음: 초기 로딩 (equipment 제외 먼저 로드) ──
@@ -2431,6 +2464,7 @@ async function loadNcNotices(force) {
   const btn = document.getElementById('nc-refresh-btn');
   if(btn) { btn.disabled = true; btn.style.opacity = '0.5'; btn.textContent = '⟳'; }
   el.innerHTML = '<div style="color:var(--muted);font-size:13px;">불러오는 중...</div>';
+  if(force) showActionLoading('아이온2 공지 불러오는 중...');
   try {
     const r = await fetch('/api/ncnotice');
     const text = await r.text();
@@ -2439,6 +2473,7 @@ async function loadNcNotices(force) {
     catch(e) { throw new Error('API 응답 오류 (서버 미배포 또는 네트워크 오류)'); }
     const list = data.notices || [];
     if(!list.length) {
+      hideActionLoading();
       const errMsg = data._err ? data._err : 'NC 서버 응답 없음';
       el.innerHTML = '<div style="color:var(--muted);font-size:13px;line-height:1.7;">공지를 불러올 수 없어요<br><span style="font-size:11px;">('+errMsg+')</span><br>'
         +'<a href="https://aion2.plaync.com/ko-kr/board/notice/list" target="_blank" style="color:var(--gold-l);font-size:11px;">공홈에서 직접 보기 →</a></div>';
@@ -2456,6 +2491,7 @@ async function loadNcNotices(force) {
     _ncInitialSnowId = _ncLastSnowId;
     console.log('[NC공지] lastSnowId=', _ncLastSnowId, 'hasMore=', data.hasMore, 'count=', list.length);
     _ncNoticeLoaded = true;
+    hideActionLoading();
     if(btn) { btn.disabled = false; btn.style.opacity = ''; btn.textContent = '↺'; }
     const moreBtnHtml = data.hasMore
       ? '<div id="nc-notice-btn-area"><button onclick="loadMoreNcNotices()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;">▼ 더보기</button></div>'
@@ -2463,6 +2499,7 @@ async function loadNcNotices(force) {
     el.innerHTML = list.map(_renderNcItem).join('') + '<div id="nc-notice-extra"></div>' + moreBtnHtml;
     if(!_ncPollTimer) _ncPollTimer = setInterval(function(){ loadNcNotices(true); }, 30 * 1000);
   } catch(e) {
+    hideActionLoading();
     if(btn) { btn.disabled = false; btn.style.opacity = ''; btn.textContent = '↺'; }
     el.innerHTML = '<div style="color:var(--muted);font-size:13px;">불러오기 실패: '+e.message+'</div>';
   }
@@ -2511,6 +2548,7 @@ async function loadNcUpdates(force) {
   const btn = document.getElementById('nc-update-refresh-btn');
   if(btn) { btn.disabled = true; btn.style.opacity = '0.5'; btn.textContent = '⟳'; }
   el.innerHTML = '<div style="color:var(--muted);font-size:13px;">불러오는 중...</div>';
+  if(force) showActionLoading('아이온2 업데이트 불러오는 중...');
   try {
     const r = await fetch('/api/ncupdate');
     const text = await r.text();
@@ -2519,6 +2557,7 @@ async function loadNcUpdates(force) {
     catch(e) { throw new Error('API 응답 오류'); }
     const list = data.notices || [];
     if(!list.length) {
+      hideActionLoading();
       const errMsg = data._err || 'NC 서버 응답 없음';
       el.innerHTML = '<div style="color:var(--muted);font-size:13px;line-height:1.7;">불러올 수 없어요<br><span style="font-size:11px;">('+errMsg+')</span><br>'
         +'<a href="https://aion2.plaync.com/ko-kr/board/update/list" target="_blank" style="color:var(--gold-l);font-size:11px;">공홈에서 직접 보기 →</a></div>';
@@ -2536,6 +2575,7 @@ async function loadNcUpdates(force) {
     _ncUpdateInitialSnowId = _ncUpdateLastSnowId;
     console.log('[NC업데이트] lastSnowId=', _ncUpdateLastSnowId, 'hasMore=', data.hasMore, 'count=', list.length);
     _ncUpdateLoaded = true;
+    hideActionLoading();
     if(btn) { btn.disabled = false; btn.style.opacity = ''; btn.textContent = '↺'; }
     const moreBtnHtml2 = data.hasMore
       ? '<div id="nc-update-btn-area"><button onclick="loadMoreNcUpdates()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;">▼ 더보기</button></div>'
@@ -2543,6 +2583,7 @@ async function loadNcUpdates(force) {
     el.innerHTML = list.map(_renderNcItem).join('') + '<div id="nc-update-extra"></div>' + moreBtnHtml2;
     if(!_ncUpdatePollTimer) _ncUpdatePollTimer = setInterval(function(){ loadNcUpdates(true); }, 30 * 1000);
   } catch(e) {
+    hideActionLoading();
     if(btn) { btn.disabled = false; btn.style.opacity = ''; btn.textContent = '↺'; }
     el.innerHTML = '<div style="color:var(--muted);font-size:13px;">불러오기 실패: '+e.message+'</div>';
   }
@@ -2842,11 +2883,11 @@ function toggleSubs(mainId) {
 async function openDetailById(id) {
   const basic = members.find(x => x.id === id) || members.find(x => x.nickname === id);
   if(!basic) return;
+  showActionLoading(basic.nickname + ' 스펙 불러오는 중...');
+  const { data: full } = await db.from('members').select('*').eq('id', basic.id).maybeSingle().catch(() => ({data:null}));
+  hideActionLoading();
   const el = document.getElementById('modal-detail');
   if(el) el.classList.add('open');
-  const contentEl = el ? el.querySelector('.modal-detail-content') : null;
-  if(contentEl) contentEl.innerHTML = '<div style="padding:60px 0;text-align:center;color:var(--muted);font-size:14px;">불러오는 중...</div>';
-  const { data: full } = await db.from('members').select('*').eq('id', basic.id).maybeSingle().catch(() => ({data:null}));
   openDetail(full || basic);
 }
 
