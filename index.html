@@ -482,9 +482,19 @@
       <!-- 구분선 -->
       <div style="width:1px;background:repeating-linear-gradient(to bottom,var(--border) 0,var(--border) 6px,transparent 6px,transparent 12px);flex-shrink:0;align-self:stretch;"></div>
       <!-- 패치노트 -->
-      <div style="flex:1;min-width:0;padding-left:16px;">
+      <div style="flex:1;min-width:0;padding:0 16px;">
         <div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:1px;margin-bottom:12px;">🛠 패치노트</div>
         <div id="notice-patch-list"></div>
+      </div>
+      <!-- 구분선 -->
+      <div style="width:1px;background:repeating-linear-gradient(to bottom,var(--border) 0,var(--border) 6px,transparent 6px,transparent 12px);flex-shrink:0;align-self:stretch;"></div>
+      <!-- 아이온2 업데이트 -->
+      <div style="flex:1;min-width:0;padding-left:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:1px;">🔄 아이온2 업데이트</div>
+          <button id="nc-update-refresh-btn" class="btn btn-sm" onclick="loadNcUpdates(true)" style="font-size:10px;padding:2px 7px;">↺</button>
+        </div>
+        <div id="nc-update-list"><div style="color:var(--muted);font-size:13px;padding:8px 0;">불러오는 중...</div></div>
       </div>
     </div>
     <!-- 숨겨진 기존 컨테이너 (JS 호환용) -->
@@ -995,7 +1005,7 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.42';
+const BUILD_VERSION = '1.5.43';
 const BUILD_PATCHNOTE = {
   title: 'NC 아이온2 공지사항 파싱 수정',
   content: '• noticesList[].articleMeta 구조 파싱 적용.\n• 아이온2 공홈 공지사항 정상 표시.'
@@ -2172,6 +2182,76 @@ async function loadMoreNcNotices() {
     newItems.innerHTML = list.map(_renderNcItem).join('');
     if(data.hasMore) {
       newItems.innerHTML += '<button onclick="loadMoreNcNotices()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;margin-top:4px;" id="nc-more-btn">▼ 더보기</button>';
+    }
+    if(el) el.appendChild(newItems);
+  } catch(e) {
+    if(moreBtn) { moreBtn.disabled = false; moreBtn.textContent = '▼ 더보기'; }
+  }
+}
+
+// ─── NC 업데이트 ──────────────────
+let _ncUpdateLoaded = false;
+let _ncUpdateLastIds = [];
+let _ncUpdateLastSnowId = 0;
+let _ncUpdatePollTimer = null;
+
+async function loadNcUpdates(force) {
+  if(_ncUpdateLoaded && !force) return;
+  const el = document.getElementById('nc-update-list');
+  if(!el) return;
+  const btn = document.getElementById('nc-update-refresh-btn');
+  if(btn) { btn.disabled = true; btn.style.opacity = '0.5'; btn.textContent = '⟳'; }
+  el.innerHTML = '<div style="color:var(--muted);font-size:13px;">불러오는 중...</div>';
+  try {
+    const r = await fetch('/api/ncupdate');
+    const text = await r.text();
+    let data;
+    try { data = JSON.parse(text); }
+    catch(e) { throw new Error('API 응답 오류'); }
+    const list = data.notices || [];
+    if(!list.length) {
+      const errMsg = data._err || 'NC 서버 응답 없음';
+      el.innerHTML = '<div style="color:var(--muted);font-size:13px;line-height:1.7;">불러올 수 없어요<br><span style="font-size:11px;">('+errMsg+')</span><br>'
+        +'<a href="https://aion2.plaync.com/ko-kr/board/update/list" target="_blank" style="color:var(--gold-l);font-size:11px;">공홈에서 직접 보기 →</a></div>';
+      if(btn) { btn.disabled = false; btn.style.opacity = ''; btn.textContent = '↺'; }
+      return;
+    }
+    // 신규 감지 (폴링용)
+    const newIds = list.map(function(n){ return n.id; });
+    if(_ncUpdateLastIds.length && newIds.length) {
+      list.filter(function(n){ return !_ncUpdateLastIds.includes(n.id); })
+        .forEach(function(n){ toast('🔄 아이온2 새 업데이트: '+n.title); });
+    }
+    _ncUpdateLastIds = newIds;
+    _ncUpdateLastSnowId = data.lastSnowId || 0;
+    _ncUpdateLoaded = true;
+    if(btn) { btn.disabled = false; btn.style.opacity = ''; btn.textContent = '↺'; }
+    const moreBtn = data.hasMore
+      ? '<button onclick="loadMoreNcUpdates()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;margin-top:4px;" id="nc-update-more-btn">▼ 더보기</button>'
+      : '';
+    el.innerHTML = list.map(_renderNcItem).join('') + moreBtn;
+    if(!_ncUpdatePollTimer) _ncUpdatePollTimer = setInterval(function(){ loadNcUpdates(true); }, 30 * 1000);
+  } catch(e) {
+    if(btn) { btn.disabled = false; btn.style.opacity = ''; btn.textContent = '↺'; }
+    el.innerHTML = '<div style="color:var(--muted);font-size:13px;">불러오기 실패: '+e.message+'</div>';
+  }
+}
+
+async function loadMoreNcUpdates() {
+  const moreBtn = document.getElementById('nc-update-more-btn');
+  if(moreBtn) { moreBtn.disabled = true; moreBtn.textContent = '불러오는 중...'; }
+  try {
+    const r = await fetch('/api/ncupdate?prevId=' + _ncUpdateLastSnowId);
+    const data = await r.json();
+    const list = data.notices || [];
+    if(!list.length) { if(moreBtn) moreBtn.remove(); return; }
+    _ncUpdateLastSnowId = data.lastSnowId || _ncUpdateLastSnowId;
+    const el = document.getElementById('nc-update-list');
+    if(moreBtn) moreBtn.remove();
+    const newItems = document.createElement('div');
+    newItems.innerHTML = list.map(_renderNcItem).join('');
+    if(data.hasMore) {
+      newItems.innerHTML += '<button onclick="loadMoreNcUpdates()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;margin-top:4px;" id="nc-update-more-btn">▼ 더보기</button>';
     }
     if(el) el.appendChild(newItems);
   } catch(e) {
@@ -3635,7 +3715,7 @@ function showTab(id) {
   tabEl.classList.add('active');
   ['notice','dashboard','members','recruit','war','timer','register'].forEach((t,i)=>{ if(t===id) document.querySelectorAll('.nav-btn')[i].classList.add('active'); });
   if(id==='war'){const wb=document.getElementById('war-create-btn');if(wb)wb.style.display=isAdmin()?'inline-block':'none';const wr=document.getElementById('war-reset-btn');if(wr)wr.style.display=isAdmin()?'inline-block':'none';renderWarSurveys();}
-  if(id==='notice') { refreshNoticeWriteBtn(); loadNcNotices(); }
+  if(id==='notice') { refreshNoticeWriteBtn(); loadNcNotices(); loadNcUpdates(); }
   try { localStorage.setItem('activeTab', id); } catch(e) {}
 }
 function openModal(id) { 
