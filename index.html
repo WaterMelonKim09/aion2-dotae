@@ -458,38 +458,39 @@
   
   <!-- 공지 작성 모달 -->
   <div class="overlay" id="modal-notice-write" onclick="closeOverlay(event,'modal-notice-write')">
-    <div class="modal" style="max-width:560px;max-height:90vh;overflow-y:auto;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+    <div class="modal" style="max-width:560px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
         <div class="modal-title" style="margin:0;">📝 공지 작성</div>
         <button class="btn btn-sm" onclick="closeModal('modal-notice-write')">닫기</button>
       </div>
-      <div style="display:flex;flex-direction:column;gap:14px;">
-        <div style="display:flex;gap:10px;">
-          <div style="flex:1;">
-            <label style="font-size:12px;color:var(--muted);margin-bottom:4px;display:block;">유형</label>
-            <select id="nw-type" class="input" style="width:100%;" onchange="toggleNwVersion()">
-              <option value="공지사항">공지사항</option>
-              <option value="패치노트">패치노트</option>
-            </select>
-          </div>
-          <div id="nw-version-group" style="flex:1;display:none;">
-            <label style="font-size:12px;color:var(--muted);margin-bottom:4px;display:block;">버전</label>
-            <input id="nw-version" class="input" placeholder="예: v1.5.26" style="width:100%;">
-          </div>
+      <div class="form-row" style="margin-bottom:0;">
+        <div class="form-group">
+          <label class="form-label">유형</label>
+          <select id="nw-type" class="form-select" onchange="toggleNwVersion()">
+            <option value="공지사항">공지사항</option>
+            <option value="패치노트">패치노트</option>
+          </select>
         </div>
-        <div>
-          <label style="font-size:12px;color:var(--muted);margin-bottom:4px;display:block;">제목 *</label>
-          <input id="nw-title" class="input" placeholder="공지 제목을 입력하세요" style="width:100%;">
+        <div class="form-group" id="nw-version-group" style="display:none;">
+          <label class="form-label">버전</label>
+          <input id="nw-version" class="form-input" placeholder="예: v1.5.26">
         </div>
-        <div>
-          <label style="font-size:12px;color:var(--muted);margin-bottom:4px;display:block;">작성자 *</label>
-          <input id="nw-author" class="input" placeholder="작성자 이름" style="width:100%;">
-        </div>
-        <div>
-          <label style="font-size:12px;color:var(--muted);margin-bottom:4px;display:block;">내용 *</label>
-          <textarea id="nw-content" class="input" rows="9" placeholder="공지 내용을 입력하세요" style="width:100%;resize:vertical;font-family:inherit;line-height:1.7;"></textarea>
-        </div>
-        <button class="btn btn-primary" onclick="submitNotice()" style="width:100%;padding:12px;">등록</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">제목 *</label>
+        <input id="nw-title" class="form-input" placeholder="공지 제목을 입력하세요">
+      </div>
+      <div class="form-group">
+        <label class="form-label">작성자 *</label>
+        <input id="nw-author" class="form-input" placeholder="작성자 이름">
+      </div>
+      <div class="form-group">
+        <label class="form-label">내용 *</label>
+        <textarea id="nw-content" class="form-input" rows="8" placeholder="공지 내용을 입력하세요" style="resize:vertical;font-family:inherit;line-height:1.7;"></textarea>
+      </div>
+      <div class="modal-foot" style="margin-top:8px;">
+        <button class="btn" onclick="closeModal('modal-notice-write')">취소</button>
+        <button class="btn btn-primary" onclick="submitNotice()">등록</button>
       </div>
     </div>
   </div>
@@ -956,7 +957,7 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.26';
+const BUILD_VERSION = '1.5.27';
 const BUILD_PATCHNOTE = {
   title: '최근 모집 카드 크기 + 스킬 설명 복구',
   content: '• 대시보드 최근 모집: recruit-grid 동일한 3열 그리드 레이아웃 적용.\n• 스킬 설명: NC 가이드북 API 호출 복구 (CLASS_MAP 클래스명으로 정확히 요청).'
@@ -1957,12 +1958,10 @@ function toggleNoticeItem(noticeId, headerEl, currentViews) {
   const isOpen = body.style.display !== 'none';
   body.style.display = isOpen ? 'none' : '';
   if(!isOpen) {
-    // 열릴 때 조회수 1 증가
+    // 열릴 때 조회수 UI만 증가 (DB 컬럼 미존재 시 생략)
     const newViews = (currentViews||0) + 1;
     const viewEl = document.getElementById('views-'+noticeId);
     if(viewEl) viewEl.textContent = newViews;
-    db.from('notices').update({ views: newViews }).eq('id', noticeId).then(function(){}).catch(function(){});
-    // onclick 갱신 (다음 토글 시 최신 views 전달)
     headerEl.setAttribute('onclick', 'toggleNoticeItem(\''+noticeId+'\',this,'+newViews+')');
   }
 }
@@ -1994,10 +1993,17 @@ async function submitNotice() {
   if(!author)  { toast('작성자를 입력하세요'); return; }
   if(!content) { toast('내용을 입력하세요'); return; }
 
-  const payload = { type, title, author, content, views: 0 };
+  const payload = { type, title, author, content };
   if(version) payload.version = version;
 
-  const { error } = await db.from('notices').insert(payload);
+  let { error } = await db.from('notices').insert(payload);
+  if(error && error.message && error.message.includes("'author'")) {
+    // author 컬럼 미존재 → 제외하고 재시도
+    const fallback = { type, title, content };
+    if(version) fallback.version = version;
+    const res2 = await db.from('notices').insert(fallback);
+    error = res2.error;
+  }
   if(error) { toast('등록 실패: ' + (error.message||'')); return; }
 
   ['nw-version','nw-title','nw-content'].forEach(function(id) {

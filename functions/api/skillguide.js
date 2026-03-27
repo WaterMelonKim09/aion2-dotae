@@ -24,7 +24,9 @@ export async function onRequest(context) {
     '호법성': '호법성 스킬', 'Chanter':      '호법성 스킬',
   };
 
-  const title = CLASS_TITLE[className];
+  // ':숫자' suffix 제거 (예: '검성:1' → '검성')
+  const cleanedClass = className.replace(/:\d+$/, '').trim();
+  const title = CLASS_TITLE[cleanedClass];
   if (!title) {
     return new Response(JSON.stringify({ error: 'class 파라미터가 필요합니다' }), { status: 400, headers: corsHeaders });
   }
