@@ -49,7 +49,7 @@ export async function onRequest(context) {
     const data = await r.json();
 
     // moreArticle 응답 구조 파악 (articleList, list, articles, items 등 시도)
-    const rawList = data?.articleList || data?.list || data?.articles || data?.items
+    const rawList = data?.contentList || data?.articleList || data?.list || data?.articles || data?.items
       || (Array.isArray(data) ? data : null) || [];
 
     if (!Array.isArray(rawList) || rawList.length === 0) {

@@ -35,7 +35,7 @@ module.exports = async function handler(req, res) {
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const data = await r.json();
 
-    const rawList = data?.articleList || data?.list || data?.articles || data?.items
+    const rawList = data?.contentList || data?.articleList || data?.list || data?.articles || data?.items
       || (Array.isArray(data) ? data : null) || [];
 
     if (!Array.isArray(rawList) || rawList.length === 0) {
