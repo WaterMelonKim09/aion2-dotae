@@ -993,7 +993,7 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.33';
+const BUILD_VERSION = '1.5.34';
 const BUILD_PATCHNOTE = {
   title: '최근 모집 카드 크기 + 스킬 설명 복구',
   content: '• 대시보드 최근 모집: recruit-grid 동일한 3열 그리드 레이아웃 적용.\n• 스킬 설명: NC 가이드북 API 호출 복구 (CLASS_MAP 클래스명으로 정확히 요청).'
@@ -2084,7 +2084,10 @@ async function loadNcNotices(force) {
   if(!_ncNoticeLoaded) el.innerHTML = '<div style="color:var(--muted);font-size:13px;">불러오는 중...</div>';
   try {
     const r = await fetch('/api/ncnotice');
-    const data = await r.json();
+    const text = await r.text();
+    let data;
+    try { data = JSON.parse(text); }
+    catch(e) { throw new Error('API 응답 오류 (서버 미배포 또는 네트워크 오류)'); }
     const list = data.notices || [];
     if(!list.length) {
       const errMsg = data._err ? data._err : 'NC 서버 응답 없음';
