@@ -468,7 +468,7 @@
       <div style="flex:1;min-width:0;padding-right:16px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
           <div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:1px;">🌐 아이온2 공지사항</div>
-          <button class="btn btn-sm" onclick="loadNcNotices(true)" style="font-size:10px;padding:2px 7px;">↺</button>
+          <button id="nc-refresh-btn" class="btn btn-sm" onclick="loadNcNotices(true)" style="font-size:10px;padding:2px 7px;">↺</button>
         </div>
         <div id="nc-notice-list"><div style="color:var(--muted);font-size:13px;padding:8px 0;">불러오는 중...</div></div>
       </div>
@@ -995,7 +995,7 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.37';
+const BUILD_VERSION = '1.5.38';
 const BUILD_PATCHNOTE = {
   title: 'NC 아이온2 공지사항 파싱 수정',
   content: '• noticesList[].articleMeta 구조 파싱 적용.\n• 아이온2 공홈 공지사항 정상 표시.'
@@ -2096,7 +2096,9 @@ async function loadNcNotices(force) {
   if(_ncNoticeLoaded && !force) return;
   const el = document.getElementById('nc-notice-list');
   if(!el) return;
-  if(!_ncNoticeLoaded) el.innerHTML = '<div style="color:var(--muted);font-size:13px;">불러오는 중...</div>';
+  const btn = document.getElementById('nc-refresh-btn');
+  if(btn) { btn.disabled = true; btn.style.opacity = '0.5'; btn.textContent = '⟳'; }
+  el.innerHTML = '<div style="color:var(--muted);font-size:13px;">불러오는 중...</div>';
   try {
     const r = await fetch('/api/ncnotice');
     const text = await r.text();
@@ -2120,6 +2122,7 @@ async function loadNcNotices(force) {
     }
     _ncNoticeLastIds = newIds;
     _ncNoticeLoaded = true;
+    if(btn) { btn.disabled = false; btn.style.opacity = ''; btn.textContent = '↺'; }
     el.innerHTML = list.map(function(n) {
       const dateStr = (n.date||'').slice(0,10);
       const cat = n.category ? '<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(100,160,255,.1);color:#6ab0ff;border:1px solid #1a3060;margin-right:6px;">'+n.category+'</span>' : '';
@@ -2131,6 +2134,7 @@ async function loadNcNotices(force) {
     // 폴링 시작 (5분마다)
     if(!_ncPollTimer) _ncPollTimer = setInterval(function(){ loadNcNotices(true); }, 30 * 1000);
   } catch(e) {
+    if(btn) { btn.disabled = false; btn.style.opacity = ''; btn.textContent = '↺'; }
     el.innerHTML = '<div style="color:var(--muted);font-size:13px;">불러오기 실패: '+e.message+'</div>';
   }
 }

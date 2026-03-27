@@ -23,7 +23,7 @@ export async function onRequest(context) {
     'Sec-Fetch-Site': 'same-site',
   };
 
-  const endpoint = 'https://api-community.plaync.com/aion2/board/notice_ko/noticeArticle';
+  const endpoint = 'https://api-community.plaync.com/aion2/board/notice_ko/noticeArticle?pageSize=20&page=1';
 
   if (debug) {
     try {

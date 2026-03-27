@@ -14,7 +14,7 @@ module.exports = async function handler(req, res) {
     'Sec-Fetch-Site': 'same-site',
   };
 
-  const endpoint = 'https://api-community.plaync.com/aion2/board/notice_ko/noticeArticle';
+  const endpoint = 'https://api-community.plaync.com/aion2/board/notice_ko/noticeArticle?pageSize=20&page=1';
 
   if (req.query.debug === '1') {
     try {
