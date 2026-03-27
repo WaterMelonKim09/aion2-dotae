@@ -80,7 +80,7 @@
   .cls-궁성   { background:#0a1e14; color:#44c088; border:1px solid #44c08855; }
   .cls-정령성   { background:#150e22; color:#9966cc; border:1px solid #9966cc55; }
   .cls-치유성   { background:#201600; color:#c8a030; border:1px solid #c8a03055; }
-  .cls-호법성   { background:#1e0e00; color:#cc6030; border:1px solid #cc603055; }
+  .cls-호법성   { background:#1e0e00; color:#cc9020; border:1px solid #cc902055; }
 
   /* 전투력 바 */
   .cp-bar { display:flex; align-items:center; gap:8px; }
@@ -1185,8 +1185,8 @@ const CLS_ICON  = {
 };
 
 
-const CLS_COLOR = {'검성':'#5ab4cc','수호성':'#7090d8','살성':'#7acc40','궁성':'#44c088','마도성':'#9966dd','정령성':'#9966cc','치유성':'#c8a030','호법성':'#cc6030'};
-const CLS_BG    = {'검성':'#5ab4cc','수호성':'#7090d8','살성':'#7acc40','궁성':'#44c088','마도성':'#9966dd','정령성':'#9966cc','치유성':'#c8a030','호법성':'#cc6030'};
+const CLS_COLOR = {'검성':'#5ab4cc','수호성':'#7090d8','살성':'#7acc40','궁성':'#44c088','마도성':'#9966dd','정령성':'#9966cc','치유성':'#c8a030','호법성':'#cc9020'};
+const CLS_BG    = {'검성':'#5ab4cc','수호성':'#7090d8','살성':'#7acc40','궁성':'#44c088','마도성':'#9966dd','정령성':'#9966cc','치유성':'#c8a030','호법성':'#cc9020'};
 
 // NC 직업명 → 한국어 매핑
 const CLASS_MAP = {
@@ -1196,10 +1196,10 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.73';
+const BUILD_VERSION = '1.5.74';
 const BUILD_PATCHNOTE = {
-  title: '신석 효과 키워드 기반 색상 개선',
-  content: '• 신석 색상: 아이템 설명의 [실명]/[봉인]/[속박]/[기절]/[마비]/속도감소 키워드로 자동 색상 결정.\n• 이름 직접 매핑(NC 공홈 확인 이름) + 설명 키워드 1순위 파싱으로 51종 전체 대응.'
+  title: '호법성 엠블렘 색상 수정',
+  content: '• 호법성 직업 색상: 엠블렘 실제 색상(앰버골드 #cc9020)으로 통일 (배지·파이차트·범례 전체 적용).'
 };
 
 // 전체 패치 내역 (버전별 정확한 설명)
