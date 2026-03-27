@@ -1196,10 +1196,10 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.77';
+const BUILD_VERSION = '1.5.78';
 const BUILD_PATCHNOTE = {
-  title: 'Supabase CPU 절감 & 빈 화면 방지',
-  content: '• Realtime WebSocket 4채널 제거 → 5분 폴링으로 교체 (Supabase Nano CPU 과부하 해결).\n• DB 연결 실패 시 이전 캐시(24h 이내)로 폴백 — 빈 화면 대신 이전 데이터 표시.'
+  title: '장비 상세 타임아웃 & 폴링 1분으로 단축',
+  content: '• 장비 아이콘 상세: NC API fetch 10초 타임아웃 추가 (무한 로딩 방지).\n• 데이터 폴링 주기: 5분 → 1분으로 단축 (변경 감지 반응 속도 개선).'
 };
 
 // 전체 패치 내역 (버전별 정확한 설명)
@@ -2262,14 +2262,14 @@ function initFirebase() {
     if(window._realtimeSetup) return;
     window._realtimeSetup = true;
 
-    // Realtime WebSocket 대신 5분 폴링 (Supabase Nano CPU 절약)
-    window._pollTimer = setInterval(function() { _bgRefresh(); }, 5 * 60 * 1000);
+    // Realtime WebSocket 대신 1분 폴링 (Supabase Nano CPU 절약)
+    window._pollTimer = setInterval(function() { _bgRefresh(); }, 60 * 1000);
 
-    // recruits 3분 폴링
+    // recruits 1분 폴링
     window._recruitPollTimer = setInterval(function() {
       db.from('recruits').select('*').order('created_at', { ascending: false })
         .then(function({ data, error }){ if(!error){ recruits=data||[]; renderRecruit(); document.getElementById('stat-recruit').textContent=recruits.length; } });
-    }, 3 * 60 * 1000);
+    }, 60 * 1000);
 
     db.from('war_surveys').select('*').order('created_at', { ascending: false })
       .then(({ data, error }) => {
@@ -3048,7 +3048,10 @@ function openDetail(m) {
         params.append('enchantLevel', e.enchant || 0);
       }
       if([...params.keys()].filter(k=>k!=='lang').length > 0) {
-        const res = await fetch('/api/item?' + params.toString());
+        const _ac = new AbortController();
+        const _acTimer = setTimeout(() => _ac.abort(), 10000);
+        const res = await fetch('/api/item?' + params.toString(), { signal: _ac.signal });
+        clearTimeout(_acTimer);
         const json = await res.json();
         console.log('[item-tooltip] API 응답:', JSON.stringify(json).substring(0, 800));
         // 200 응답이면서 string 에러가 없으면 유효한 응답 (mainStats, name, slotPos 등 확인)
