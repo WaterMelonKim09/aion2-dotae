@@ -15,18 +15,18 @@ module.exports = async function handler(req, res) {
   };
 
   const prevId = req.query.prevId || '0';
-  const moreEndpoint = `https://api-community.plaync.com/aion2/board/notice_ko/article/search/moreArticle?isVote=true&moreSize=15&moreDirection=BEFORE&previousArticleId=${prevId}`;
+  const endpoint = `https://api-community.plaync.com/aion2/board/update_ko/article/search/moreArticle?isVote=true&moreSize=15&moreDirection=BEFORE&previousArticleId=${prevId}`;
 
   if (req.query.debug === '1') {
     try {
-      const r = await fetch(moreEndpoint, { headers });
+      const r = await fetch(endpoint, { headers });
       const data = await r.json();
       const rawList = data?.contentList || [];
       const firstItem = rawList[0] || null;
       return res.status(200).json({
         notices: [],
         debug: {
-          url: moreEndpoint, status: r.status, keys: Object.keys(data || {}),
+          url: endpoint, status: r.status, keys: Object.keys(data || {}),
           hasMore: data?.hasMore, count: rawList.length,
           firstItemKeys: firstItem ? Object.keys(firstItem) : null,
           firstItemArticleMetaKeys: firstItem?.articleMeta ? Object.keys(firstItem.articleMeta) : null,
@@ -40,7 +40,7 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const r = await fetch(moreEndpoint, { headers });
+    const r = await fetch(endpoint, { headers });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const data = await r.json();
 
@@ -57,7 +57,7 @@ module.exports = async function handler(req, res) {
       const snowId = m?.snow?.contentId || item?.snow?.contentId || m?.contentId || item?.contentId || 0;
       const title = m.title || m.subject || '';
       const date = (m.createDate || m.registDate || m.regDate || m.date || '').slice(0, 10).replace(/-/g, '.');
-      const articleUrl = `https://aion2.plaync.com/ko-kr/board/notice/view?articleId=${id}`;
+      const articleUrl = `https://aion2.plaync.com/ko-kr/board/update/view?articleId=${id}`;
       const category = m.categoryName || m.category || '';
       return { id, title, date, url: articleUrl, category, snowId };
     }).filter(n => n.title);
@@ -65,7 +65,7 @@ module.exports = async function handler(req, res) {
     const hasMore = data?.hasMore ?? false;
     const lastSnowId = notices.length > 0 ? (notices[notices.length - 1].id || 0) : 0;
 
-    return res.status(200).json({ notices, hasMore, lastSnowId, _src: moreEndpoint });
+    return res.status(200).json({ notices, hasMore, lastSnowId, _src: endpoint });
   } catch(e) {
     return res.status(200).json({ notices: [], _err: e.message });
   }

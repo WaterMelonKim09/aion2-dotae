@@ -1,7 +1,17 @@
-module.exports = async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Content-Type', 'application/json');
-  if (req.method === 'OPTIONS') return res.status(200).end();
+export async function onRequest(context) {
+  const { request } = context;
+  const url = new URL(request.url);
+  const debug = url.searchParams.get('debug') === '1';
+  const prevId = url.searchParams.get('prevId') || '0';
+
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Content-Type': 'application/json',
+  };
+
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { status: 200, headers: corsHeaders });
+  }
 
   const headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
@@ -14,33 +24,35 @@ module.exports = async function handler(req, res) {
     'Sec-Fetch-Site': 'same-site',
   };
 
-  const prevId = req.query.prevId || '0';
-  const moreEndpoint = `https://api-community.plaync.com/aion2/board/notice_ko/article/search/moreArticle?isVote=true&moreSize=15&moreDirection=BEFORE&previousArticleId=${prevId}`;
+  const endpoint = `https://api-community.plaync.com/aion2/board/update_ko/article/search/moreArticle?isVote=true&moreSize=15&moreDirection=BEFORE&previousArticleId=${prevId}`;
 
-  if (req.query.debug === '1') {
+  if (debug) {
     try {
-      const r = await fetch(moreEndpoint, { headers });
+      const r = await fetch(endpoint, { headers });
       const data = await r.json();
       const rawList = data?.contentList || [];
       const firstItem = rawList[0] || null;
-      return res.status(200).json({
+      return new Response(JSON.stringify({
         notices: [],
         debug: {
-          url: moreEndpoint, status: r.status, keys: Object.keys(data || {}),
-          hasMore: data?.hasMore, count: rawList.length,
+          url: endpoint,
+          status: r.status,
+          keys: Object.keys(data || {}),
+          hasMore: data?.hasMore,
+          count: rawList.length,
           firstItemKeys: firstItem ? Object.keys(firstItem) : null,
           firstItemArticleMetaKeys: firstItem?.articleMeta ? Object.keys(firstItem.articleMeta) : null,
           firstItemSnow: firstItem?.articleMeta?.snow || firstItem?.snow || null,
           firstItemPreview: JSON.stringify(firstItem).slice(0, 800),
         }
-      });
+      }), { status: 200, headers: corsHeaders });
     } catch(e) {
-      return res.status(200).json({ notices: [], debug: { error: e.message } });
+      return new Response(JSON.stringify({ notices: [], debug: { error: e.message } }), { status: 200, headers: corsHeaders });
     }
   }
 
   try {
-    const r = await fetch(moreEndpoint, { headers });
+    const r = await fetch(endpoint, { headers });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const data = await r.json();
 
@@ -57,7 +69,7 @@ module.exports = async function handler(req, res) {
       const snowId = m?.snow?.contentId || item?.snow?.contentId || m?.contentId || item?.contentId || 0;
       const title = m.title || m.subject || '';
       const date = (m.createDate || m.registDate || m.regDate || m.date || '').slice(0, 10).replace(/-/g, '.');
-      const articleUrl = `https://aion2.plaync.com/ko-kr/board/notice/view?articleId=${id}`;
+      const articleUrl = `https://aion2.plaync.com/ko-kr/board/update/view?articleId=${id}`;
       const category = m.categoryName || m.category || '';
       return { id, title, date, url: articleUrl, category, snowId };
     }).filter(n => n.title);
@@ -65,8 +77,8 @@ module.exports = async function handler(req, res) {
     const hasMore = data?.hasMore ?? false;
     const lastSnowId = notices.length > 0 ? (notices[notices.length - 1].id || 0) : 0;
 
-    return res.status(200).json({ notices, hasMore, lastSnowId, _src: moreEndpoint });
+    return new Response(JSON.stringify({ notices, hasMore, lastSnowId, _src: endpoint }), { status: 200, headers: corsHeaders });
   } catch(e) {
-    return res.status(200).json({ notices: [], _err: e.message });
+    return new Response(JSON.stringify({ notices: [], _err: e.message }), { status: 200, headers: corsHeaders });
   }
-};
+}
