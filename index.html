@@ -1196,10 +1196,10 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.74';
+const BUILD_VERSION = '1.5.75';
 const BUILD_PATCHNOTE = {
-  title: '호법성 엠블렘 색상 수정',
-  content: '• 호법성 직업 색상: 엠블렘 실제 색상(앰버골드 #cc9020)으로 통일 (배지·파이차트·범례 전체 적용).'
+  title: '신석 색상 태그 파싱 수정',
+  content: '• 신석 설명 NC API 응답에 포함된 <desc_point> 태그 제거 후 키워드 매칭, 색상 올바르게 적용.\n• 신석 설명 표시 시에도 태그 제거하여 깔끔하게 표시.'
 };
 
 // 전체 패치 내역 (버전별 정확한 설명)
@@ -1627,16 +1627,15 @@ const _RUNE_EFFECT_COLORS = [
   { keys:['빛 속성','[광',']빛'],                         color:'#ffee88' },
 ];
 function _runeColor(name, desc) {
-  const n = (name || '').replace(/^신석:\s*/, ''); // "신석:" 접두사 제거
-  const d = desc || '';
-  // 1순위: 설명 텍스트의 효과 키워드
+  const n = (name || '').replace(/^신석:\s*/, '');
+  // NC API desc에 <desc_point>실명</> 형태 태그가 섞여있으므로 제거 후 비교
+  const d = (desc || '').replace(/<[^>]*>/g, '');
   for(const { keys, color } of _RUNE_EFFECT_COLORS) {
     if(keys.some(k => d.includes(k))) return color;
   }
-  // 2순위: 이름 직접 매핑
   if(RUNE_COLORS[name]) return RUNE_COLORS[name];
   if(RUNE_COLORS[n]) return RUNE_COLORS[n];
-  return '#e0c97a'; // fallback
+  return '#e0c97a';
 }
 
 // ─── 아이템 아이콘 로딩 헬퍼 ─────────────
@@ -3233,7 +3232,7 @@ function openDetail(m) {
         ${godStones.length ? `
           ${ncSec('신석')}
           <div style="padding:8px 20px;">
-            ${godStones.map(s=>{const desc=s.description||s.desc||'';const sc=_runeColor(s.name,desc);const effects=(s.skillEffectList||s.effectList||[]).map(ef=>`<div style="font-size:11px;color:#aaa;line-height:1.6;">${ef.description||ef.desc||ef.name||ef}</div>`).join('');return`<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;">${s.icon?`<img src="${s.icon}" style="width:22px;height:22px;border-radius:3px;flex-shrink:0;background:var(--surface);animation:imgPulse 1.5s ease infinite;" onload="_imgLoad(this)" onerror="_imgErr(this)">`:`<div style="width:22px;height:22px;border-radius:3px;background:${sc}22;flex-shrink:0;"></div>`}<div><div style="font-size:12px;color:${sc};font-weight:600;">${s.name||''}</div>${desc?`<div style="font-size:11px;color:#aaa;line-height:1.6;margin-top:2px;">${desc}</div>`:''}${effects}</div></div>`;}).join('')}
+            ${godStones.map(s=>{const rawDesc=s.description||s.desc||'';const desc=rawDesc.replace(/<[^>]*>/g,'');const sc=_runeColor(s.name,rawDesc);const effects=(s.skillEffectList||s.effectList||[]).map(ef=>`<div style="font-size:11px;color:#aaa;line-height:1.6;">${ef.description||ef.desc||ef.name||ef}</div>`).join('');return`<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;">${s.icon?`<img src="${s.icon}" style="width:22px;height:22px;border-radius:3px;flex-shrink:0;background:var(--surface);animation:imgPulse 1.5s ease infinite;" onload="_imgLoad(this)" onerror="_imgErr(this)">`:`<div style="width:22px;height:22px;border-radius:3px;background:${sc}22;flex-shrink:0;"></div>`}<div><div style="font-size:12px;color:${sc};font-weight:600;">${s.name||''}</div>${desc?`<div style="font-size:11px;color:#aaa;line-height:1.6;margin-top:2px;">${desc}</div>`:''}${effects}</div></div>`;}).join('')}
           </div>` : ''}
 
         <!-- 세트 효과 + 획득처 -->
