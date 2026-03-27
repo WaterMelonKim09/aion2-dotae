@@ -149,12 +149,12 @@
 
   /* 파이 차트 */
   .pie-wrap { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:20px; display:flex; align-items:center; gap:20px; flex-wrap:wrap; height:100%; box-sizing:border-box; }
-  .pie-rel  { position:relative; width:180px; height:180px; flex-shrink:0; }
+  .pie-rel  { position:relative; width:220px; height:220px; flex-shrink:0; }
   .pie-center { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center; }
   .pie-total { font-size:22px; font-weight:700; color:var(--gold-l); }
   .pie-sub   { font-size:11px; color:var(--muted); }
-  .legend { display:flex; flex-direction:column; gap:8px; flex:1; min-width:160px; }
-  .leg-item { display:flex; align-items:center; gap:10px; padding:6px 10px; border-radius:6px; }
+  .legend { display:flex; flex-direction:column; gap:4px; flex:1; min-width:120px; }
+  .leg-item { display:flex; align-items:center; gap:6px; padding:4px 8px; border-radius:6px; }
   .leg-dot  { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
   .leg-name { font-size:13px; flex:1; }
   .leg-cnt  { font-size:13px; font-weight:600; color:var(--gold-l); }
@@ -573,7 +573,7 @@
             <button class="vt" id="vt-list" onclick="setDistView('list')">목록</button>
           </div>
         </div>
-        <div id="dist-pie" style="height:100%;"><div class="pie-wrap"><div class="pie-rel"><canvas id="pie-chart" width="180" height="180"></canvas><div class="pie-center"><div class="pie-total" id="pie-total">—</div><div class="pie-sub">본캐 기준</div></div></div><div class="legend" id="pie-legend"></div></div></div>
+        <div id="dist-pie" style="height:100%;"><div class="pie-wrap"><div class="pie-rel"><canvas id="pie-chart" width="220" height="220"></canvas><div class="pie-center"><div class="pie-total" id="pie-total">—</div><div class="pie-sub">본캐 기준</div></div></div><div class="legend" id="pie-legend"></div></div></div>
         <div id="dist-list" style="display:none;gap:10px;flex-wrap:wrap;"></div>
       </div>
     </div>
@@ -1005,7 +1005,7 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.46';
+const BUILD_VERSION = '1.5.47';
 const BUILD_PATCHNOTE = {
   title: 'NC 아이온2 공지사항 파싱 수정',
   content: '• noticesList[].articleMeta 구조 파싱 적용.\n• 아이온2 공홈 공지사항 정상 표시.'
@@ -2115,6 +2115,7 @@ let _ncNoticeLoaded = false;
 let _ncNoticeLastIds = [];
 let _ncPollTimer = null;
 let _ncLastSnowId = 0;
+let _ncInitialSnowId = 0;
 
 function _renderNcItem(n) {
   const dateStr = (n.date||'').slice(0,10);
@@ -2154,12 +2155,13 @@ async function loadNcNotices(force) {
     }
     _ncNoticeLastIds = newIds;
     _ncLastSnowId = data.lastSnowId || 0;
+    _ncInitialSnowId = _ncLastSnowId;
     _ncNoticeLoaded = true;
     if(btn) { btn.disabled = false; btn.style.opacity = ''; btn.textContent = '↺'; }
-    const moreBtn = data.hasMore
-      ? '<button onclick="loadMoreNcNotices()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;margin-top:4px;" id="nc-more-btn">▼ 더보기</button>'
+    const moreBtnHtml = data.hasMore
+      ? '<div id="nc-notice-btn-area"><button onclick="loadMoreNcNotices()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;">▼ 더보기</button></div>'
       : '';
-    el.innerHTML = list.map(_renderNcItem).join('') + moreBtn;
+    el.innerHTML = list.map(_renderNcItem).join('') + '<div id="nc-notice-extra"></div>' + moreBtnHtml;
     if(!_ncPollTimer) _ncPollTimer = setInterval(function(){ loadNcNotices(true); }, 30 * 1000);
   } catch(e) {
     if(btn) { btn.disabled = false; btn.style.opacity = ''; btn.textContent = '↺'; }
@@ -2168,31 +2170,37 @@ async function loadNcNotices(force) {
 }
 
 async function loadMoreNcNotices() {
-  const moreBtn = document.getElementById('nc-more-btn');
-  if(moreBtn) { moreBtn.disabled = true; moreBtn.textContent = '불러오는 중...'; }
+  const btnArea = document.getElementById('nc-notice-btn-area');
+  if(btnArea) btnArea.innerHTML = '<button disabled style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;">불러오는 중...</button>';
   try {
     const r = await fetch('/api/ncnotice?prevId=' + _ncLastSnowId);
     const data = await r.json();
     const list = data.notices || [];
-    if(!list.length) { if(moreBtn) moreBtn.remove(); return; }
+    if(!list.length) { if(btnArea) btnArea.innerHTML = '<button onclick="collapseNcNotices()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;">▲ 접기</button>'; return; }
     _ncLastSnowId = data.lastSnowId || _ncLastSnowId;
-    const el = document.getElementById('nc-notice-list');
-    if(moreBtn) moreBtn.remove();
-    const newItems = document.createElement('div');
-    newItems.innerHTML = list.map(_renderNcItem).join('');
-    if(data.hasMore) {
-      newItems.innerHTML += '<button onclick="loadMoreNcNotices()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;margin-top:4px;" id="nc-more-btn">▼ 더보기</button>';
-    }
-    if(el) el.appendChild(newItems);
+    const extra = document.getElementById('nc-notice-extra');
+    if(extra) extra.insertAdjacentHTML('beforeend', list.map(_renderNcItem).join(''));
+    const hasMoreBtn = data.hasMore ? '<button onclick="loadMoreNcNotices()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;margin-bottom:4px;">▼ 더보기</button>' : '';
+    const collapseBtn = '<button onclick="collapseNcNotices()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;">▲ 접기</button>';
+    if(btnArea) btnArea.innerHTML = hasMoreBtn + collapseBtn;
   } catch(e) {
-    if(moreBtn) { moreBtn.disabled = false; moreBtn.textContent = '▼ 더보기'; }
+    if(btnArea) btnArea.innerHTML = '<button onclick="loadMoreNcNotices()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;">▼ 더보기</button>';
   }
+}
+
+function collapseNcNotices() {
+  const extra = document.getElementById('nc-notice-extra');
+  if(extra) extra.innerHTML = '';
+  _ncLastSnowId = _ncInitialSnowId;
+  const btnArea = document.getElementById('nc-notice-btn-area');
+  if(btnArea) btnArea.innerHTML = '<button onclick="loadMoreNcNotices()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;">▼ 더보기</button>';
 }
 
 // ─── NC 업데이트 ──────────────────
 let _ncUpdateLoaded = false;
 let _ncUpdateLastIds = [];
 let _ncUpdateLastSnowId = 0;
+let _ncUpdateInitialSnowId = 0;
 let _ncUpdatePollTimer = null;
 
 async function loadNcUpdates(force) {
@@ -2224,12 +2232,13 @@ async function loadNcUpdates(force) {
     }
     _ncUpdateLastIds = newIds;
     _ncUpdateLastSnowId = data.lastSnowId || 0;
+    _ncUpdateInitialSnowId = _ncUpdateLastSnowId;
     _ncUpdateLoaded = true;
     if(btn) { btn.disabled = false; btn.style.opacity = ''; btn.textContent = '↺'; }
-    const moreBtn = data.hasMore
-      ? '<button onclick="loadMoreNcUpdates()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;margin-top:4px;" id="nc-update-more-btn">▼ 더보기</button>'
+    const moreBtnHtml2 = data.hasMore
+      ? '<div id="nc-update-btn-area"><button onclick="loadMoreNcUpdates()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;">▼ 더보기</button></div>'
       : '';
-    el.innerHTML = list.map(_renderNcItem).join('') + moreBtn;
+    el.innerHTML = list.map(_renderNcItem).join('') + '<div id="nc-update-extra"></div>' + moreBtnHtml2;
     if(!_ncUpdatePollTimer) _ncUpdatePollTimer = setInterval(function(){ loadNcUpdates(true); }, 30 * 1000);
   } catch(e) {
     if(btn) { btn.disabled = false; btn.style.opacity = ''; btn.textContent = '↺'; }
@@ -2238,25 +2247,30 @@ async function loadNcUpdates(force) {
 }
 
 async function loadMoreNcUpdates() {
-  const moreBtn = document.getElementById('nc-update-more-btn');
-  if(moreBtn) { moreBtn.disabled = true; moreBtn.textContent = '불러오는 중...'; }
+  const btnArea = document.getElementById('nc-update-btn-area');
+  if(btnArea) btnArea.innerHTML = '<button disabled style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;">불러오는 중...</button>';
   try {
     const r = await fetch('/api/ncupdate?prevId=' + _ncUpdateLastSnowId);
     const data = await r.json();
     const list = data.notices || [];
-    if(!list.length) { if(moreBtn) moreBtn.remove(); return; }
+    if(!list.length) { if(btnArea) btnArea.innerHTML = '<button onclick="collapseNcUpdates()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;">▲ 접기</button>'; return; }
     _ncUpdateLastSnowId = data.lastSnowId || _ncUpdateLastSnowId;
-    const el = document.getElementById('nc-update-list');
-    if(moreBtn) moreBtn.remove();
-    const newItems = document.createElement('div');
-    newItems.innerHTML = list.map(_renderNcItem).join('');
-    if(data.hasMore) {
-      newItems.innerHTML += '<button onclick="loadMoreNcUpdates()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;margin-top:4px;" id="nc-update-more-btn">▼ 더보기</button>';
-    }
-    if(el) el.appendChild(newItems);
+    const extra = document.getElementById('nc-update-extra');
+    if(extra) extra.insertAdjacentHTML('beforeend', list.map(_renderNcItem).join(''));
+    const hasMoreBtn2 = data.hasMore ? '<button onclick="loadMoreNcUpdates()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;margin-bottom:4px;">▼ 더보기</button>' : '';
+    const collapseBtn2 = '<button onclick="collapseNcUpdates()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;">▲ 접기</button>';
+    if(btnArea) btnArea.innerHTML = hasMoreBtn2 + collapseBtn2;
   } catch(e) {
-    if(moreBtn) { moreBtn.disabled = false; moreBtn.textContent = '▼ 더보기'; }
+    if(btnArea) btnArea.innerHTML = '<button onclick="loadMoreNcUpdates()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;">▼ 더보기</button>';
   }
+}
+
+function collapseNcUpdates() {
+  const extra = document.getElementById('nc-update-extra');
+  if(extra) extra.innerHTML = '';
+  _ncUpdateLastSnowId = _ncUpdateInitialSnowId;
+  const btnArea = document.getElementById('nc-update-btn-area');
+  if(btnArea) btnArea.innerHTML = '<button onclick="loadMoreNcUpdates()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;">▼ 더보기</button>';
 }
 
 function renderAll() {
@@ -2472,7 +2486,7 @@ function openDetail(m) {
     Helmet:'투구',Shoulder:'어깨',Gloves:'장갑',Boots:'신발',
     Cape:'망토',Belt:'허리띠',Necklace:'목걸이',
     Earring1:'귀걸이',Earring2:'귀걸이',Ring1:'반지',Ring2:'반지',
-    Bracelet1:'팔찌',Bracelet2:'팔찌',Rune1:'룬',Rune2:'룬',
+    Bracelet1:'팔찌',Bracelet2:'팔찌',Rune1:'신석',Rune2:'신석',
     Amulet:'아뮬렛',
     Arcana1:'아르카나',Arcana2:'아르카나',Arcana3:'아르카나',
     Arcana4:'아르카나',Arcana5:'아르카나',Arcana6:'아르카나',
