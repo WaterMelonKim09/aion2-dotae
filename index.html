@@ -1196,7 +1196,7 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.83';
+const BUILD_VERSION = '1.5.84';
 const BUILD_PATCHNOTE = {
   title: '장비 상세 팝업 hang 수정',
   content: '• fetch + res.json() 전체 구간 타임아웃 커버 (기존 clearTimeout 위치 오류 수정).\n• 렌더링 에러 try-catch 추가 — 어떤 경우에도 "불러오는 중..." 으로 굳지 않도록 처리.'
@@ -2270,14 +2270,32 @@ function initFirebase() {
     if(window._realtimeSetup) return;
     window._realtimeSetup = true;
 
-    // Realtime WebSocket 대신 1분 폴링 (Supabase Nano CPU 절약)
-    window._pollTimer = setInterval(function() { _bgRefresh(); }, 60 * 1000);
-
-    // recruits 1분 폴링
-    window._recruitPollTimer = setInterval(function() {
-      db.from('recruits').select('*').order('created_at', { ascending: false })
-        .then(function({ data, error }){ if(!error){ recruits=data||[]; renderRecruit(); document.getElementById('stat-recruit').textContent=recruits.length; } });
-    }, 60 * 1000);
+    // Page Visibility API: 탭 포커스 시에만 폴링 (Supabase Nano CPU 절약)
+    var _POLL_MS = 3 * 60 * 1000; // 3분
+    function _startPolling() {
+      if(window._pollTimer) return;
+      window._pollTimer = setInterval(function() {
+        if(!document.hidden) _bgRefresh();
+      }, _POLL_MS);
+      window._recruitPollTimer = setInterval(function() {
+        if(document.hidden) return;
+        db.from('recruits').select('*').order('created_at', { ascending: false })
+          .then(function({ data, error }){ if(!error){ recruits=data||[]; renderRecruit(); document.getElementById('stat-recruit').textContent=recruits.length; } });
+      }, _POLL_MS);
+    }
+    function _stopPolling() {
+      if(window._pollTimer){ clearInterval(window._pollTimer); window._pollTimer=null; }
+      if(window._recruitPollTimer){ clearInterval(window._recruitPollTimer); window._recruitPollTimer=null; }
+    }
+    document.addEventListener('visibilitychange', function() {
+      if(document.hidden) {
+        _stopPolling();
+      } else {
+        _bgRefresh(); // 탭 복귀 시 즉시 1회 갱신
+        _startPolling();
+      }
+    });
+    if(!document.hidden) _startPolling();
 
     db.from('war_surveys').select('*').order('created_at', { ascending: false })
       .then(({ data, error }) => {
