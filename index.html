@@ -474,27 +474,27 @@
       </div>
       <!-- 구분선 -->
       <div style="width:1px;background:repeating-linear-gradient(to bottom,var(--border) 0,var(--border) 6px,transparent 6px,transparent 12px);flex-shrink:0;align-self:stretch;"></div>
-      <!-- 공지사항 -->
-      <div style="flex:1;min-width:0;padding:0 16px;">
-        <div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:1px;margin-bottom:12px;">📢 공지사항</div>
-        <div id="notice-ann-list"></div>
-      </div>
-      <!-- 구분선 -->
-      <div style="width:1px;background:repeating-linear-gradient(to bottom,var(--border) 0,var(--border) 6px,transparent 6px,transparent 12px);flex-shrink:0;align-self:stretch;"></div>
-      <!-- 패치노트 -->
-      <div style="flex:1;min-width:0;padding:0 16px;">
-        <div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:1px;margin-bottom:12px;">🛠 패치노트</div>
-        <div id="notice-patch-list"></div>
-      </div>
-      <!-- 구분선 -->
-      <div style="width:1px;background:repeating-linear-gradient(to bottom,var(--border) 0,var(--border) 6px,transparent 6px,transparent 12px);flex-shrink:0;align-self:stretch;"></div>
       <!-- 아이온2 업데이트 -->
-      <div style="flex:1;min-width:0;padding-left:16px;">
+      <div style="flex:1;min-width:0;padding:0 16px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
           <div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:1px;">🔄 아이온2 업데이트</div>
           <button id="nc-update-refresh-btn" class="btn btn-sm" onclick="loadNcUpdates(true)" style="font-size:10px;padding:2px 7px;">↺</button>
         </div>
         <div id="nc-update-list"><div style="color:var(--muted);font-size:13px;padding:8px 0;">불러오는 중...</div></div>
+      </div>
+      <!-- 구분선 -->
+      <div style="width:1px;background:repeating-linear-gradient(to bottom,var(--border) 0,var(--border) 6px,transparent 6px,transparent 12px);flex-shrink:0;align-self:stretch;"></div>
+      <!-- 레기온 공지사항 -->
+      <div style="flex:1;min-width:0;padding:0 16px;">
+        <div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:1px;margin-bottom:12px;">📢 레기온 공지사항</div>
+        <div id="notice-ann-list"></div>
+      </div>
+      <!-- 구분선 -->
+      <div style="width:1px;background:repeating-linear-gradient(to bottom,var(--border) 0,var(--border) 6px,transparent 6px,transparent 12px);flex-shrink:0;align-self:stretch;"></div>
+      <!-- 관리 시스템 패치노트 -->
+      <div style="flex:1;min-width:0;padding-left:16px;">
+        <div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:1px;margin-bottom:12px;">🛠 관리 시스템 패치노트</div>
+        <div id="notice-patch-list"></div>
       </div>
     </div>
     <!-- 숨겨진 기존 컨테이너 (JS 호환용) -->
@@ -1005,7 +1005,7 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.43';
+const BUILD_VERSION = '1.5.44';
 const BUILD_PATCHNOTE = {
   title: 'NC 아이온2 공지사항 파싱 수정',
   content: '• noticesList[].articleMeta 구조 파싱 적용.\n• 아이온2 공홈 공지사항 정상 표시.'
