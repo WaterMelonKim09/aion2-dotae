@@ -1184,10 +1184,10 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.62';
+const BUILD_VERSION = '1.5.63';
 const BUILD_PATCHNOTE = {
-  title: '초기 로딩 최적화, 권한 개선, 패치 내역 버튼 제거',
-  content: '• 초기 로딩: 멤버+공지 병렬 로드 후 로딩창 해제 (빈 화면 방지).\n• 멤버 목록 쿼리 최적화: 필요 컬럼만 선택해 로딩 속도 개선.\n• 상세 모달: 클릭 시 전체 데이터 별도 로드 (초기 로딩 부담 감소).\n• 패치 내역 수정 버튼 제거.'
+  title: 'localStorage 캐시 + equipment 지연 로딩',
+  content: '• localStorage 캐시 적용: 재방문 시 즉시 화면 표시, 백그라운드에서 최신 데이터 동기화.\n• equipment 지연 로딩: 초기 쿼리에서 제외 → 멤버 목록 먼저 표시 후 장비 데이터 별도 로드.\n• 갱신/전체 갱신 후 캐시 자동 무효화.'
 };
 
 // 전체 패치 내역 (버전별 정확한 설명)
@@ -1214,6 +1214,8 @@ const _PATCH_HISTORY = [
     content:'• 탈퇴 스캔 전체/개별 제거 버튼 동작 수정 (onclick JSON 전달 방식 → 전역 변수 방식으로 교체).' },
   { version:'1.5.62', title:'초기 로딩 최적화, 권한 개선, 패치 내역 버튼 제거',
     content:'• 초기 로딩: 멤버+공지 병렬 로드 후 로딩창 해제 (빈 화면 방지).\n• 멤버 목록 쿼리 최적화: 필요 컬럼만 선택해 로딩 속도 개선.\n• 상세 모달: 클릭 시 전체 데이터 별도 로드.\n• 패치 내역 수정 버튼 제거.' },
+  { version:'1.5.63', title:'localStorage 캐시 + equipment 지연 로딩',
+    content:'• localStorage 캐시: 재방문 시 즉시 화면 표시, 백그라운드에서 최신 데이터 동기화.\n• equipment 지연 로딩: 초기 쿼리에서 제외 후 별도 로드 (쿼리 부하 감소).\n• 갱신 후 캐시 자동 무효화.' },
 ];
 
 // 시맨틱 버전 비교 (날짜형 구버전 호환)
@@ -1234,6 +1236,7 @@ let members  = [];
 let recruits = [];
 let warSurveys = [];
 let currentUser = null;
+const _CACHE_KEY = 'dotae_cache'; // localStorage 캐시 키 (전역)
 let currentRecruitId = null;
 let supabaseConnected = false;
 var _warInitDone = false, _warSurveyCreating = false;
@@ -1950,58 +1953,134 @@ function initFirebase() {
   }
   // checkVersion, realtime, migrateRanks, initBossTimers는 데이터 로드 후 시작
 
+  // ─── 캐시 헬퍼 ────────────────────────
+  const _MEMBER_COLS = 'id,nickname,class,rank,combat_power,item_level,ranking,last_synced,is_main,player_id,server,guild_name,profile_img,abyss_rank';
+
+  function _saveCache(membersData, noticesData) {
+    try {
+      localStorage.setItem(_CACHE_KEY, JSON.stringify({
+        v: BUILD_VERSION, members: membersData, notices: noticesData || [], ts: Date.now()
+      }));
+    } catch(e) { try { localStorage.removeItem(_CACHE_KEY); } catch(e2) {} }
+  }
+  function _loadCache() {
+    try {
+      const c = JSON.parse(localStorage.getItem(_CACHE_KEY) || 'null');
+      if(!c || c.v !== BUILD_VERSION || !c.members || !c.members.length) return null;
+      return c;
+    } catch(e) { return null; }
+  }
+  function _hideLoading() {
+    if(window._loadingBarDone) window._loadingBarDone();
+    clearTimeout(window.loadingTimeout);
+    setTimeout(function() { var el=document.getElementById('loading-screen'); if(el) el.style.display='none'; }, 150);
+  }
+  function _applyInit(membersData, noticesData) {
+    members = membersData;
+    supabaseConnected = true;
+    if(!currentUser) {
+      var _saved = localStorage.getItem('dotae_user');
+      if(_saved) { try { currentUser = JSON.parse(_saved); } catch(e) {} }
+    }
+    renderAll();
+    renderRecruit();
+    renderNotices(noticesData || []);
+    setFirebaseStatus('ok');
+    if(!window._afterLoadInit) {
+      window._afterLoadInit = true;
+      checkVersion();
+      if(!window._versionPollingStarted) {
+        window._versionPollingStarted = true;
+        setInterval(checkVersion, 60000);
+      }
+      db.channel('config-realtime')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'config', filter: 'key=eq.system' }, () => { checkVersion(); })
+        .subscribe();
+      migrateRanks();
+      initBossTimers();
+    }
+    autoInsertPatchNote();
+  }
+
+  // equipment만 별도로 fetch해서 members 배열에 병합
+  function _fetchAndMergeEquipment(thenSaveCache, noticesForCache) {
+    db.from('members').select('id,equipment')
+      .then(function({ data, error }) {
+        if(error || !data) return;
+        data.forEach(function(item) {
+          var m = members.find(function(x){ return x.id === item.id; });
+          if(m) m.equipment = item.equipment || [];
+        });
+        renderMembers(); // 장비 그리드만 갱신
+        if(thenSaveCache) _saveCache(members, noticesForCache);
+      })
+      .catch(function(){});
+  }
+
+  // 백그라운드 갱신 (캐시 히트 후 실행)
+  function _bgRefresh() {
+    Promise.all([
+      db.from('members').select(_MEMBER_COLS).order('combat_power', { ascending: false }),
+      db.from('notices').select('*').order('created_at', { ascending: false })
+    ]).then(function(results) {
+      var mRes = results[0], nRes = results[1];
+      if(mRes.error) return;
+      var freshMembers = mRes.data || [];
+      var freshNotices = (!nRes.error && nRes.data) ? nRes.data : [];
+      // 캐시에 있던 equipment 유지 (equipment 따로 로드 전까지)
+      freshMembers.forEach(function(m) {
+        var old = members.find(function(x){ return x.id === m.id; });
+        if(old && old.equipment) m.equipment = old.equipment;
+      });
+      members = freshMembers;
+      renderAll();
+      renderNotices(freshNotices);
+      // equipment 갱신 + 캐시 저장
+      _fetchAndMergeEquipment(true, freshNotices);
+    }).catch(function(){});
+  }
+
   // Supabase REST 기반 데이터 로딩
   function loadAllData() {
+    // ── 캐시 히트: 즉시 렌더 ──
+    var cache = _loadCache();
+    if(cache) {
+      _applyInit(cache.members, cache.notices);
+      _hideLoading();
+      var isFirstLoad = !sessionStorage.getItem("_loginInit");
+      if(isFirstLoad){ sessionStorage.setItem("_loginInit","1"); initLoginScreen(); }
+      _bgRefresh(); // 백그라운드에서 최신 데이터 동기화
+      // recruits는 캐시 없으니 별도 로드
+      db.from('recruits').select('*').order('created_at', { ascending: false })
+        .then(function({ data, error }){ if(!error){ recruits=data||[]; renderRecruit(); document.getElementById('stat-recruit').textContent=recruits.length; } });
+      _setupRealtimeSubscriptions();
+      return;
+    }
+
+    // ── 캐시 없음: 초기 로딩 (equipment 제외 먼저 로드) ──
     var membersTimeout = new Promise(function(_, reject){ setTimeout(function(){ reject(new Error('network-timeout')); }, 15000); });
     Promise.race([
-      db.from('members').select('id,nickname,class,rank,combat_power,item_level,equipment,ranking,last_synced,is_main,player_id,server,guild_name,profile_img,abyss_rank').order('combat_power', { ascending: false }),
+      Promise.all([
+        db.from('members').select(_MEMBER_COLS).order('combat_power', { ascending: false }),
+        db.from('notices').select('*').order('created_at', { ascending: false })
+      ]),
       membersTimeout
     ])
-      .then(function(result) {
-        if(result && result.error) throw result.error;
-        members = result.data || [];
-        supabaseConnected = true;
-        // 페이지 새로고침 후 currentUser 복원 (sessionStorage 가드로 initLoginScreen이 재실행되지 않는 경우 대비)
-        if(!currentUser) {
-          var _saved = localStorage.getItem('dotae_user');
-          if(_saved) { try { currentUser = JSON.parse(_saved); } catch(e) {} }
-        }
-        renderAll();
-        renderRecruit(); // members 로드 후 재렌더링 (아바타/직업 체크 반영)
-        setFirebaseStatus('ok');
-        // 초기 로드 완료 후 부가 작업 시작 (모바일 연결 경쟁 방지)
-        if(!window._afterLoadInit) {
-          window._afterLoadInit = true;
-          checkVersion();
-          if(!window._versionPollingStarted) {
-            window._versionPollingStarted = true;
-            setInterval(checkVersion, 60000);
-          }
-          db.channel('config-realtime')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'config', filter: 'key=eq.system' }, () => { checkVersion(); })
-            .subscribe();
-          migrateRanks();
-          initBossTimers();
-        }
-        autoInsertPatchNote();
-        if(window._loadingBarDone) window._loadingBarDone();
-        clearTimeout(window.loadingTimeout);
-        // Hide loading screen only after notices also load
-        db.from('notices').select('*').order('created_at', { ascending: false })
-          .then(function({ data: ndata, error: nerr }) {
-            if(!nerr) renderNotices(ndata || []);
-          })
-          .catch(function(){})
-          .finally(function() {
-            setTimeout(function() { var _loadEl=document.getElementById('loading-screen'); if(_loadEl) _loadEl.style.display='none'; }, 300);
-            const isFirstLoad = !sessionStorage.getItem("_loginInit");
-            if(isFirstLoad){ sessionStorage.setItem("_loginInit","1"); initLoginScreen(); }
-          });
+      .then(function(results) {
+        var mRes = results[0], nRes = results[1];
+        if(mRes && mRes.error) throw mRes.error;
+        var loadedMembers = (mRes && mRes.data) || [];
+        var loadedNotices = (nRes && !nRes.error && nRes.data) ? nRes.data : [];
+        _applyInit(loadedMembers, loadedNotices);
+        _hideLoading();
+        var isFirstLoad = !sessionStorage.getItem("_loginInit");
+        if(isFirstLoad){ sessionStorage.setItem("_loginInit","1"); initLoginScreen(); }
+        // equipment 별도 로드 → 완료 후 캐시 저장
+        _fetchAndMergeEquipment(true, loadedNotices);
       })
       .catch(function(err) {
         clearTimeout(window.loadingTimeout);
         console.error('Supabase 연결 오류:', err);
-        // 최대 2회까지만 자동 재시도 (무한루프 방지)
         var _retryCount = parseInt(sessionStorage.getItem('_autoRetry') || '0', 10);
         if(_retryCount < 2) {
           sessionStorage.setItem('_autoRetry', String(_retryCount + 1));
@@ -2016,30 +2095,35 @@ function initFirebase() {
             if(_cnt <= 0) { clearInterval(_autoRefresh); location.reload(true); }
           }, 1000);
         } else {
-          // 2회 재시도 실패 → 에러 표시 + 카운터 초기화
           sessionStorage.removeItem('_autoRetry');
           var _loadEl = document.getElementById('loading-screen');
           if(_loadEl) _loadEl.style.display = 'none';
-          const isFirstLoad = !sessionStorage.getItem("_loginInit");
+          var isFirstLoad = !sessionStorage.getItem("_loginInit");
           if(isFirstLoad){ sessionStorage.setItem("_loginInit","1"); initLoginScreen(); }
           setFirebaseStatus('error', err.code || err.message);
         }
       });
 
     db.from('recruits').select('*').order('created_at', { ascending: false })
-      .then(({ data, error }) => {
-        if(error) return;
-        recruits = data || [];
-        renderRecruit();
-        document.getElementById('stat-recruit').textContent = recruits.length;
-      });
+      .then(function({ data, error }){ if(!error){ recruits=data||[]; renderRecruit(); document.getElementById('stat-recruit').textContent=recruits.length; } });
 
-    // members 실시간 구독: 계급·스펙 변경 즉시 반영
+    _setupRealtimeSubscriptions();
+  }
+
+  function _setupRealtimeSubscriptions() {
+    if(window._realtimeSetup) return;
+    window._realtimeSetup = true;
+
+    // members 실시간 구독
     db.channel('members-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'members' }, function(payload) {
-        db.from('members').select('id,nickname,class,rank,combat_power,item_level,equipment,ranking,last_synced,is_main,player_id,server,guild_name,profile_img,abyss_rank').order('combat_power', { ascending: false })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'members' }, function() {
+        db.from('members').select(_MEMBER_COLS).order('combat_power', { ascending: false })
           .then(function({ data, error }) {
             if(error) return;
+            data.forEach(function(m){
+              var old = members.find(function(x){ return x.id===m.id; });
+              if(old && old.equipment) m.equipment = old.equipment;
+            });
             members = data || [];
             renderAll();
           });
@@ -2086,7 +2170,9 @@ function initFirebase() {
       });
   }
   window.refreshData = function() {
-    // 로딩 화면 표시 후 데이터 재로드
+    // 캐시 클리어 + 로딩 화면 표시 후 데이터 재로드
+    try { localStorage.removeItem(_CACHE_KEY); } catch(e) {}
+    window._realtimeSetup = false;
     var loadEl = document.getElementById('loading-screen');
     if(loadEl) loadEl.style.display = 'flex';
     var bar = document.getElementById('loading-bar');
@@ -2681,6 +2767,7 @@ async function syncMember(id, nickname, serverId) {
       last_synced:  new Date().toISOString(),
     }).eq('id', id);
     toast(`${nickname} 갱신 완료! ✓`);
+    try { localStorage.removeItem(_CACHE_KEY); } catch(e) {} // 갱신 후 캐시 무효화
   } catch(err) {
     toast('갱신 실패: ' + err.message);
   } finally {
@@ -2733,6 +2820,7 @@ async function syncAllMembers() {
   btn.disabled = false;
   status.textContent = `완료: ${done}명 성공 ${fail>0?'/ '+fail+'명 실패':''}`;
   toast(`전체 갱신 완료! ${done}명 성공${fail>0?' / '+fail+'명 실패':''}`);
+  try { localStorage.removeItem(_CACHE_KEY); } catch(e) {} // 갱신 후 캐시 무효화
 }
 
 // ─── 상세 보기 ────────────────────────────
