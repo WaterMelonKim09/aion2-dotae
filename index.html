@@ -1192,10 +1192,10 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.64';
+const BUILD_VERSION = '1.5.65';
 const BUILD_PATCHNOTE = {
-  title: '탭 우선 로딩, 액션 로딩 팝업 추가',
-  content: '• 탭 전환 시 해당 탭 콘텐츠 우선 로드, 나머지 백그라운드에서 처리.\n• 스펙 상세 열기·공지/업데이트 새로고침 시 로딩 팝업 표시.\n• timer/homework 탭: DB 불필요하므로 즉시 로딩창 해제.\n• 캐시 없을 때 타임아웃 15초 적용.'
+  title: '갱신 시 로딩창 무한 대기 버그 수정',
+  content: '• refreshData 호출 시 _loadingHidden 플래그 및 폴백 타임아웃 재설정.\n• 갱신 중 네트워크 불통 시 30초 후 로딩창 강제 해제.'
 };
 
 // 전체 패치 내역 (버전별 정확한 설명)
@@ -1226,6 +1226,8 @@ const _PATCH_HISTORY = [
     content:'• localStorage 캐시: 재방문 시 즉시 화면 표시, 백그라운드에서 최신 데이터 동기화.\n• equipment 지연 로딩: 초기 쿼리에서 제외 후 별도 로드 (쿼리 부하 감소).\n• 갱신 후 캐시 자동 무효화.' },
   { version:'1.5.64', title:'탭 우선 로딩, 액션 로딩 팝업 추가',
     content:'• 탭 전환 시 해당 탭 콘텐츠 우선 로드, 나머지 백그라운드에서 처리.\n• 스펙 상세 열기·공지/업데이트 새로고침 시 로딩 팝업 표시.\n• timer/homework 탭: DB 불필요하므로 즉시 로딩창 해제.\n• 캐시 없을 때 타임아웃 15초 적용.' },
+  { version:'1.5.65', title:'갱신 시 로딩창 무한 대기 버그 수정',
+    content:'• refreshData 호출 시 _loadingHidden 플래그 및 폴백 타임아웃 재설정.\n• 갱신 중 네트워크 불통 시 30초 후 로딩창 강제 해제.' },
 ];
 
 // 시맨틱 버전 비교 (날짜형 구버전 호환)
@@ -2207,6 +2209,7 @@ function initFirebase() {
     try { localStorage.removeItem(_CACHE_KEY); } catch(e) {}
     window._realtimeSetup = false;
     window._loadingHidden = false;
+    clearTimeout(window.loadingTimeout);
     var loadEl = document.getElementById('loading-screen');
     if(loadEl) loadEl.style.display = 'flex';
     var bar = document.getElementById('loading-bar');
@@ -2218,6 +2221,13 @@ function initFirebase() {
       if(_pct2 < 85) { _pct2 += (85 - _pct2) * 0.06; if(bar) bar.style.width = Math.round(_pct2) + '%'; if(pct) pct.textContent = Math.round(_pct2) + '%'; }
     }, 80);
     window._loadingBarDone = function() { clearInterval(_iv2); if(bar) bar.style.width='100%'; if(pct) pct.textContent='100%'; };
+    // 30초 폴백: 네트워크 완전 불통 시 로딩창 강제 해제
+    window.loadingTimeout = setTimeout(function() {
+      if(members && members.length > 0) return;
+      clearInterval(_iv2);
+      if(loadEl) loadEl.style.display = 'none';
+      setFirebaseStatus('error', 'network-timeout');
+    }, 30000);
     loadAllData();
   };
   loadAllData();
