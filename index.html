@@ -918,10 +918,10 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.22';
+const BUILD_VERSION = '1.5.23';
 const BUILD_PATCHNOTE = {
-  title: '멤버 등록/관리 버그 수정',
-  content: '• 멤버 등록 기본값: 계급=군단병, 구분=본캐로 명시.\n• 멤버 관리 모달에서 부캐 선택 시 본캐 닉네임 입력 칸 정상 표시 (ID 중복 버그 수정).'
+  title: '대시보드 모집 카드 + 스킬 설명 개선',
+  content: '• 대시보드 최근 모집이 파티 모집 탭과 동일한 카드 UI로 표시 (요구 직업, 신청자, 상세보기 포함).\n• 스킬 탭 설명 표시: 스킬 데이터에 description 필드가 있으면 즉시 표시 (존재하지 않는 API 호출 제거).'
 };
 
 // 시맨틱 버전 비교 (날짜형 구버전 호환)
@@ -2401,15 +2401,18 @@ function openDetail(m) {
     if(ai>=0&&bi>=0) return ai-bi; if(ai>=0) return -1; if(bi>=0) return 1;
     return a.localeCompare(b);
   });
-  const skillCardHTML = s => `
+  const skillCardHTML = s => {
+    const desc = s.description || s.desc || s.skillDescription || '';
+    return `
     <div data-skill-name="${(s.name||'').replace(/"/g,'&quot;')}" style="display:flex;align-items:flex-start;gap:8px;padding:6px;background:var(--surface);border:1px solid var(--border);border-radius:8px;">
       <img src="${s.icon||''}" style="width:32px;height:32px;border-radius:6px;border:1px solid var(--border);flex-shrink:0;" onerror="this.style.display='none'">
       <div style="flex:1;min-width:0;">
         <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.name||''}</div>
         <div style="font-size:10px;color:var(--muted);">Lv.${s.level||0}</div>
-        <div class="skill-desc" style="font-size:10px;color:var(--muted);margin-top:2px;line-height:1.4;white-space:normal;display:none;"></div>
+        <div class="skill-desc" style="font-size:10px;color:var(--muted);margin-top:2px;line-height:1.4;white-space:normal;${desc?'':'display:none;'}">${desc}</div>
       </div>
     </div>`;
+  };
   const stigmaHTML = skillGroupEntries.length
     ? skillGroupEntries.map(([label, list]) => `
         <div style="margin-bottom:12px;">
@@ -2658,27 +2661,8 @@ function switchDetailTab(tab) {
   if(tab === 'skill') _loadSkillDescriptions();
 }
 
-// ─── 스킬 설명 가이드북 로딩 ───────────────
-const _skillGuideCache = {};
-function _loadSkillDescriptions() {
-  const m = window._currentDetailMember;
-  if(!m) return;
-  const cls = m.class || '';
-  if(!cls) return;
-  if(_skillGuideCache[cls] !== undefined) {
-    if(_skillGuideCache[cls]) _applySkillDescriptions(_skillGuideCache[cls]);
-    return;
-  }
-  _skillGuideCache[cls] = null; // 로딩 중 표시
-  fetch('/api/skillguide?class=' + encodeURIComponent(cls))
-    .then(r => r.json())
-    .then(data => {
-      const skills = data.skills || {};
-      _skillGuideCache[cls] = skills;
-      _applySkillDescriptions(skills);
-    })
-    .catch(() => { _skillGuideCache[cls] = null; });
-}
+// ─── 스킬 설명: 스킬 카드 렌더 시 s.description 직접 표시 ───────────────
+function _loadSkillDescriptions() { /* 스킬 데이터에서 직접 표시하므로 별도 로딩 불필요 */ }
 function _applySkillDescriptions(skills) {
   const skillTab = document.getElementById('detail-skill');
   if(!skillTab) return;
@@ -2735,16 +2719,37 @@ function renderTop5() {
 
 function renderRecentRecruit() {
   const el = document.getElementById('recent-recruit');
-  el.innerHTML = recruits.slice(0,3).length
-    ? recruits.slice(0,3).map(r=>`
-        <div class="rc" style="padding:12px;cursor:pointer" onclick="showTab('recruit')">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <span style="font-size:13px;font-weight:600">${r.title}</span>
-            <span class="rc-tag tag-${r.type}">${r.type}</span>
-          </div>
-          <div style="font-size:12px;color:var(--muted);margin-top:6px">${r.schedule||''} · ${r.author}</div>
-        </div>`).join('')
-    : `<div style="color:var(--muted);font-size:13px;padding:12px">모집 공고가 없어요</div>`;
+  const list = recruits.slice(0, 3);
+  if(!list.length) { el.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:12px">모집 공고가 없어요</div>`; return; }
+  el.innerHTML = list.map(r=>`
+    <div class="rc">
+      <div class="rc-head"><span class="rc-title">${r.title}</span><span class="rc-tag tag-${r.type}">${r.type}</span></div>
+      <div class="rc-meta">${r.schedule||'일정 미정'} · 최소 ${r.min_cp||'제한 없음'}</div>
+      <div class="rc-reqs">${(function(){
+        var reqs=r.reqs||[]; if(!reqs.length) return '<span class="req-item">제한 없음</span>';
+        var applies=r.applies||[];
+        var appliedCls=applies.map(function(a){var mem=members.find(function(m){return m.nickname===a.nickname;});return mem?(CLASS_MAP[mem.class]||mem.class||''):'';}).filter(Boolean);
+        var usedIdx=[];
+        return reqs.map(function(req){
+          var filled=false,filledCls='';
+          for(var i=0;i<appliedCls.length;i++){if(usedIdx.indexOf(i)>=0)continue;if(req==='상관없음'||req===appliedCls[i]){filled=true;filledCls=appliedCls[i];usedIdx.push(i);break;}}
+          return filled?'<span class="req-item" style="background:rgba(0,200,138,.15);border-color:#00c88a;color:#00c88a;text-decoration:line-through;">'+(filledCls||req)+' ✓</span>':'<span class="req-item">'+req+'</span>';
+        }).join('');
+      })()}</div>
+      <div style="display:flex;align-items:center;gap:5px;padding:6px 0;border-top:1px solid var(--border);margin-top:6px;flex-wrap:wrap;">${(function(){
+        var applies=r.applies||[];
+        if(!applies.length) return '<span style="font-size:11px;color:var(--muted);">신청자 없음</span>';
+        var avatars=applies.slice(0,6).map(function(a){var mem=members.find(function(m){return m.nickname===a.nickname;});var cls=mem?(CLASS_MAP[mem.class]||mem.class||''):'';return(mem&&mem.profile_img)?'<img src="'+mem.profile_img+'" title="'+a.nickname+'" style="width:22px;height:22px;border-radius:50%;object-fit:cover;border:1px solid var(--border);">'  :'<span title="'+a.nickname+'" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--surface);border:1px solid var(--border);font-size:10px;">'+(CLS_ICON[cls]||'👤')+'</span>';}).join('');
+        return '<span style="font-size:11px;color:var(--muted);">신청 '+applies.length+'명</span>'+avatars+(applies.length>6?'<span style="font-size:11px;color:var(--muted);">+'+(applies.length-6)+'</span>':'');
+      })()}</div>
+      <div class="rc-foot">
+        <span class="rc-author">by ${r.author}</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="${r.slots>0?'slots-open':'slots-full'}">${r.slots>0?'모집중 '+r.slots+'자리':'마감'}</span>
+          <button class="btn btn-sm" onclick="openRecruit('${r.id}')">상세보기</button>
+        </div>
+      </div>
+    </div>`).join('');
 }
 
 function renderMembers() {
