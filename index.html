@@ -1313,10 +1313,10 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.58';
+const BUILD_VERSION = '1.5.59';
 const BUILD_PATCHNOTE = {
-  title: '레기온 전체 인원 일괄 등록, 패치 내역 정리',
-  content: '• 레기온 전체 인원(105명) 일괄 등록 데이터 반영 (계급 포함).\n• 과거 패치 내역 정확한 내용으로 DB 업데이트.\n• 탈퇴 스캔: 레기온 없는 멤버도 감지.\n• 신석 전설 등급(Legend) 색상 수정.'
+  title: '탈퇴 스캔 DB 기반 전환, 신석 등급 색상 수정',
+  content: '• 탈퇴 스캔: NC API 대신 DB 저장 데이터 기준으로 즉시 판별 (502 오류 해결).\n• 신석 등급별 색상 전용 객체(GSC) 추가: 영웅=보라, 전설=주황.\n• 신석 색상이 NC 공홈 기준과 일치하도록 수정.'
 };
 
 // 전체 패치 내역 (버전별 정확한 설명)
@@ -1335,6 +1335,8 @@ const _PATCH_HISTORY = [
     content:'• 신석 전설 등급 색상 수정: NC API "Legend" grade 값 매핑 추가.\n• 탈퇴 스캔: 레기온 없는 멤버(빈값)도 탈퇴로 감지.\n• 일괄 등록 복구: 닉네임|계급 형식으로 계급 자동 적용.' },
   { version:'1.5.58', title:'레기온 전체 인원 일괄 등록, 패치 내역 정리',
     content:'• 레기온 전체 인원(105명) 일괄 등록 데이터 반영 (계급 포함).\n• 과거 패치 내역 정확한 내용으로 DB 업데이트.\n• 탈퇴 스캔: 레기온 없는 멤버도 감지.\n• 신석 전설 등급(Legend) 색상 수정.' },
+  { version:'1.5.59', title:'탈퇴 스캔 DB 기반 전환, 신석 등급 색상 수정',
+    content:'• 탈퇴 스캔: NC API 대신 DB 저장 데이터 기준으로 즉시 판별 (502 오류 해결).\n• 신석 등급별 색상 전용 객체(GSC) 추가: 영웅=보라, 전설=주황.\n• 신석 색상이 NC 공홈 기준과 일치하도록 수정.' },
 ];
 
 // 시맨틱 버전 비교 (날짜형 구버전 호환)
@@ -2816,45 +2818,24 @@ async function bulkRegister() {
   if(done > 0) loadData();
 }
 
-async function scanLeaveMembers() {
+function scanLeaveMembers() {
   if(!isAdmin()) { toast('관리자만 사용할 수 있어요'); return; }
   const progressEl = document.getElementById('leave-scan-progress');
-  const statusEl   = document.getElementById('leave-scan-status');
-  const countEl    = document.getElementById('leave-scan-count');
-  const barEl      = document.getElementById('leave-scan-bar');
   const resultEl   = document.getElementById('leave-scan-result');
   if(!resultEl) return;
 
-  const targets = members.filter(m => m.is_main !== false); // 본캐만 스캔
-  const total = targets.length;
-  if(!total) { toast('등록된 멤버가 없어요'); return; }
-
-  if(progressEl) progressEl.style.display = '';
+  if(progressEl) progressEl.style.display = 'none';
   resultEl.innerHTML = '';
 
-  const left = []; // 탈퇴 감지된 멤버
+  const targets = members.filter(m => m.is_main !== false); // 본캐만 스캔
+  if(!targets.length) { toast('등록된 멤버가 없어요'); return; }
 
-  for(let i = 0; i < total; i++) {
-    const m = targets[i];
-    if(statusEl) statusEl.textContent = `${m.nickname} 조회 중...`;
-    if(countEl)  countEl.textContent  = `${i+1} / ${total}`;
-    if(barEl)    barEl.style.width    = `${(i+1)/total*100}%`;
-
-    try {
-      const res = await fetch(`/api/character?nickname=${encodeURIComponent(m.nickname)}&serverId=${m.server||'2001'}`);
-      const data = await res.json();
-      if(data.error) continue; // API 실패 시 스킵
-      const guildName = data.guild_name || '';
-      if(guildName !== '도태') {
-        left.push({ ...m, currentGuild: guildName || '레기온 없음' });
-      }
-    } catch(e) {
-      // 네트워크 오류 시 스킵
-    }
-    if(i < total - 1) await new Promise(r => setTimeout(r, 500));
-  }
-
-  if(statusEl) statusEl.textContent = '스캔 완료';
+  // DB에 저장된 guild_name 기준으로 즉시 판별
+  // guild_name이 '도태'가 아니거나 비어있으면 탈퇴/미동기화로 표시
+  const left = targets.filter(m => {
+    const g = (m.guild_name || '').trim();
+    return g !== '도태';
+  }).map(m => ({ ...m, currentGuild: (m.guild_name || '').trim() || '레기온 없음' }));
 
   if(!left.length) {
     resultEl.innerHTML = '<div style="color:#6acd8a;padding:8px 0;">탈퇴 멤버 없음 — 전원 도태 소속입니다.</div>';
@@ -2862,11 +2843,12 @@ async function scanLeaveMembers() {
   }
 
   resultEl.innerHTML = `
-    <div style="color:var(--red);font-weight:600;margin-bottom:8px;">${left.length}명 탈퇴 감지됨</div>
+    <div style="color:var(--red);font-weight:600;margin-bottom:6px;">${left.length}명 탈퇴/비소속 감지됨</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">※ DB에 마지막 동기화된 데이터 기준입니다. 갱신(↻) 버튼으로 최신화 후 재스캔하세요.</div>
     ${left.map(m=>`
       <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);">
         <span style="flex:1;font-size:13px;">${m.nickname}</span>
-        <span style="font-size:11px;color:var(--muted);">현재 레기온: <b style="color:var(--red);">${m.currentGuild||'없음'}</b></span>
+        <span style="font-size:11px;color:var(--muted);">레기온: <b style="color:var(--red);">${m.currentGuild}</b></span>
         <button class="btn btn-sm" style="border-color:var(--red);color:var(--red);" onclick="removeMember('${m.id}','${m.nickname}',this)">제거</button>
       </div>`).join('')}
     <div style="margin-top:10px;">
@@ -2997,7 +2979,9 @@ function openDetail(m) {
   window._currentDetailMember = m;
   const el = document.getElementById('modal-detail');
   if(!el) return;
-  const GC = {Common:'#aaaaaa',Normal:'#aaaaaa',Rare:'#4a90e8',Hero:'#d44040',Epic:'#d44040',Unique:'#e8c030',Legendary:'#ff6a20',Legend:'#ff6a20',Special:'#40d4c0'};
+  const GC  = {Common:'#aaaaaa',Normal:'#aaaaaa',Rare:'#4a90e8',Hero:'#d44040',Epic:'#d44040',Unique:'#e8c030',Legendary:'#ff6a20',Legend:'#ff6a20',Special:'#40d4c0'};
+  // 신석 전용 등급 색상 (NC 공홈 기준: 영웅=보라, 전설=주황)
+  const GSC = {Common:'#9d9d9d',Normal:'#9d9d9d',Rare:'#4a90e8',Hero:'#a335ee',Epic:'#a335ee',Unique:'#e8c030',Legendary:'#ff8c00',Legend:'#ff8c00',Special:'#40d4c0'};
   const GN = {Common:'일반',Rare:'희귀',Hero:'영웅',Epic:'영웅',Unique:'유일',Legendary:'전설',Special:'스페셜'};
   const SN = {
     MainHand:'주무기',SubHand:'보조/방패',Torso:'갑옷',Pants:'하의',
@@ -3209,7 +3193,7 @@ function openDetail(m) {
         ${godStones.length ? `
           ${ncSec('신석')}
           <div style="padding:8px 20px;">
-            ${godStones.map(s=>{const _rg=s.grade||s.itemGrade||s.gradeType||s.quality||'';const _gk=_rg.charAt(0).toUpperCase()+_rg.slice(1).toLowerCase();const _nm={'1':'Common','2':'Rare','3':'Hero','4':'Unique','5':'Legendary','6':'Special'};const _kr={'일반':'Common','희귀':'Rare','영웅':'Hero','유일':'Unique','전설':'Legendary','스페셜':'Special'};const _fg=GC[_rg]?_rg:GC[_gk]?_gk:(_nm[String(_rg)]||_kr[_rg]||'');const sc=GC[_fg]||'#e0c97a';const desc=s.description||s.desc||'';const effects=(s.skillEffectList||s.effectList||[]).map(ef=>`<div style="font-size:11px;color:#aaa;line-height:1.6;">${ef.description||ef.desc||ef.name||ef}</div>`).join('');return`<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;">${s.icon?`<img src="${s.icon}" style="width:22px;height:22px;border-radius:3px;flex-shrink:0;">`:`<div style="width:22px;height:22px;border-radius:3px;background:${sc}22;flex-shrink:0;"></div>`}<div><div style="font-size:12px;color:${sc};font-weight:600;">${s.name||''}</div>${desc?`<div style="font-size:11px;color:#aaa;line-height:1.6;margin-top:2px;">${desc}</div>`:''}${effects}</div></div>`;}).join('')}
+            ${godStones.map(s=>{const _rg=s.grade||s.itemGrade||s.gradeType||s.quality||'';const _gk=_rg.charAt(0).toUpperCase()+_rg.slice(1).toLowerCase();const _nm={'1':'Common','2':'Rare','3':'Hero','4':'Unique','5':'Legendary','6':'Special'};const _kr={'일반':'Common','희귀':'Rare','영웅':'Hero','유일':'Unique','전설':'Legendary','스페셜':'Special'};const _fg=GSC[_rg]?_rg:GSC[_gk]?_gk:(_nm[String(_rg)]||_kr[_rg]||'');const sc=GSC[_fg]||'#e0c97a';const desc=s.description||s.desc||'';const effects=(s.skillEffectList||s.effectList||[]).map(ef=>`<div style="font-size:11px;color:#aaa;line-height:1.6;">${ef.description||ef.desc||ef.name||ef}</div>`).join('');return`<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;">${s.icon?`<img src="${s.icon}" style="width:22px;height:22px;border-radius:3px;flex-shrink:0;">`:`<div style="width:22px;height:22px;border-radius:3px;background:${sc}22;flex-shrink:0;"></div>`}<div><div style="font-size:12px;color:${sc};font-weight:600;">${s.name||''}</div>${desc?`<div style="font-size:11px;color:#aaa;line-height:1.6;margin-top:2px;">${desc}</div>`:''}${effects}</div></div>`;}).join('')}
           </div>` : ''}
 
         <!-- 세트 효과 + 획득처 -->
