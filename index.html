@@ -659,13 +659,13 @@
           <div class="form-group" id="rank-group">
             <label class="form-label">계급</label>
             <select class="form-select" id="reg-rank">
-              <option>군단병</option><option>엘리트장교</option><option>군단장</option>
+              <option selected>군단병</option><option>엘리트장교</option><option>군단장</option>
             </select>
           </div>
           <div class="form-group">
             <label class="form-label">구분</label>
             <select class="form-select" id="reg-is-main">
-              <option value="true">본캐</option>
+              <option value="true" selected>본캐</option>
               <option value="false">부캐</option>
             </select>
           </div>
@@ -808,7 +808,7 @@
       <select class="form-select" id="edit-is-main" onchange="togglePlayerIdField(this.value)">
       <option value="true">본캐</option><option value="false">부캐</option>
     </select>
-    <div id="player-id-group" style="display:none;margin-top:8px;">
+    <div id="edit-player-id-group" style="display:none;margin-top:8px;">
       <label class="form-label" style="font-size:11px;margin-bottom:4px;">본캐 닉네임</label>
       <div style="position:relative;">
         <input class="form-input" id="edit-player-id" placeholder="본캐 닉네임" autocomplete="off"
@@ -918,10 +918,10 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.21';
+const BUILD_VERSION = '1.5.22';
 const BUILD_PATCHNOTE = {
-  title: '헤더 업데이트 버튼 내정보 좌측 배치',
-  content: '• 모바일/PC 헤더에서 업데이트 버튼이 내정보(내정보) 버튼 좌측에 "업데이트" 텍스트와 함께 표시.\n• 버전 정보는 두 번째 줄 우측에 표시.'
+  title: '멤버 등록/관리 버그 수정',
+  content: '• 멤버 등록 기본값: 계급=군단병, 구분=본캐로 명시.\n• 멤버 관리 모달에서 부캐 선택 시 본캐 닉네임 입력 칸 정상 표시 (ID 중복 버그 수정).'
 };
 
 // 시맨틱 버전 비교 (날짜형 구버전 호환)
@@ -3291,7 +3291,7 @@ function closeModal(id) {
 }
 function closeOverlay(e,id) { if(e.target.classList.contains('overlay')) closeModal(id); }
 function togglePlayerIdField(val) {
-  var g = document.getElementById('player-id-group');
+  var g = document.getElementById('edit-player-id-group');
   if(g) g.style.display = val==='false' ? '' : 'none';
 }
 function openEdit(id,rank,isMain) {
