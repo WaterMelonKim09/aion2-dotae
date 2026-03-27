@@ -24,7 +24,8 @@ export async function onRequest(context) {
   };
 
   // 일반 공지 목록 (moreArticle) + 상단 고정 공지 (noticeArticle)
-  const moreEndpoint = 'https://api-community.plaync.com/aion2/board/notice_ko/article/search/moreArticle?isVote=true&moreSize=20&moreDirection=BEFORE&previousArticleId=0';
+  const prevId = url.searchParams.get('prevId') || '0';
+  const moreEndpoint = `https://api-community.plaync.com/aion2/board/notice_ko/article/search/moreArticle?isVote=true&moreSize=20&moreDirection=BEFORE&previousArticleId=${prevId}`;
   const pinnedEndpoint = 'https://api-community.plaync.com/aion2/board/notice_ko/noticeArticle';
 
   if (debug) {
@@ -59,14 +60,18 @@ export async function onRequest(context) {
     const notices = rawList.slice(0, 20).map(item => {
       const m = item?.articleMeta || item;
       const id = m.id || m.articleId || '';
+      const snowId = m.snow?.contentId || item?.articleMeta?.snow?.contentId || 0;
       const title = m.title || m.subject || '';
       const date = (m.createDate || m.registDate || m.regDate || m.date || '').slice(0, 10).replace(/-/g, '.');
       const articleUrl = `https://aion2.plaync.com/ko-kr/board/notice/view?articleId=${id}`;
       const category = m.categoryName || m.category || '';
-      return { id, title, date, url: articleUrl, category };
+      return { id, title, date, url: articleUrl, category, snowId };
     }).filter(n => n.title);
 
-    return new Response(JSON.stringify({ notices, _src: moreEndpoint }), { status: 200, headers: corsHeaders });
+    const hasMore = data?.hasMore ?? false;
+    const lastSnowId = notices.length > 0 ? notices[notices.length - 1].snowId : 0;
+
+    return new Response(JSON.stringify({ notices, hasMore, lastSnowId, _src: moreEndpoint }), { status: 200, headers: corsHeaders });
   } catch(e) {
     return new Response(JSON.stringify({ notices: [], _err: e.message }), { status: 200, headers: corsHeaders });
   }

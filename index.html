@@ -995,7 +995,7 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.40';
+const BUILD_VERSION = '1.5.41';
 const BUILD_PATCHNOTE = {
   title: 'NC 아이온2 공지사항 파싱 수정',
   content: '• noticesList[].articleMeta 구조 파싱 적용.\n• 아이온2 공홈 공지사항 정상 표시.'
@@ -1960,7 +1960,7 @@ function renderNotices(notices, showAll) {
     const d = n.created_at ? new Date(n.created_at) : new Date();
     const dateStr = d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0');
     const author = n.author || '';
-    const views  = n.views  || 0;
+    const views  = _getNoticeViews(n.id, n.views);
     const nid    = 'notice-body-'+n.id;
     return '<div class="card" style="padding:0;border-left:3px solid '+borderLeft3(n.type)+';margin-bottom:8px;overflow:hidden;">'
       +'<div style="padding:12px 14px;cursor:pointer;" onclick="toggleNoticeItem(\''+n.id+'\','+views+')">'
@@ -1996,6 +1996,20 @@ function renderNotices(notices, showAll) {
     + moreBtn;
 }
 
+function _getNoticeViews(id, dbViews) {
+  try {
+    const stored = JSON.parse(localStorage.getItem('_nv') || '{}');
+    return Math.max(dbViews || 0, stored[id] || 0);
+  } catch(e) { return dbViews || 0; }
+}
+function _setNoticeViews(id, views) {
+  try {
+    const stored = JSON.parse(localStorage.getItem('_nv') || '{}');
+    stored[id] = views;
+    localStorage.setItem('_nv', JSON.stringify(stored));
+  } catch(e) {}
+}
+
 function toggleNoticeItem(noticeId, currentViews) {
   const body = document.getElementById('notice-body-'+noticeId);
   if(!body) return;
@@ -2005,10 +2019,9 @@ function toggleNoticeItem(noticeId, currentViews) {
     const newViews = (currentViews||0) + 1;
     const viewEl = document.getElementById('views-'+noticeId);
     if(viewEl) viewEl.textContent = newViews;
-    // onclick 갱신 (다음 토글 시 최신값 전달)
     const header = body.previousElementSibling;
     if(header) header.setAttribute('onclick', 'toggleNoticeItem(\''+noticeId+'\','+newViews+')');
-    // DB 업데이트 (views 컬럼 있을 때만 반영, 없으면 조용히 무시)
+    _setNoticeViews(noticeId, newViews);
     db.from('notices').update({ views: newViews }).eq('id', noticeId).catch(function(){});
   }
 }
@@ -2091,6 +2104,16 @@ function showNoticeAlert(n) {
 let _ncNoticeLoaded = false;
 let _ncNoticeLastIds = [];
 let _ncPollTimer = null;
+let _ncLastSnowId = 0;
+
+function _renderNcItem(n) {
+  const dateStr = (n.date||'').slice(0,10);
+  const cat = n.category ? '<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(100,160,255,.1);color:#6ab0ff;border:1px solid #1a3060;margin-right:6px;">'+n.category+'</span>' : '';
+  return '<a href="'+n.url+'" target="_blank" rel="noopener" style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border-radius:7px;background:var(--card);border:1px solid var(--border);text-decoration:none;transition:border-color .15s;margin-bottom:6px;" onmouseover="this.style.borderColor=\'var(--gold-d)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
+    +'<span style="font-size:13px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">'+cat+n.title+'</span>'
+    +'<span style="font-size:11px;color:var(--muted);flex-shrink:0;margin-left:12px;">'+dateStr+'</span>'
+    +'</a>';
+}
 
 async function loadNcNotices(force) {
   if(_ncNoticeLoaded && !force) return;
@@ -2110,32 +2133,49 @@ async function loadNcNotices(force) {
       const errMsg = data._err ? data._err : 'NC 서버 응답 없음';
       el.innerHTML = '<div style="color:var(--muted);font-size:13px;line-height:1.7;">공지를 불러올 수 없어요<br><span style="font-size:11px;">('+errMsg+')</span><br>'
         +'<a href="https://aion2.plaync.com/ko-kr/board/notice/list" target="_blank" style="color:var(--gold-l);font-size:11px;">공홈에서 직접 보기 →</a></div>';
+      if(btn) { btn.disabled = false; btn.style.opacity = ''; btn.textContent = '↺'; }
       return;
     }
     // 신규 공지 감지 (폴링용)
     const newIds = list.map(function(n){ return n.id; });
     if(_ncNoticeLastIds.length && newIds.length) {
       const newOnes = list.filter(function(n){ return !_ncNoticeLastIds.includes(n.id); });
-      newOnes.forEach(function(n) {
-        toast('🌐 아이온2 새 공지: '+n.title);
-      });
+      newOnes.forEach(function(n) { toast('🌐 아이온2 새 공지: '+n.title); });
     }
     _ncNoticeLastIds = newIds;
+    _ncLastSnowId = data.lastSnowId || 0;
     _ncNoticeLoaded = true;
     if(btn) { btn.disabled = false; btn.style.opacity = ''; btn.textContent = '↺'; }
-    el.innerHTML = list.map(function(n) {
-      const dateStr = (n.date||'').slice(0,10);
-      const cat = n.category ? '<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(100,160,255,.1);color:#6ab0ff;border:1px solid #1a3060;margin-right:6px;">'+n.category+'</span>' : '';
-      return '<a href="'+n.url+'" target="_blank" rel="noopener" style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border-radius:7px;background:var(--card);border:1px solid var(--border);text-decoration:none;transition:border-color .15s;margin-bottom:6px;" onmouseover="this.style.borderColor=\'var(--gold-d)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
-        +'<span style="font-size:13px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">'+cat+n.title+'</span>'
-        +'<span style="font-size:11px;color:var(--muted);flex-shrink:0;margin-left:12px;">'+dateStr+'</span>'
-        +'</a>';
-    }).join('');
-    // 폴링 시작 (5분마다)
+    const moreBtn = data.hasMore
+      ? '<button onclick="loadMoreNcNotices()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;margin-top:4px;" id="nc-more-btn">▼ 더보기</button>'
+      : '';
+    el.innerHTML = list.map(_renderNcItem).join('') + moreBtn;
     if(!_ncPollTimer) _ncPollTimer = setInterval(function(){ loadNcNotices(true); }, 30 * 1000);
   } catch(e) {
     if(btn) { btn.disabled = false; btn.style.opacity = ''; btn.textContent = '↺'; }
     el.innerHTML = '<div style="color:var(--muted);font-size:13px;">불러오기 실패: '+e.message+'</div>';
+  }
+}
+
+async function loadMoreNcNotices() {
+  const moreBtn = document.getElementById('nc-more-btn');
+  if(moreBtn) { moreBtn.disabled = true; moreBtn.textContent = '불러오는 중...'; }
+  try {
+    const r = await fetch('/api/ncnotice?prevId=' + _ncLastSnowId);
+    const data = await r.json();
+    const list = data.notices || [];
+    if(!list.length) { if(moreBtn) moreBtn.remove(); return; }
+    _ncLastSnowId = data.lastSnowId || _ncLastSnowId;
+    const el = document.getElementById('nc-notice-list');
+    if(moreBtn) moreBtn.remove();
+    const newItems = document.createElement('div');
+    newItems.innerHTML = list.map(_renderNcItem).join('');
+    if(data.hasMore) {
+      newItems.innerHTML += '<button onclick="loadMoreNcNotices()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;margin-top:4px;" id="nc-more-btn">▼ 더보기</button>';
+    }
+    if(el) el.appendChild(newItems);
+  } catch(e) {
+    if(moreBtn) { moreBtn.disabled = false; moreBtn.textContent = '▼ 더보기'; }
   }
 }
 
