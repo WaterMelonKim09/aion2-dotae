@@ -483,7 +483,6 @@
   <div id="tab-notice" class="tab-content">
     <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
       <button id="notice-write-btn" class="btn btn-primary btn-sm" onclick="openNoticeWrite()" style="display:none;">📝 공지 작성</button>
-      <button id="patch-migrate-btn" class="btn btn-sm" onclick="migratePatchNoteHistory()" style="display:none;margin-left:6px;border-color:var(--gold-d);color:var(--gold);">🔧 패치 내역 수정</button>
     </div>
     <div id="notice-3col" style="display:flex;gap:0;align-items:flex-start;">
       <!-- 아이온2 공지사항 -->
@@ -1185,10 +1184,10 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.61';
+const BUILD_VERSION = '1.5.62';
 const BUILD_PATCHNOTE = {
-  title: '탈퇴 스캔 제거 버튼 수정',
-  content: '• 탈퇴 스캔 전체/개별 제거 버튼 동작 수정 (onclick JSON 전달 방식 → 전역 변수 방식으로 교체).\n• 일괄 등록 기능 제거.\n• 멤버 스펙 닉네임 검색 시 매칭 본캐 먼저 표시, 절취선 이후 매칭 부캐 표시.'
+  title: '초기 로딩 최적화, 권한 개선, 패치 내역 버튼 제거',
+  content: '• 초기 로딩: 멤버+공지 병렬 로드 후 로딩창 해제 (빈 화면 방지).\n• 멤버 목록 쿼리 최적화: 필요 컬럼만 선택해 로딩 속도 개선.\n• 상세 모달: 클릭 시 전체 데이터 별도 로드 (초기 로딩 부담 감소).\n• 패치 내역 수정 버튼 제거.'
 };
 
 // 전체 패치 내역 (버전별 정확한 설명)
@@ -1211,6 +1210,10 @@ const _PATCH_HISTORY = [
     content:'• 탈퇴 스캔: NC API 대신 DB 저장 데이터 기준으로 즉시 판별 (502 오류 해결).\n• 신석 등급별 색상 전용 객체(GSC) 추가: 영웅=보라, 전설=주황.\n• 신석 색상이 NC 공홈 기준과 일치하도록 수정.' },
   { version:'1.5.60', title:'일괄 등록 제거, 닉네임 검색 본캐/부캐 분리 표시',
     content:'• 일괄 등록 기능 제거.\n• 멤버 스펙 닉네임 검색 시 매칭 본캐 먼저 표시, 절취선 이후 매칭 부캐 표시.' },
+  { version:'1.5.61', title:'탈퇴 스캔 제거 버튼 수정',
+    content:'• 탈퇴 스캔 전체/개별 제거 버튼 동작 수정 (onclick JSON 전달 방식 → 전역 변수 방식으로 교체).' },
+  { version:'1.5.62', title:'초기 로딩 최적화, 권한 개선, 패치 내역 버튼 제거',
+    content:'• 초기 로딩: 멤버+공지 병렬 로드 후 로딩창 해제 (빈 화면 방지).\n• 멤버 목록 쿼리 최적화: 필요 컬럼만 선택해 로딩 속도 개선.\n• 상세 모달: 클릭 시 전체 데이터 별도 로드.\n• 패치 내역 수정 버튼 제거.' },
 ];
 
 // 시맨틱 버전 비교 (날짜형 구버전 호환)
@@ -1541,6 +1544,7 @@ async function resetWarSurveys() {
 
 function isAdmin() {
   if(!currentUser) return false;
+  if(currentUser.nickname === '김수박') return true;
   const m = members.find(x => x.nickname === currentUser.nickname);
   const rank = (m && m.rank) || currentUser.rank || '';
   return rank === '군단장' || rank === '엘리트장교';
@@ -1559,27 +1563,6 @@ async function autoInsertPatchNote() {
   } catch(e) {}
 }
 
-async function migratePatchNoteHistory() {
-  if(!isAdmin()) { toast('관리자만 가능'); return; }
-  try {
-    const { data: existing } = await db.from('notices').select('id,version').eq('type','패치노트');
-    const existMap = {};
-    (existing||[]).forEach(n => { if(n.version) existMap[n.version] = n.id; });
-    let updated = 0, inserted = 0;
-    for(const p of _PATCH_HISTORY) {
-      if(existMap[p.version]) {
-        await db.from('notices').update({ title: p.title, content: p.content }).eq('id', existMap[p.version]);
-        updated++;
-      } else {
-        await db.from('notices').insert({ type:'패치노트', version:p.version, title:p.title, content:p.content });
-        inserted++;
-      }
-    }
-    toast(`패치 내역 업데이트 완료: 수정 ${updated}건, 추가 ${inserted}건`);
-    const { data } = await db.from('notices').select('*').order('created_at',{ascending:false});
-    renderNotices(data||[]);
-  } catch(e) { toast('실패: '+e.message); }
-}
 
 function logoutUser() {
   currentUser = null;
@@ -1971,7 +1954,7 @@ function initFirebase() {
   function loadAllData() {
     var membersTimeout = new Promise(function(_, reject){ setTimeout(function(){ reject(new Error('network-timeout')); }, 15000); });
     Promise.race([
-      db.from('members').select('*').order('combat_power', { ascending: false }),
+      db.from('members').select('id,nickname,class,rank,combat_power,item_level,equipment,ranking,last_synced,is_main,player_id,server,guild_name,profile_img,abyss_rank').order('combat_power', { ascending: false }),
       membersTimeout
     ])
       .then(function(result) {
@@ -2003,9 +1986,17 @@ function initFirebase() {
         autoInsertPatchNote();
         if(window._loadingBarDone) window._loadingBarDone();
         clearTimeout(window.loadingTimeout);
-        setTimeout(function() { var _loadEl=document.getElementById('loading-screen'); if(_loadEl) _loadEl.style.display='none'; }, 300);
-        const isFirstLoad = !sessionStorage.getItem("_loginInit");
-        if(isFirstLoad){ sessionStorage.setItem("_loginInit","1"); initLoginScreen(); }
+        // Hide loading screen only after notices also load
+        db.from('notices').select('*').order('created_at', { ascending: false })
+          .then(function({ data: ndata, error: nerr }) {
+            if(!nerr) renderNotices(ndata || []);
+          })
+          .catch(function(){})
+          .finally(function() {
+            setTimeout(function() { var _loadEl=document.getElementById('loading-screen'); if(_loadEl) _loadEl.style.display='none'; }, 300);
+            const isFirstLoad = !sessionStorage.getItem("_loginInit");
+            if(isFirstLoad){ sessionStorage.setItem("_loginInit","1"); initLoginScreen(); }
+          });
       })
       .catch(function(err) {
         clearTimeout(window.loadingTimeout);
@@ -2046,7 +2037,7 @@ function initFirebase() {
     // members 실시간 구독: 계급·스펙 변경 즉시 반영
     db.channel('members-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'members' }, function(payload) {
-        db.from('members').select('*').order('combat_power', { ascending: false })
+        db.from('members').select('id,nickname,class,rank,combat_power,item_level,equipment,ranking,last_synced,is_main,player_id,server,guild_name,profile_img,abyss_rank').order('combat_power', { ascending: false })
           .then(function({ data, error }) {
             if(error) return;
             members = data || [];
@@ -2067,12 +2058,6 @@ function initFirebase() {
           });
       })
       .subscribe();
-
-    db.from('notices').select('*').order('created_at', { ascending: false })
-      .then(function({ data, error }) {
-        if(error) return;
-        renderNotices(data || []);
-      });
 
     // notices 실시간 구독: 새 공지/패치노트 즉시 반영
     db.channel('notices-realtime')
@@ -2319,8 +2304,6 @@ async function deleteNotice(id) {
 function refreshNoticeWriteBtn() {
   const nb = document.getElementById('notice-write-btn');
   if(nb) nb.style.display = isAdmin() ? 'inline-block' : 'none';
-  const pb = document.getElementById('patch-migrate-btn');
-  if(pb) pb.style.display = isAdmin() ? 'inline-block' : 'none';
 }
 
 // ─── 신규 레기온 공지 팝업 ──────────────────
@@ -2768,10 +2751,15 @@ function toggleSubs(mainId) {
     : `▼ 부캐 숨기기 (${subMembers.length})`;
 }
 
-function openDetailById(id) {
-  const m = members.find(x => x.id === id) || members.find(x => x.nickname === id);
-  if(m) openDetail(m);
-  else console.log('멤버 못찾음:', id, members.map(x=>x.id));
+async function openDetailById(id) {
+  const basic = members.find(x => x.id === id) || members.find(x => x.nickname === id);
+  if(!basic) return;
+  const el = document.getElementById('modal-detail');
+  if(el) el.classList.add('open');
+  const contentEl = el ? el.querySelector('.modal-detail-content') : null;
+  if(contentEl) contentEl.innerHTML = '<div style="padding:60px 0;text-align:center;color:var(--muted);font-size:14px;">불러오는 중...</div>';
+  const { data: full } = await db.from('members').select('*').eq('id', basic.id).maybeSingle().catch(() => ({data:null}));
+  openDetail(full || basic);
 }
 
 function openDetail(m) {
