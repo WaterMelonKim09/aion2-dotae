@@ -156,9 +156,9 @@
   .legend { display:flex; flex-direction:column; gap:4px; flex:1; min-width:120px; }
   .leg-item { display:flex; align-items:center; gap:6px; padding:4px 8px; border-radius:6px; }
   .leg-dot  { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
-  .leg-name { font-size:12px; flex:1; min-width:0; }
-  .leg-cnt  { font-size:12px; font-weight:600; color:var(--gold-l); white-space:nowrap; }
-  .leg-pct  { font-size:11px; color:var(--muted); min-width:28px; text-align:right; white-space:nowrap; }
+  .leg-name { font-size:12px; white-space:nowrap; }
+  .leg-cnt  { font-size:12px; font-weight:600; color:var(--gold-l); white-space:nowrap; margin-left:auto; padding-left:8px; }
+  .leg-pct  { font-size:11px; color:var(--muted); white-space:nowrap; min-width:28px; text-align:right; }
 
   /* 뷰 토글 */
   .view-toggle { display:flex; gap:3px; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:3px; }
@@ -1005,7 +1005,7 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.48';
+const BUILD_VERSION = '1.5.49';
 const BUILD_PATCHNOTE = {
   title: 'NC 아이온2 공지사항 파싱 수정',
   content: '• noticesList[].articleMeta 구조 파싱 적용.\n• 아이온2 공홈 공지사항 정상 표시.'
@@ -2159,6 +2159,7 @@ async function loadNcNotices(force) {
     _ncNoticeLastIds = newIds;
     _ncLastSnowId = data.lastSnowId || 0;
     _ncInitialSnowId = _ncLastSnowId;
+    console.log('[NC공지] lastSnowId=', _ncLastSnowId, 'hasMore=', data.hasMore, 'count=', list.length);
     _ncNoticeLoaded = true;
     if(btn) { btn.disabled = false; btn.style.opacity = ''; btn.textContent = '↺'; }
     const moreBtnHtml = data.hasMore
@@ -2176,8 +2177,10 @@ async function loadMoreNcNotices() {
   const btnArea = document.getElementById('nc-notice-btn-area');
   if(btnArea) btnArea.innerHTML = '<button disabled style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;">불러오는 중...</button>';
   try {
+    console.log('[NC공지 더보기] prevId=', _ncLastSnowId);
     const r = await fetch('/api/ncnotice?prevId=' + _ncLastSnowId);
     const data = await r.json();
+    console.log('[NC공지 더보기] 응답:', data.notices?.length, '개, hasMore=', data.hasMore, 'lastSnowId=', data.lastSnowId, '_err=', data._err);
     const list = data.notices || [];
     if(!list.length) { if(btnArea) btnArea.innerHTML = '<button onclick="collapseNcNotices()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;">▲ 접기</button>'; return; }
     _ncLastSnowId = data.lastSnowId || _ncLastSnowId;
@@ -2236,6 +2239,7 @@ async function loadNcUpdates(force) {
     _ncUpdateLastIds = newIds;
     _ncUpdateLastSnowId = data.lastSnowId || 0;
     _ncUpdateInitialSnowId = _ncUpdateLastSnowId;
+    console.log('[NC업데이트] lastSnowId=', _ncUpdateLastSnowId, 'hasMore=', data.hasMore, 'count=', list.length);
     _ncUpdateLoaded = true;
     if(btn) { btn.disabled = false; btn.style.opacity = ''; btn.textContent = '↺'; }
     const moreBtnHtml2 = data.hasMore
@@ -2253,8 +2257,10 @@ async function loadMoreNcUpdates() {
   const btnArea = document.getElementById('nc-update-btn-area');
   if(btnArea) btnArea.innerHTML = '<button disabled style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;">불러오는 중...</button>';
   try {
+    console.log('[NC업데이트 더보기] prevId=', _ncUpdateLastSnowId);
     const r = await fetch('/api/ncupdate?prevId=' + _ncUpdateLastSnowId);
     const data = await r.json();
+    console.log('[NC업데이트 더보기] 응답:', data.notices?.length, '개, hasMore=', data.hasMore, 'lastSnowId=', data.lastSnowId, '_err=', data._err);
     const list = data.notices || [];
     if(!list.length) { if(btnArea) btnArea.innerHTML = '<button onclick="collapseNcUpdates()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;">▲ 접기</button>'; return; }
     _ncUpdateLastSnowId = data.lastSnowId || _ncUpdateLastSnowId;
@@ -2693,7 +2699,7 @@ function openDetail(m) {
         ${godStones.length ? `
           ${ncSec('신석')}
           <div style="padding:8px 20px;">
-            ${godStones.map(s=>{const sc=GC[s.grade]||'#e0c97a';const desc=s.description||s.desc||'';const effects=(s.skillEffectList||s.effectList||[]).map(ef=>`<div style="font-size:11px;color:#aaa;line-height:1.6;">${ef.description||ef.desc||ef.name||ef}</div>`).join('');return`<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;">${s.icon?`<img src="${s.icon}" style="width:22px;height:22px;border-radius:3px;flex-shrink:0;">`:`<div style="width:22px;height:22px;border-radius:3px;background:${sc}22;flex-shrink:0;"></div>`}<div><div style="font-size:12px;color:${sc};font-weight:600;">${s.name||''}</div>${desc?`<div style="font-size:11px;color:#aaa;line-height:1.6;margin-top:2px;">${desc}</div>`:''}${effects}</div></div>`;}).join('')}
+            ${godStones.map(s=>{const desc=s.description||s.desc||'';const effects=(s.skillEffectList||s.effectList||[]).map(ef=>`<div style="font-size:11px;color:#aaa;line-height:1.6;">${ef.description||ef.desc||ef.name||ef}</div>`).join('');return`<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;">${s.icon?`<img src="${s.icon}" style="width:22px;height:22px;border-radius:3px;flex-shrink:0;">`:`<div style="width:22px;height:22px;border-radius:3px;background:#7ab8d822;flex-shrink:0;"></div>`}<div><div style="font-size:12px;color:#7ab8d8;font-weight:600;">${s.name||''}</div>${desc?`<div style="font-size:11px;color:#aaa;line-height:1.6;margin-top:2px;">${desc}</div>`:''}${effects}</div></div>`;}).join('')}
           </div>` : ''}
 
         <!-- 세트 효과 + 획득처 -->
