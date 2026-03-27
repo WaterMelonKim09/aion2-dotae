@@ -1196,7 +1196,7 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.79';
+const BUILD_VERSION = '1.5.80';
 const BUILD_PATCHNOTE = {
   title: '장비 상세 팝업 hang 수정',
   content: '• fetch + res.json() 전체 구간 타임아웃 커버 (기존 clearTimeout 위치 오류 수정).\n• 렌더링 에러 try-catch 추가 — 어떤 경우에도 "불러오는 중..." 으로 굳지 않도록 처리.'
@@ -3210,7 +3210,7 @@ function openDetail(m) {
         ${godStones.length ? `
           ${ncSec('신석')}
           <div style="padding:8px 20px;">
-            ${godStones.map(s=>{const rawDesc=s.description||s.desc||'';const desc=rawDesc.replace(/<[^>]*>/g,'');const sc=gradeColors[s.grade]||gradeColors[s.gradeName]||'#e0c97a';const effects=(s.skillEffectList||s.effectList||[]).map(ef=>`<div style="font-size:11px;color:#aaa;line-height:1.6;">${ef.description||ef.desc||ef.name||ef}</div>`).join('');return`<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;">${s.icon?`<img src="${s.icon}" style="width:22px;height:22px;border-radius:3px;flex-shrink:0;background:var(--surface);animation:imgPulse 1.5s ease infinite;" onload="_imgLoad(this)" onerror="_imgErr(this)">`:`<div style="width:22px;height:22px;border-radius:3px;background:${sc}22;flex-shrink:0;"></div>`}<div><div style="font-size:12px;color:${sc};font-weight:600;">${s.name||''}</div>${desc?`<div style="font-size:11px;color:#aaa;line-height:1.6;margin-top:2px;">${desc}</div>`:''}${effects}</div></div>`;}).join('')}
+            ${godStones.map(s=>{const rawDesc=s.description||s.desc||'';const desc=rawDesc.replace(/<[^>]*>/g,'');const sc=GC[s.grade]||GC[s.gradeName]||'#e0c97a';const effects=(s.skillEffectList||s.effectList||[]).map(ef=>`<div style="font-size:11px;color:#aaa;line-height:1.6;">${ef.description||ef.desc||ef.name||ef}</div>`).join('');return`<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;">${s.icon?`<img src="${s.icon}" style="width:22px;height:22px;border-radius:3px;flex-shrink:0;background:var(--surface);animation:imgPulse 1.5s ease infinite;" onload="_imgLoad(this)" onerror="_imgErr(this)">`:`<div style="width:22px;height:22px;border-radius:3px;background:${sc}22;flex-shrink:0;"></div>`}<div><div style="font-size:12px;color:${sc};font-weight:600;">${s.name||''}</div>${desc?`<div style="font-size:11px;color:#aaa;line-height:1.6;margin-top:2px;">${desc}</div>`:''}${effects}</div></div>`;}).join('')}
           </div>` : ''}
 
         <!-- 세트 효과 + 획득처 -->
