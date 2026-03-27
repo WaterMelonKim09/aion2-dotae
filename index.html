@@ -70,7 +70,7 @@
   tr:hover td { background:rgba(201,147,42,.04); }
 
   /* 직업 배지 */
-  .cls { font-size:12px; padding:3px 8px; border-radius:4px; white-space:nowrap; min-width:80px; display:inline-flex; align-items:center; justify-content:flex-start; gap:4px; line-height:1; }
+  .cls { font-size:12px; padding:3px 8px; border-radius:4px; white-space:nowrap; min-width:80px; display:inline-flex; align-items:center; justify-content:flex-start; gap:1px; line-height:1; }
   .cls img { margin-top:0 !important; vertical-align:unset !important; }
   /* 아이온2 8개 직업 배지 */
   .cls-검성   { background:#1a2a30; color:#7ab8cc; border:1px solid #7ab8cc55; }
@@ -93,6 +93,10 @@
   .rank-총사령관,.rank-사령관,.rank-대장군,.rank-장군 { background:linear-gradient(135deg,#002a1a,#003a22); color:var(--gold-l); border:1px solid var(--gold-d); font-weight:700; }
   .rank-5성장교,.rank-4성장교,.rank-3성장교,.rank-2성장교,.rank-1성장교 { background:linear-gradient(135deg,#141a2e,#1a2238); color:#7aacec; border:1px solid #2a3a6a; font-weight:600; }
   .rank-1급병,.rank-2급병,.rank-3급병,.rank-4급병,.rank-5급병,.rank-6급병,.rank-7급병,.rank-8급병,.rank-9급병,.rank-훈련병 { background:#181818; color:#8a8a9a; border:1px solid #2a2a3a; }
+  /* 현행 3단계 계급 */
+  .rank-군단장 { background:linear-gradient(135deg,#2a1a00,#3a2600); color:#ffd966; border:1px solid #b8860b; font-weight:700; letter-spacing:0.5px; }
+  .rank-엘리트장교 { background:linear-gradient(135deg,#141a2e,#1a2238); color:#a0c4f0; border:1px solid #3a5080; font-weight:600; }
+  .rank-군단병 { background:#181818; color:#7a7a8a; border:1px solid #2a2a3a; }
 
   /* 필터 */
   .filter-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
@@ -643,7 +647,13 @@
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">닉네임 *</label>
-            <input class="form-input" id="reg-name" placeholder="인게임 닉네임">
+            <div style="position:relative;">
+              <input class="form-input" id="reg-name" placeholder="인게임 닉네임" autocomplete="off"
+                oninput="nickPreview(this,'reg-name-drop','reg-name-card')"
+                onblur="setTimeout(function(){var d=document.getElementById('reg-name-drop');if(d)d.style.display='none';},200)">
+              <div id="reg-name-drop" style="display:none;position:absolute;left:0;right:0;top:100%;background:var(--card);border:1px solid var(--border);border-radius:6px;z-index:200;max-height:200px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.4);"></div>
+            </div>
+            <div id="reg-name-card" style="display:none;margin-top:6px;"></div>
           </div>
   <input type="hidden" id="reg-server" value="2001">
         </div>
@@ -664,7 +674,13 @@
         </div>
         <div class="form-group" id="player-id-group" style="display:none;">
           <label class="form-label">본캐 닉네임 *</label>
-          <input class="form-input" id="reg-player-id" placeholder="묶을 본캐의 닉네임 입력">
+          <div style="position:relative;">
+            <input class="form-input" id="reg-player-id" placeholder="묶을 본캐의 닉네임 입력" autocomplete="off"
+              oninput="nickPreview(this,'reg-pid-drop','reg-pid-card')"
+              onblur="setTimeout(function(){var d=document.getElementById('reg-pid-drop');if(d)d.style.display='none';},200)">
+            <div id="reg-pid-drop" style="display:none;position:absolute;left:0;right:0;top:100%;background:var(--card);border:1px solid var(--border);border-radius:6px;z-index:200;max-height:200px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.4);"></div>
+          </div>
+          <div id="reg-pid-card" style="display:none;margin-top:6px;"></div>
           <div style="font-size:11px;color:var(--muted);margin-top:4px;">부캐를 묶을 본캐 닉네임을 입력해주세요</div>
         </div>
         
@@ -796,7 +812,13 @@
     </select>
     <div id="player-id-group" style="display:none;margin-top:8px;">
       <label class="form-label" style="font-size:11px;margin-bottom:4px;">본캐 닉네임</label>
-      <input class="form-input" id="edit-player-id" placeholder="본캐 닉네임">
+      <div style="position:relative;">
+        <input class="form-input" id="edit-player-id" placeholder="본캐 닉네임" autocomplete="off"
+          oninput="nickPreview(this,'edit-pid-drop','edit-pid-card')"
+          onblur="setTimeout(function(){var d=document.getElementById('edit-pid-drop');if(d)d.style.display='none';},200)">
+        <div id="edit-pid-drop" style="display:none;position:absolute;left:0;right:0;top:100%;background:var(--card);border:1px solid var(--border);border-radius:6px;z-index:200;max-height:200px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.4);"></div>
+      </div>
+      <div id="edit-pid-card" style="display:none;margin-top:6px;"></div>
     </div>
     </div>
     <div class="form-group"><label class="form-label">등급 변경</label>
@@ -807,7 +829,7 @@
     <div class="modal-foot">
       <button class="btn" onclick="closeModal('modal-edit')">취소</button>
       <button class="btn btn-danger" onclick="deleteMember()">삭제</button>
-      <button class="btn btn-primary" onclick="saveManual()">저장</button>
+      <button class="btn btn-primary" onclick="updateMember()">저장</button>
     </div>
  
 <script>
@@ -898,10 +920,10 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.16';
+const BUILD_VERSION = '1.5.17';
 const BUILD_PATCHNOTE = {
-  title: '모바일 헤더 레이아웃 재설계',
-  content: '• 로고 텍스트가 세로로 꺾이던 문제 수정.\n• 버전 정보가 시스템 업데이트 버튼 하단에 작게 표시.\n• 프로필·로그아웃 버튼이 한 줄에 정상적으로 배치.'
+  title: '멤버 관리 버그픽스 + UI 개선',
+  content: '• 멤버 관리에서 등급 변경 저장 시 "닉네임 입력" 팝업 뜨던 버그 수정.\n• 멤버 관리에서 부캐 선택 시 본캐 닉네임 입력 칸 정상 표시.\n• 등록/관리 닉네임 입력 칸 자동완성 드롭다운 추가.\n• 헤더 계급 표기를 멤버 스펙 DB 기준으로 통일.\n• 군단장/엘리트장교/군단병 계급 배지 색상 차별화.\n• 직업 엠블럼과 직업명 간격 축소.'
 };
 
 // 시맨틱 버전 비교 (날짜형 구버전 호환)
@@ -1355,9 +1377,9 @@ function applyLogin() {
   if(ub) { ub.style.display = 'flex'; }
   if(lo) lo.style.display = '';
   if(nk) nk.textContent = currentUser.nickname;
-  if(rk) rk.textContent = currentUser.rank || '군단병';
   if(av) {
     var m2 = members.find(function(x){ return x.id===currentUser.id; });
+    if(rk) rk.textContent = (m2&&m2.rank) || currentUser.rank || '군단병';
     var cls = CLASS_MAP[(m2||currentUser).class]||(m2||currentUser).class||'';
     av.innerHTML = (m2&&m2.profile_img)
       ? '<img src="'+m2.profile_img+'" style="width:100%;height:100%;object-fit:cover;">'
@@ -1805,11 +1827,11 @@ function refreshHeaderUser() {
   var nk = document.getElementById('header-nick');
   var rk = document.getElementById('header-rank');
   if(nk) nk.textContent = currentUser.nickname;
-  if(rk) rk.textContent = currentUser.rank || '군단병';
   var av = document.getElementById('header-avatar');
   if(av) {
     var m2 = members.find(function(x){ return x.id===currentUser.id; })
            || members.find(function(x){ return x.nickname===currentUser.nickname; });
+    if(rk) rk.textContent = (m2&&m2.rank) || currentUser.rank || '군단병';
     av.innerHTML = (m2&&m2.profile_img)
       ? '<img src="'+m2.profile_img+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">'
       : '<span style="font-size:16px;">👤</span>';
@@ -2773,7 +2795,7 @@ function renderMembers() {
       <td style="white-space:nowrap;vertical-align:middle;">${syncBtn}${lastSync}</td>
       <td style="white-space:nowrap;vertical-align:middle;">
         <button class="btn btn-sm" onclick="openDetailById('${mId}')" style="font-size:11px;">상세</button>
-        <button class="btn btn-sm" onclick="openEdit('${m.id}','${m.rank||'군단병'}')">관리</button>
+        <button class="btn btn-sm" onclick="openEdit('${m.id}','${m.rank||'군단병'}',${m.is_main===false?'false':'true'},'${(m.player_id||'').replace(/'/g,&quot;\\'&quot;)}')">관리</button>
       </td>
     </tr>`;
   };
@@ -2965,9 +2987,14 @@ async function deleteMember() {
   closeModal('modal-edit'); toast('멤버 삭제 완료');
 }
 async function updateMember() {
-  const id=document.getElementById('edit-id').value, rank=document.getElementById('edit-rank').value;
-  await db.from('members').update({ rank }).eq('id', id);
-  closeModal('modal-edit'); toast('등급 변경 완료 ✓');
+  const id = document.getElementById('edit-id').value;
+  const rank = document.getElementById('edit-rank').value;
+  const isMain = (document.getElementById('edit-is-main')||{value:'true'}).value === 'true';
+  const playerId = ((document.getElementById('edit-player-id')||{value:''}).value||'').trim();
+  const updates = { rank, is_main: isMain };
+  if(!isMain && playerId) updates.player_id = playerId;
+  await db.from('members').update(updates).eq('id', id);
+  closeModal('modal-edit'); toast('변경 완료 ✓');
 }
 async function saveRecruit() {
   const title=document.getElementById('m-title').value.trim(), author=document.getElementById('m-author').value.trim();
@@ -3253,7 +3280,17 @@ function togglePlayerIdField(val) {
   var g = document.getElementById('player-id-group');
   if(g) g.style.display = val==='false' ? '' : 'none';
 }
-function openEdit(id,rank) { document.getElementById('edit-id').value=id; document.getElementById('edit-rank').value=rank; openModal('edit'); }
+function openEdit(id,rank,isMain,playerId) {
+  document.getElementById('edit-id').value=id;
+  document.getElementById('edit-rank').value=rank;
+  var isMainStr = (isMain===false||isMain==='false') ? 'false' : 'true';
+  var isMainEl = document.getElementById('edit-is-main');
+  if(isMainEl) isMainEl.value = isMainStr;
+  var pidEl = document.getElementById('edit-player-id');
+  if(pidEl) pidEl.value = playerId||'';
+  togglePlayerIdField(isMainStr);
+  openModal('edit');
+}
 function setFilter(cls,el) { mFilter=cls; document.querySelectorAll('#tab-members .chip').forEach(c=>c.classList.remove('active')); el.classList.add('active'); renderMembers(); }
 function setRFilter(t,el) { rFilter=t; document.querySelectorAll('#tab-recruit .chip').forEach(c=>c.classList.remove('active')); el.classList.add('active'); renderRecruit(); }
 
