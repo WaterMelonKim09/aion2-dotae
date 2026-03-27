@@ -23,39 +23,50 @@ export async function onRequest(context) {
     'Sec-Fetch-Site': 'same-site',
   };
 
-  const endpoint = 'https://api-community.plaync.com/aion2/board/notice_ko/noticeArticle?pageSize=20&page=1';
+  // 일반 공지 목록 (moreArticle) + 상단 고정 공지 (noticeArticle)
+  const moreEndpoint = 'https://api-community.plaync.com/aion2/board/notice_ko/article/search/moreArticle?isVote=true&moreSize=20&moreDirection=BEFORE&previousArticleId=0';
+  const pinnedEndpoint = 'https://api-community.plaync.com/aion2/board/notice_ko/noticeArticle';
 
   if (debug) {
-    try {
-      const r = await fetch(endpoint, { headers });
-      const text = await r.text();
-      let parsed = null;
-      try { parsed = JSON.parse(text); } catch(e) {}
-      return new Response(JSON.stringify({ notices: [], debug: [{ url: endpoint, status: r.status, ok: r.ok, isJson: !!parsed, keys: parsed ? Object.keys(parsed) : null, preview: text.slice(0, 800) }] }), { status: 200, headers: corsHeaders });
-    } catch(e) {
-      return new Response(JSON.stringify({ notices: [], debug: [{ url: endpoint, error: e.message }] }), { status: 200, headers: corsHeaders });
+    const results = [];
+    for (const ep of [moreEndpoint, pinnedEndpoint]) {
+      try {
+        const r = await fetch(ep, { headers });
+        const text = await r.text();
+        let parsed = null;
+        try { parsed = JSON.parse(text); } catch(e) {}
+        results.push({ url: ep, status: r.status, ok: r.ok, isJson: !!parsed, keys: parsed ? Object.keys(parsed) : null, preview: text.slice(0, 600) });
+      } catch(e) {
+        results.push({ url: ep, error: e.message });
+      }
     }
+    return new Response(JSON.stringify({ notices: [], debug: results }), { status: 200, headers: corsHeaders });
   }
 
   try {
-    const r = await fetch(endpoint, { headers });
+    const r = await fetch(moreEndpoint, { headers });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const data = await r.json();
 
-    // 응답 구조: { noticesList: [ { articleMeta: { id, title, ... } } ] }
-    const rawList = data?.noticesList || [];
+    // moreArticle 응답 구조 파악 (articleList, list, articles, items 등 시도)
+    const rawList = data?.articleList || data?.list || data?.articles || data?.items
+      || (Array.isArray(data) ? data : null) || [];
+
+    if (!Array.isArray(rawList) || rawList.length === 0) {
+      throw new Error('빈 목록: ' + JSON.stringify(Object.keys(data || {})));
+    }
 
     const notices = rawList.slice(0, 20).map(item => {
       const m = item?.articleMeta || item;
-      const id = m.id || '';
-      const title = m.title || '';
+      const id = m.id || m.articleId || '';
+      const title = m.title || m.subject || '';
       const date = (m.createDate || m.registDate || m.regDate || m.date || '').slice(0, 10).replace(/-/g, '.');
       const articleUrl = `https://aion2.plaync.com/ko-kr/board/notice/view?articleId=${id}`;
       const category = m.categoryName || m.category || '';
       return { id, title, date, url: articleUrl, category };
     }).filter(n => n.title);
 
-    return new Response(JSON.stringify({ notices, _src: endpoint }), { status: 200, headers: corsHeaders });
+    return new Response(JSON.stringify({ notices, _src: moreEndpoint }), { status: 200, headers: corsHeaders });
   } catch(e) {
     return new Response(JSON.stringify({ notices: [], _err: e.message }), { status: 200, headers: corsHeaders });
   }

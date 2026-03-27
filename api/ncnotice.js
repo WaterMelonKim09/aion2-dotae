@@ -14,38 +14,45 @@ module.exports = async function handler(req, res) {
     'Sec-Fetch-Site': 'same-site',
   };
 
-  const endpoint = 'https://api-community.plaync.com/aion2/board/notice_ko/noticeArticle?pageSize=20&page=1';
+  const moreEndpoint = 'https://api-community.plaync.com/aion2/board/notice_ko/article/search/moreArticle?isVote=true&moreSize=20&moreDirection=BEFORE&previousArticleId=0';
+  const pinnedEndpoint = 'https://api-community.plaync.com/aion2/board/notice_ko/noticeArticle';
 
   if (req.query.debug === '1') {
-    try {
-      const r = await fetch(endpoint, { headers });
-      const text = await r.text();
-      let parsed = null; try { parsed = JSON.parse(text); } catch(e) {}
-      return res.status(200).json({ notices: [], debug: [{ url: endpoint, status: r.status, ok: r.ok, isJson: !!parsed, keys: parsed ? Object.keys(parsed) : null, preview: text.slice(0, 800) }] });
-    } catch(e) {
-      return res.status(200).json({ notices: [], debug: [{ url: endpoint, error: e.message }] });
+    const results = [];
+    for (const ep of [moreEndpoint, pinnedEndpoint]) {
+      try {
+        const r = await fetch(ep, { headers });
+        const text = await r.text();
+        let parsed = null; try { parsed = JSON.parse(text); } catch(e) {}
+        results.push({ url: ep, status: r.status, ok: r.ok, isJson: !!parsed, keys: parsed ? Object.keys(parsed) : null, preview: text.slice(0, 600) });
+      } catch(e) { results.push({ url: ep, error: e.message }); }
     }
+    return res.status(200).json({ notices: [], debug: results });
   }
 
   try {
-    const r = await fetch(endpoint, { headers });
+    const r = await fetch(moreEndpoint, { headers });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const data = await r.json();
 
-    // 응답 구조: { noticesList: [ { articleMeta: { id, title, ... } } ] }
-    const rawList = data?.noticesList || [];
+    const rawList = data?.articleList || data?.list || data?.articles || data?.items
+      || (Array.isArray(data) ? data : null) || [];
+
+    if (!Array.isArray(rawList) || rawList.length === 0) {
+      throw new Error('빈 목록: ' + JSON.stringify(Object.keys(data || {})));
+    }
 
     const notices = rawList.slice(0, 20).map(item => {
       const m = item?.articleMeta || item;
-      const id = m.id || '';
-      const title = m.title || '';
+      const id = m.id || m.articleId || '';
+      const title = m.title || m.subject || '';
       const date = (m.createDate || m.registDate || m.regDate || m.date || '').slice(0, 10).replace(/-/g, '.');
       const articleUrl = `https://aion2.plaync.com/ko-kr/board/notice/view?articleId=${id}`;
       const category = m.categoryName || m.category || '';
       return { id, title, date, url: articleUrl, category };
     }).filter(n => n.title);
 
-    return res.status(200).json({ notices, _src: endpoint });
+    return res.status(200).json({ notices, _src: moreEndpoint });
   } catch(e) {
     return res.status(200).json({ notices: [], _err: e.message });
   }
