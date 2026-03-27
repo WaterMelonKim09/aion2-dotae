@@ -926,7 +926,9 @@ function loginNicknameInput(val) {
 
 function selectLoginNick(nick) {
   var ni = document.getElementById('login-nickname');
-  if(ni) { ni.value = nick; loginNicknameInput(nick); }
+  if(ni) ni.value = nick;
+  var preview = document.getElementById('login-preview');
+  if(preview) preview.style.display = 'none';
 }
 
 function setFirebaseStatus(state, errCode) {
@@ -1494,7 +1496,7 @@ function openMyProfile() {
       ${m?.profile_img?`<img src="${m.profile_img}" style="width:64px;height:64px;border-radius:50%;border:2px solid var(--gold-d);flex-shrink:0;object-fit:cover;">`:`<div style="width:64px;height:64px;border-radius:50%;background:var(--card);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;">👤</div>`}
       <div style="flex:1;">
         <div style="font-size:20px;font-weight:700;">${currentUser.nickname}</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:3px;">${cls?`${CLS_ICON[cls]||''} ${cls} \u00b7 `:''}${currentUser.rank||'\uacc4\uae09 \uc5c6\uc74c'}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:3px;">${cls?`${CLS_ICON[cls]||''} ${cls} \u00b7 `:''}${m?.rank || currentUser.rank||'\uacc4\uae09 \uc5c6\uc74c'}</div>
         ${m?.intro?`<div style="font-size:13px;color:var(--text);margin-top:6px;padding:8px;background:var(--card);border-radius:6px;">${m.intro}</div>`:''}
       </div>
       ${m?`<div style="display:flex;gap:10px;flex-shrink:0;">
@@ -1551,6 +1553,19 @@ function openMyProfile() {
   `;
 
   openModal('modal-myprofile');
+}
+
+function switchMyTab(tab) {
+  ['recruits','applies','comments'].forEach(function(t) {
+    var panel = document.getElementById('my-'+t);
+    var btn = document.getElementById('mytab-'+t);
+    if(!panel || !btn) return;
+    var active = t === tab;
+    panel.style.display = active ? '' : 'none';
+    btn.style.color = active ? 'var(--gold-l)' : 'var(--muted)';
+    btn.style.borderBottom = active ? '2px solid var(--gold)' : '2px solid transparent';
+    btn.style.fontWeight = active ? '600' : 'normal';
+  });
 }
 
 
