@@ -1109,7 +1109,7 @@
 function loginNicknameInput(val) {
   var preview = document.getElementById('login-preview');
   if(!val.trim()) { preview.style.display='none'; return; }
-  var matches = members.filter(function(m){ return m.is_main!==false && m.nickname.indexOf(val) === 0; });
+  var matches = members.filter(function(m){ return _isMain(m) && m.nickname.indexOf(val) === 0; });
   if(!matches.length) { preview.style.display='none'; return; }
   preview.style.display='block';
   preview.innerHTML = matches.slice(0,5).map(function(m){
@@ -1289,10 +1289,10 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.88';
+const BUILD_VERSION = '1.5.89';
 const BUILD_PATCHNOTE = {
-  title: '변동감지 주기 조정 및 토스트 알림 추가',
-  content: '• 버전 체크 주기 60초 → 5초.\n• NC 공지/업데이트 폴링 30초 → 5분.\n• 사이트 새 공지/패치노트 감지 시 토스트 알림 추가.'
+  title: '본캐/부캐 구분 오류 수정 (Turso 마이그레이션 호환)',
+  content: '• Turso 마이그레이션 시 is_main boolean이 문자열로 저장된 버그 수정.\n• 본캐/부캐 절취선 구분 복구.\n• toTurso boolean 처리 추가.'
 };
 
 // 전체 패치 내역 (버전별 정확한 설명)
@@ -1345,6 +1345,8 @@ const _PATCH_HISTORY = [
     content:'• 신석 등급별 색상 수정: 희귀=초록, 유일=파랑, 전승=주황.\n• 새 공지/패치노트 등록 시 팝업 알림 복구.\n• 보스 이름 기반 신석 색상 로직 제거.' },
   { version:'1.5.88', title:'변동감지 주기 조정 및 토스트 알림 추가',
     content:'• 버전 체크 주기 60초 → 5초.\n• NC 공지/업데이트 폴링 30초 → 5분.\n• 사이트 새 공지/패치노트 감지 시 토스트 알림 추가.' },
+  { version:'1.5.89', title:'본캐/부캐 구분 오류 수정 (Turso 마이그레이션 호환)',
+    content:'• Turso 마이그레이션 시 is_main boolean이 문자열로 저장된 버그 수정.\n• 본캐/부캐 절취선 구분 복구.\n• toTurso boolean 처리 추가.' },
 ];
 
 // 시맨틱 버전 비교 (날짜형 구버전 호환)
@@ -1673,6 +1675,10 @@ async function resetWarSurveys() {
   autoInitWarSurvey();
   toast('초기화 완료!');
 }
+
+// is_main이 boolean/integer/string 모두 처리 (Turso TEXT 마이그레이션 호환)
+function _isMain(m) { const v = m.is_main; return v !== false && v !== 0 && v !== 'false'; }
+function _isSub(m)  { const v = m.is_main; return v === false || v === 0 || v === 'false'; }
 
 function isAdmin() {
   if(!currentUser) return false;
@@ -2864,7 +2870,7 @@ function collapseNcUpdates() {
 }
 
 function renderAll() {
-  const mainMembers = members.filter(m => m.is_main !== false);
+  const mainMembers = members.filter(m => _isMain(m));
   const total = mainMembers.length;
   document.getElementById('stat-total').textContent = total;
   document.getElementById('online-badge').style.display='none';
@@ -2966,7 +2972,7 @@ function scanLeaveMembers() {
   const resultEl = document.getElementById('leave-scan-result');
   if(!resultEl) return;
 
-  const targets = members.filter(m => m.is_main !== false);
+  const targets = members.filter(m => _isMain(m));
   if(!targets.length) { toast('등록된 멤버가 없어요'); return; }
 
   _scanLeftList = targets.filter(m => (m.guild_name || '').trim() !== '도태')
@@ -3118,7 +3124,7 @@ function toggleSubs(mainId) {
   const toggle = document.getElementById('sub-toggle-' + mainId);
   const main = members.find(m => m.id === mainId);
   if(!main) return;
-  const subMembers = members.filter(m => m.is_main === false && m.player_id === main.nickname);
+  const subMembers = members.filter(m => _isSub(m) && m.player_id === main.nickname);
   const isOpen = toggle.textContent.includes('▼');
   subMembers.forEach(s => {
     const row = document.getElementById('sub-row-' + s.id);
@@ -3844,7 +3850,7 @@ function cpBar(cp) {
 }
 
 function renderTop5() {
-  const top = [...members].filter(m=>m.is_main!==false).sort((a,b)=>(b.combat_power||0)-(a.combat_power||0)).slice(0,10);
+  const top = [...members].filter(m=>_isMain(m)).sort((a,b)=>(b.combat_power||0)-(a.combat_power||0)).slice(0,10);
   document.getElementById('top10-body').innerHTML = top.length
     ? top.map((m,i)=>`<tr>
         <td style="color:var(--muted);font-weight:600">${i+1}</td>
@@ -3944,7 +3950,7 @@ function renderMembers() {
       <td style="white-space:nowrap;vertical-align:middle;">${syncBtn}${lastSync}</td>
       <td style="white-space:nowrap;vertical-align:middle;">
         <button class="btn btn-sm" onclick="openDetailById('${mId}')" style="font-size:11px;">상세</button>
-        <button class="btn btn-sm" onclick="openEdit('${m.id}','${m.rank||'군단병'}',${m.is_main===false?'false':'true'})">관리</button>
+        <button class="btn btn-sm" onclick="openEdit('${m.id}','${m.rank||'군단병'}',${_isSub(m)?'false':'true'})">관리</button>
       </td>
     </tr>`;
   };
@@ -3958,11 +3964,11 @@ function renderMembers() {
 
   if(mFilter !== 'all') {
     // 직업 필터 활성: 본캐 먼저 → 절취선 → 부캐
-    const mainFiltered = sortMembers(filtered.filter(m => m.is_main !== false));
+    const mainFiltered = sortMembers(filtered.filter(m => _isMain(m)));
     mainFiltered.forEach(main => { rows += rowHTML(main, false, ''); });
 
     const subFiltered = sortMembers(members.filter(m =>
-      m.is_main === false &&
+      _isSub(m) &&
       (CLASS_MAP[m.class]||m.class) === mFilter &&
       (m.nickname||'').toLowerCase().includes(search)
     ));
@@ -3974,12 +3980,12 @@ function renderMembers() {
     if(search) {
       // 검색 키워드 있을 때: 매칭 본캐 → 절취선 → 매칭 부캐
       const mainFiltered = sortMembers(members.filter(m =>
-        m.is_main !== false &&
+        _isMain(m) &&
         (mFilter==='all'||(CLASS_MAP[m.class]||m.class)===mFilter) &&
         (m.nickname||'').toLowerCase().includes(search)
       ));
       const subFiltered = sortMembers(members.filter(m =>
-        m.is_main === false &&
+        _isSub(m) &&
         (mFilter==='all'||(CLASS_MAP[m.class]||m.class)===mFilter) &&
         (m.nickname||'').toLowerCase().includes(search)
       ));
@@ -3990,8 +3996,8 @@ function renderMembers() {
       }
     } else {
       // 전체 + 검색 없음: 본캐 먼저, 본캐 아래 부캐 토글 그룹핑
-      const mains = filtered.filter(m => m.is_main !== false);
-      const subs  = members.filter(m => m.is_main === false);
+      const mains = filtered.filter(m => _isMain(m));
+      const subs  = members.filter(m => _isSub(m));
 
       mains.forEach(main => {
         const mainSubs = subs.filter(s => s.player_id === main.nickname);
@@ -4089,7 +4095,7 @@ function drawPie() {
   if(typeof Chart === 'undefined') { setTimeout(drawPie, 200); return; }
   const counts = {};
   members.forEach(m => {
-    if(m.is_main === false || !m.class) return;
+    if(_isSub(m) || !m.class) return;
     const cls = CLASS_MAP[m.class] || m.class;
     counts[cls] = (counts[cls]||0) + 1;
   });
@@ -4121,7 +4127,7 @@ function drawPie() {
 function renderDistList() {
   const counts = {};
   members.forEach(m => {
-    if(m.is_main !== false && m.class) {
+    if(_isMain(m) && m.class) {
       const cls = CLASS_MAP[m.class] || m.class;
       counts[cls] = (counts[cls]||0) + 1;
     }

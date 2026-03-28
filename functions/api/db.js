@@ -81,6 +81,7 @@ export async function onRequest(context) {
 
 function toTurso(v) {
   if (v === null || v === undefined) return { type: 'null' };
+  if (typeof v === 'boolean') return { type: 'integer', value: v ? '1' : '0' };
   if (typeof v === 'number') {
     if (Number.isInteger(v)) return { type: 'integer', value: String(v) };
     return { type: 'float', value: String(v) };
