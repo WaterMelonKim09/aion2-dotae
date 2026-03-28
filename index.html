@@ -6,7 +6,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>아이온2 도태 — 레기온 관리</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root {
     --bg:#0d0f14; --surface:#151820; --card:#1a1e28; --border:#2a2f3d;
@@ -438,7 +437,7 @@
     <div style="margin-top:12px;text-align:center;">
       <button onclick="gotoRegister()" class="btn btn-sm" style="color:var(--muted);">멤버 등록하러 가기</button>
     </div>
-    <div id="firebase-status" style="margin-top:14px;text-align:center;font-size:12px;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:6px;">
+    <div id="db-status" style="margin-top:14px;text-align:center;font-size:12px;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:6px;">
       <span class="spinner"></span><span>서버 연결 중...</span>
     </div>
   </div>
@@ -1132,8 +1131,8 @@ function selectLoginNick(nick) {
   if(preview) preview.style.display = 'none';
 }
 
-function setFirebaseStatus(state, errCode) {
-  var el = document.getElementById('firebase-status');
+function setDbStatus(state, errCode) {
+  var el = document.getElementById('db-status');
   if(!el) return;
   if(state === 'ok') {
     el.style.display = 'none';
@@ -1148,7 +1147,7 @@ function tryLogin() {
   var ni = document.getElementById('login-nickname');
   var val = (ni ? ni.value : '').trim();
   if(!val) { toast('닉네임을 입력해주세요'); return; }
-  if(!supabaseConnected) { toast('⚠ 서버에 연결할 수 없어요. 새로고침 후 다시 시도해주세요.'); setFirebaseStatus('error'); return; }
+  if(!dbConnected) { toast('⚠ 서버에 연결할 수 없어요. 새로고침 후 다시 시도해주세요.'); setDbStatus('error'); return; }
   var m = members.find(function(x){ return x.nickname === val; });
   if(!m) { toast('등록되지 않은 닉네임이에요. 멤버 등록 후 이용해주세요.'); return; }
   currentUser = { nickname: m.nickname, rank: m.rank||'군단병', id: m.id, class: m.class };
@@ -1166,11 +1165,105 @@ function gotoRegister() {
 }
 
 // ════════════════════════════════════════
-// ✅ Supabase 설정 — 아래 값을 교체하세요!
+// ✅ Turso DB 클라이언트 (Cloudflare Pages proxy 경유)
 // ════════════════════════════════════════
-const SUPABASE_URL      = 'https://kyltdtasbhqjwbaapark.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt5bHRkdGFzYmhxandiYWFwYXJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1MTM3NjQsImV4cCI6MjA5MDA4OTc2NH0.oTqSe1jO1rqXe2H8UHPeeoX2I9Hj3BrJTvs-RY4n2ho';
-const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+(function() {
+  var _EP = '/api/db';
+  function _toSql(v) {
+    if(v === null || v === undefined) return null;
+    if(typeof v === 'object') return JSON.stringify(v);
+    if(typeof v === 'boolean') return v ? 1 : 0;
+    return v;
+  }
+  function _fromRow(row) {
+    var out = {};
+    for(var k in row) {
+      var v = row[k];
+      if(typeof v === 'string' && v.length > 1 && (v[0] === '[' || v[0] === '{')) {
+        try { v = JSON.parse(v); } catch(e) {}
+      }
+      out[k] = v;
+    }
+    return out;
+  }
+  async function _exec(sql, args) {
+    var res = await fetch(_EP, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sql: sql, args: (args || []).map(_toSql) })
+    });
+    if(!res.ok) return { data: null, error: 'HTTP ' + res.status };
+    var r = await res.json();
+    if(r.error) return { data: null, error: r.error };
+    return { data: (r.data || []).map(_fromRow), error: null };
+  }
+  function TursoBuilder(table) {
+    this._t = table; this._op = 'select'; this._cols = '*';
+    this._conds = []; this._orderCol = null; this._orderAsc = true;
+    this._single = false; this._upd = null; this._p = null;
+  }
+  TursoBuilder.prototype.select = function(c) { this._op='select'; this._cols=c||'*'; return this; };
+  TursoBuilder.prototype.eq = function(col, val) { this._conds.push({t:'eq',col:col,val:val}); return this; };
+  TursoBuilder.prototype.not = function(col, op) { this._conds.push({t:'not',col:col,op:op}); return this; };
+  TursoBuilder.prototype.order = function(col, opts) { this._orderCol=col; this._orderAsc=!opts||opts.ascending!==false; return this; };
+  TursoBuilder.prototype.maybeSingle = function() { this._single=true; return this._go(); };
+  TursoBuilder.prototype.update = function(d) { this._op='update'; this._upd=d; return this; };
+  TursoBuilder.prototype.delete = function() { this._op='delete'; return this; };
+  TursoBuilder.prototype.insert = function(d) { return this._doInsert(Array.isArray(d)?d[0]:d); };
+  TursoBuilder.prototype.upsert = function(d) { return this._doUpsert(d); };
+  TursoBuilder.prototype.then = function(res, rej) { return this._go().then(res, rej); };
+  TursoBuilder.prototype.catch = function(fn) { return this._go().catch(fn); };
+  TursoBuilder.prototype._go = function() { if(!this._p) this._p=this._run(); return this._p; };
+  TursoBuilder.prototype._where = function(args) {
+    if(!this._conds.length) return '';
+    var self = this;
+    return ' WHERE ' + this._conds.map(function(c) {
+      if(c.t==='eq') { args.push(c.val); return c.col+' = ?'; }
+      if(c.t==='not'&&c.op==='is') return c.col+' IS NOT NULL';
+      return '1=1';
+    }).join(' AND ');
+  };
+  TursoBuilder.prototype._run = async function() {
+    var self = this, args = [];
+    if(self._op === 'select') {
+      var sql = 'SELECT '+self._cols+' FROM '+self._t+self._where(args);
+      if(self._orderCol) sql += ' ORDER BY '+self._orderCol+(self._orderAsc?' ASC':' DESC');
+      var r = await _exec(sql, args);
+      if(self._single) return { data: (r.data&&r.data.length>0)?r.data[0]:null, error: r.error };
+      return r;
+    }
+    if(self._op === 'update') {
+      var cols = Object.keys(self._upd);
+      args = cols.map(function(c){ return self._upd[c]; });
+      var sql = 'UPDATE '+self._t+' SET '+cols.map(function(c){ return c+' = ?'; }).join(', ')+self._where(args);
+      return _exec(sql, args);
+    }
+    if(self._op === 'delete') {
+      var sql = 'DELETE FROM '+self._t+self._where(args);
+      return _exec(sql, args);
+    }
+    return { data: null, error: 'unknown op' };
+  };
+  TursoBuilder.prototype._doInsert = function(d) {
+    var t = this._t;
+    var rec = Object.assign({}, d);
+    if(rec.id === undefined && t !== 'members' && t !== 'boss_timers' && t !== 'config') {
+      rec.id = crypto.randomUUID();
+    }
+    var cols = Object.keys(rec).filter(function(k){ return rec[k] !== undefined; });
+    var args = cols.map(function(c){ return rec[c]; });
+    return _exec('INSERT INTO '+t+' ('+cols.join(',')+')'+ ' VALUES ('+cols.map(function(){return '?';}).join(',')+')', args);
+  };
+  TursoBuilder.prototype._doUpsert = function(d) {
+    var t = this._t;
+    var cols = Object.keys(d).filter(function(k){ return d[k] !== undefined; });
+    var args = cols.map(function(c){ return d[c]; });
+    var pk = d.key !== undefined ? 'key' : 'id';
+    var upd = cols.filter(function(c){ return c !== pk; }).map(function(c){ return c+' = excluded.'+c; }).join(', ');
+    return _exec('INSERT INTO '+t+' ('+cols.join(',')+')'+ ' VALUES ('+cols.map(function(){return '?';}).join(',')+')'+ ' ON CONFLICT('+pk+') DO UPDATE SET '+upd, args);
+  };
+  window.db = { from: function(table) { return new TursoBuilder(table); } };
+})();
 // ════════════════════════════════════════
 
 const CLS_ICON  = {
@@ -1196,10 +1289,10 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.84';
+const BUILD_VERSION = '1.5.85';
 const BUILD_PATCHNOTE = {
-  title: '장비 상세 팝업 hang 수정',
-  content: '• fetch + res.json() 전체 구간 타임아웃 커버 (기존 clearTimeout 위치 오류 수정).\n• 렌더링 에러 try-catch 추가 — 어떤 경우에도 "불러오는 중..." 으로 굳지 않도록 처리.'
+  title: 'DB 플랫폼 Turso 전환 (Supabase 완전 제거)',
+  content: '• Supabase → Turso (SQLite) 마이그레이션 완료.\n• Cloudflare Pages Function(/api/db)을 통한 안전한 DB 프록시 구조.\n• Firebase/Supabase 관련 코드·명칭 전부 정리.'
 };
 
 // 전체 패치 내역 (버전별 정확한 설명)
@@ -1266,7 +1359,7 @@ let warSurveys = [];
 let currentUser = null;
 const _CACHE_KEY = 'dotae_cache'; // localStorage 캐시 키 (전역)
 let currentRecruitId = null;
-let supabaseConnected = false;
+let dbConnected = false;
 var _warInitDone = false, _warSurveyCreating = false;
 let mFilter  = 'all';
 let rFilter  = 'all';
@@ -1276,7 +1369,7 @@ let syncingIds = new Set();
 let sortBy  = 'rank';
 let sortAsc = true;
 
-// ─── Firebase 구독 ──────────────────────
+// ─── DB 구독 ────────────────────────────
 // 구버전 계급 마이그레이션 (일반→군단병, 부마스터→엘리트장교, 마스터→군단장)
 const RANK_MIGRATE = {'일반':'군단병','부마스터':'엘리트장교','마스터':'군단장'};
 async function migrateRanks() {
@@ -2021,7 +2114,13 @@ function nickSelect(el, inputId, previewId, cardId, memberId) {
   };
 })();
 
-function initFirebase() {
+function initDb() {
+  // 최초 실행 시 Turso 스키마 생성 (idempotent)
+  if(!localStorage.getItem('_turso_ready')) {
+    fetch('/api/db-setup').then(function(r){ return r.json(); }).then(function(d){
+      if(d.ok) localStorage.setItem('_turso_ready','1');
+    }).catch(function(){});
+  }
   // 30초 후에도 데이터 없으면 에러 표시 (자동 새로고침 없음 - 무한루프 방지)
   var _loadTimeout = setTimeout(function() {
     if(members && members.length > 0) return;
@@ -2029,7 +2128,7 @@ function initFirebase() {
     if(_loadEl) _loadEl.style.display = 'none';
     const isFirstLoad = !sessionStorage.getItem("_loginInit");
     if(isFirstLoad){ sessionStorage.setItem("_loginInit","1"); initLoginScreen(); }
-    setFirebaseStatus('error', 'network-timeout');
+    setDbStatus('error', 'network-timeout');
     var _tbody = document.querySelector('#members-tbody');
     if(_tbody) _tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--red);font-size:14px;">⚠ 서버 연결 실패 — 잠시 후 <button onclick="sessionStorage.removeItem(\'_autoRetry\');location.reload(true)" style="background:none;border:1px solid var(--red);color:var(--red);padding:3px 10px;border-radius:5px;font-size:12px;cursor:pointer;">다시 시도</button></td></tr>';
   }, 30000);
@@ -2098,7 +2197,7 @@ function initFirebase() {
   }
   function _applyInit(membersData, noticesData) {
     members = membersData;
-    supabaseConnected = true;
+    dbConnected = true;
     if(!currentUser) {
       var _saved = localStorage.getItem('dotae_user');
       if(_saved) { try { currentUser = JSON.parse(_saved); } catch(e) {} }
@@ -2106,7 +2205,7 @@ function initFirebase() {
     renderAll();
     renderRecruit();
     renderNotices(noticesData || []);
-    setFirebaseStatus('ok');
+    setDbStatus('ok');
     if(!window._afterLoadInit) {
       window._afterLoadInit = true;
       checkVersion();
@@ -2172,7 +2271,7 @@ function initFirebase() {
     }).catch(function(){ _bgRefreshRunning = false; });
   }
 
-  // Supabase REST 기반 데이터 로딩
+  // DB 데이터 로딩
   function loadAllData() {
     var _activeTab = localStorage.getItem('activeTab') || 'notice';
     var _noDbTabs  = ['timer', 'homework'];
@@ -2221,7 +2320,7 @@ function initFirebase() {
       })
       .catch(function(err) {
         clearTimeout(window.loadingTimeout);
-        console.error('Supabase 연결 오류:', err);
+        console.error('DB 연결 오류:', err);
         // DB 실패 시 stale 캐시(버전 불일치 포함, 24h 이내)로 폴백
         var stale = _loadCache(true);
         if(stale) {
@@ -2229,7 +2328,7 @@ function initFirebase() {
           _hideLoading();
           var isFL = !sessionStorage.getItem("_loginInit");
           if(isFL){ sessionStorage.setItem("_loginInit","1"); initLoginScreen(); }
-          setFirebaseStatus('error', 'stale-cache');
+          setDbStatus('error', 'stale-cache');
           var _tbody = document.querySelector('#members-tbody');
           if(_tbody) { var _banner = document.createElement('tr'); _banner.innerHTML = '<td colspan="9" style="text-align:center;padding:8px;background:#2a1800;color:#cc9020;font-size:12px;">⚠ 서버 연결 불안정 — 이전 데이터를 표시 중입니다. <button onclick="sessionStorage.removeItem(\'_autoRetry\');location.reload(true)" style="background:none;border:1px solid #cc9020;color:#cc9020;padding:2px 8px;border-radius:4px;font-size:11px;cursor:pointer;">다시 시도</button></td>'; _tbody.prepend(_banner); }
           _setupRealtimeSubscriptions();
@@ -2254,7 +2353,7 @@ function initFirebase() {
           if(_loadEl) _loadEl.style.display = 'none';
           var isFirstLoad = !sessionStorage.getItem("_loginInit");
           if(isFirstLoad){ sessionStorage.setItem("_loginInit","1"); initLoginScreen(); }
-          setFirebaseStatus('error', err.code || err.message);
+          setDbStatus('error', err.code || err.message);
           var _tbody = document.querySelector('#members-tbody');
           if(_tbody) _tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--red);font-size:14px;">⚠ 서버 연결 실패 — 잠시 후 <button onclick="sessionStorage.removeItem(\'_autoRetry\');location.reload(true)" style="background:none;border:1px solid var(--red);color:var(--red);padding:3px 10px;border-radius:5px;font-size:12px;cursor:pointer;">다시 시도</button></td></tr>';
         }
@@ -2270,7 +2369,7 @@ function initFirebase() {
     if(window._realtimeSetup) return;
     window._realtimeSetup = true;
 
-    // Page Visibility API: 탭 포커스 시에만 폴링 (Supabase Nano CPU 절약)
+    // Page Visibility API: 탭 포커스 시에만 폴링
     var _POLL_MS = 3 * 60 * 1000; // 3분
     function _startPolling() {
       if(window._pollTimer) return;
@@ -2328,7 +2427,7 @@ function initFirebase() {
       if(members && members.length > 0) return;
       clearInterval(_iv2);
       if(loadEl) loadEl.style.display = 'none';
-      setFirebaseStatus('error', 'network-timeout');
+      setDbStatus('error', 'network-timeout');
     }, 30000);
     loadAllData();
   };
@@ -3113,7 +3212,7 @@ function openDetail(m) {
 
     // ── NC API 실제 필드 파싱 (네트워크 탭 확인 완료) ──
     const allMainStats  = (raw && raw.mainStats) || e.itemStats || [];
-    // raw가 있으면 exceed 필드로 분리, 없으면(Supabase 캐시) 전부 흰색으로
+    // raw가 있으면 exceed 필드로 분리, 없으면 전부 흰색으로
     const whiteStats  = raw ? allMainStats.filter(s => !s.exceed) : allMainStats;
     const exceedStats = raw ? allMainStats.filter(s =>  s.exceed) : [];
     const soulStatsList = (raw && raw.subStats)         || e.itemOptions || []; // 영혼 각인 스탯
@@ -4013,7 +4112,7 @@ function setDistView(v) {
   if(v==='pie') setTimeout(drawPie,50); else renderDistList();
 }
 
-// ─── Firebase CRUD ─────────────────────
+// ─── DB CRUD ────────────────────────────
 async function deleteMember() {
   const id = document.getElementById('edit-id').value;
   if(!confirm('이 멤버를 삭제할까요?')) return;
@@ -4390,7 +4489,7 @@ const BOSSES = [
 
 let bossFilter = 'all';
 let bossTimers = {}; // { id: { killTime, intervalId } }
-let bossData = {}; // Firebase에서 로드
+let bossData = {};
 
 function setBossFilter(f, el) {
   bossFilter = f;
@@ -4477,7 +4576,7 @@ async function clearKill(bossId) {
   toast('초기화 완료');
 }
 
-// Firebase 슈고 타이머 (get으로 전환)
+// 슈고 타이머 초기화
 function initBossTimers() {
   function loadBossTimers() {
     db.from('boss_timers').select('*').then(({ data, error }) => {
@@ -4534,7 +4633,7 @@ setTimeout(() => {
 try { const savedTab = localStorage.getItem('activeTab'); if(savedTab) showTab(savedTab); } catch(e) {}
 // 로그인 화면 로고 = 헤더 로고와 동일한 이미지
 (function(){ const hdr=document.querySelector('.logo img'), lg=document.getElementById('login-logo-img'); if(hdr&&lg) lg.src=hdr.src; })();
-initFirebase();
+initDb();
 
 // ─── 슈고 타이머 ────────────────────────────
 let shugoRunning = false;
