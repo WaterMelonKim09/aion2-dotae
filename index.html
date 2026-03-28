@@ -824,22 +824,44 @@
     <div style="max-width:600px;">
 
       <!-- 리셋 안내 -->
-      <div style="display:flex;gap:8px;margin-bottom:16px;font-size:12px;">
-        <span style="padding:4px 10px;background:rgba(0,200,138,.1);border:1px solid rgba(0,200,138,.3);color:#00c88a;border-radius:6px;">🌙 일일: 자정 리셋</span>
-        <span style="padding:4px 10px;background:rgba(234,179,8,.1);border:1px solid rgba(234,179,8,.3);color:var(--gold-l);border-radius:6px;">📅 주간: 매주 수요일 리셋</span>
+      <div style="display:flex;gap:8px;margin-bottom:16px;font-size:12px;flex-wrap:wrap;">
+        <span style="padding:4px 10px;background:rgba(0,200,138,.1);border:1px solid rgba(0,200,138,.3);color:#00c88a;border-radius:6px;">🌙 일일: 오전 5시 리셋</span>
+        <span style="padding:4px 10px;background:rgba(234,179,8,.1);border:1px solid rgba(234,179,8,.3);color:var(--gold-l);border-radius:6px;">📅 주간: 매주 수요일 오전 5시 리셋</span>
       </div>
 
       <!-- 리모권 -->
       <div class="card hw-section" style="padding:16px;">
-        <div class="hw-section-title">🎫 리모권 <span style="font-size:11px;color:var(--muted);font-weight:400;">(일일 리셋)</span></div>
+        <div class="hw-section-title">🎫 리모권 <span style="font-size:11px;color:var(--muted);font-weight:400;">(일일)</span></div>
         <div style="display:flex;flex-wrap:wrap;gap:6px;" id="hw-rimo-area">
           <!-- JS로 렌더링 -->
         </div>
       </div>
 
+      <!-- 오드 에너지 -->
+      <div class="card hw-section" style="padding:16px;">
+        <div class="hw-section-title">⚡ 오드 에너지 <span style="font-size:11px;color:var(--muted);font-weight:400;">(일일)</span></div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <span style="font-size:22px;font-weight:700;color:var(--gold-l);" id="hw-od-val">840</span>
+          <span style="color:var(--muted);font-size:13px;">/840</span>
+          <span class="hw-max-badge" id="hw-od-badge">MAX</span>
+        </div>
+        <div style="height:8px;background:var(--border);border-radius:4px;overflow:hidden;margin-bottom:12px;">
+          <div style="height:100%;width:100%;background:#e07028;border-radius:4px;transition:width .3s;" id="hw-od-bar"></div>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">소모량 차감</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="hw-counter-btn" onclick="hwSetOd(-10)" style="padding:4px 10px;font-size:12px;">-10</button>
+          <button class="hw-counter-btn" onclick="hwSetOd(-20)" style="padding:4px 10px;font-size:12px;">-20</button>
+          <button class="hw-counter-btn" onclick="hwSetOd(-40)" style="padding:4px 10px;font-size:12px;">-40</button>
+          <button class="hw-counter-btn" onclick="hwSetOd(-80)" style="padding:4px 10px;font-size:12px;">-80</button>
+          <button class="hw-counter-btn" onclick="hwSetOd(-200)" style="padding:4px 10px;font-size:12px;">-200</button>
+          <button class="hw-counter-btn" onclick="hwSetOd('full')" style="padding:4px 10px;font-size:12px;color:var(--gold-l);border-color:var(--gold);">FULL</button>
+        </div>
+      </div>
+
       <!-- 일일 콘텐츠 -->
       <div class="card hw-section" style="padding:16px;">
-        <div class="hw-section-title">⚡ 일일 콘텐츠 <span style="font-size:11px;color:var(--muted);font-weight:400;">(자정 리셋)</span></div>
+        <div class="hw-section-title">📋 일일 콘텐츠 <span style="font-size:11px;color:var(--muted);font-weight:400;">(오전 5시 리셋)</span></div>
 
         <!-- 일일 체크 항목 -->
         <div style="margin-bottom:14px;">
@@ -858,36 +880,18 @@
         </div>
 
         <!-- 입장권 카운터 -->
-        <div class="hw-section-title" style="margin-top:4px;">🎟 입장권 <span style="font-size:11px;color:var(--muted);font-weight:400;">(자정 리셋)</span></div>
+        <div class="hw-section-title" style="margin-top:4px;">🎟 입장권</div>
         <div id="hw-ticket-area"><!-- JS로 렌더링 --></div>
 
         <!-- 어비스 회랑 -->
-        <div class="hw-section-title" style="margin-top:12px;">🌌 어비스 회랑</div>
-        <div class="hw-row" onclick="hwToggleCheck('daily_abyss_low')" style="cursor:pointer;">
-          <div class="hw-check" id="hw-check-daily_abyss_low"></div>
-          <span class="hw-row-label">하층</span>
-        </div>
-        <div class="hw-row" onclick="hwToggleCheck('daily_abyss_mid')" style="cursor:pointer;">
-          <div class="hw-check" id="hw-check-daily_abyss_mid"></div>
-          <span class="hw-row-label">중층</span>
-        </div>
+        <div class="hw-section-title" style="margin-top:12px;">🌌 어비스 회랑 <span style="font-size:11px;color:var(--muted);font-weight:400;">(일 3회)</span></div>
+        <div id="hw-corridor-area"><!-- JS로 렌더링 --></div>
       </div>
 
       <!-- 주간 콘텐츠 -->
       <div class="card hw-section" style="padding:16px;">
-        <div class="hw-section-title">📅 주간 콘텐츠 <span style="font-size:11px;color:var(--muted);font-weight:400;">(수요일 리셋)</span></div>
+        <div class="hw-section-title">📅 주간 콘텐츠 <span style="font-size:11px;color:var(--muted);font-weight:400;">(수요일 오전 5시 리셋)</span></div>
         <div id="hw-weekly-area"><!-- JS로 렌더링 --></div>
-        <!-- 주간 체크 항목 -->
-        <div class="hw-row" onclick="hwToggleCheck('weekly_abyss_supply')" style="cursor:pointer;">
-          <div class="hw-check" id="hw-check-weekly_abyss_supply"></div>
-          <span class="hw-row-label">어비스 주간 보급 의뢰</span>
-          <span class="hw-row-sub">수요일</span>
-        </div>
-        <div class="hw-row" onclick="hwToggleCheck('weekly_season_mission')" style="cursor:pointer;">
-          <div class="hw-check" id="hw-check-weekly_season_mission"></div>
-          <span class="hw-row-label">시즌 미션 주간</span>
-          <span class="hw-row-sub">수요일</span>
-        </div>
       </div>
 
     </div>
@@ -1270,10 +1274,10 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.95';
+const BUILD_VERSION = '1.5.96';
 const BUILD_PATCHNOTE = {
-  title: '타이머 UI 정리 및 업데이트 감지 개선',
-  content: '• 시공/슈고 알리미 탭 시계·알림일정 카드 제거, 알림 설정만 유지.\n• 새 버전 감지 시 토스트 알림 추가.\n• version.json 캐시 완전 우회 (랜덤 파라미터 + no-store).'
+  title: '숙제 도우미 대폭 개선 (aions.kr 구조 반영)',
+  content: '• 오드 에너지 트래커 추가 (일일, 소모량 차감 버튼).\n• 어비스 회랑 카운터 추가 (하층/중층 일 3회).\n• 모든 항목에 블록 시각화 (진행도 한눈에).\n• 주간 콘텐츠 데이터 정정 (성역도전 4회, 성역보상 2회, 오드에너지 제작 등).\n• 어비스 주간 보급 의뢰, 시즌 미션 주간 주간 영역으로 통합.\n• 리셋 시각 자정 → 오전 5시 (KST) 기준으로 수정.'
 };
 
 // 전체 패치 내역 (버전별 정확한 설명)
@@ -1340,6 +1344,8 @@ const _PATCH_HISTORY = [
     content:'• 쟁 참여조사 자동 생성 (앱 로드 시 다음 쟁 일정 조사 자동 개설).\n• 참가/불참 응답 즉시 반영 + 백그라운드 동기화.\n• 참여조사 30초 폴링 추가 (다른 멤버 응답 실시간 확인).\n• 생성/삭제/초기화 후 목록 자동 갱신.' },
   { version:'1.5.95', title:'타이머 UI 정리 및 업데이트 감지 개선',
     content:'• 시공/슈고 알리미 탭 시계·알림일정 카드 제거, 알림 설정만 유지.\n• 새 버전 감지 시 토스트 알림 추가.\n• version.json 캐시 완전 우회 (랜덤 파라미터 + no-store).' },
+  { version:'1.5.96', title:'숙제 도우미 대폭 개선 (aions.kr 구조 반영)',
+    content:'• 오드 에너지 트래커 추가 (일일, 소모량 차감 버튼).\n• 어비스 회랑 카운터 추가 (하층/중층 일 3회).\n• 모든 항목에 블록 시각화 (진행도 한눈에).\n• 주간 콘텐츠 데이터 정정 (성역도전 4회, 성역보상 2회, 오드에너지 제작 등).\n• 어비스 주간 보급 의뢰, 시즌 미션 주간 주간 영역으로 통합.\n• 리셋 시각 자정 → 오전 5시 (KST) 기준으로 수정.' },
 ];
 
 // 시맨틱 버전 비교 (날짜형 구버전 호환)
@@ -5002,41 +5008,64 @@ const HW_RIMO_LIST = [
 ];
 const HW_TICKETS = [
   {id:'ticket_conquest', label:'원정 - 정복', max:21},
-  {id:'ticket_chowon',   label:'초원',        max:14},
+  {id:'ticket_chowon',   label:'초월',        max:14},
   {id:'ticket_akmon',    label:'악몽',         max:14},
   {id:'ticket_shugo',    label:'슈고 페스타',  max:14},
   {id:'ticket_dimension',label:'차원 침공',    max:7},
 ];
 const HW_WEEKLY_COUNTERS = [
-  {id:'weekly_sanctuary_rude_ch', label:'성역 도전[루드라]',    max:1,  unit:'회', isCheck:true},
-  {id:'weekly_sanctuary_rude_rw', label:'성역 보상[루드라]',    max:1,  unit:'회', isCheck:true},
-  {id:'weekly_sanctuary2_ch',     label:'성역 도전[2차성역]',   max:4,  unit:'회'},
-  {id:'weekly_sanctuary2_rw',     label:'성역 보상[2차성역]',   max:2,  unit:'회'},
-  {id:'weekly_gakseong',          label:'각성전',               max:3,  unit:'회'},
-  {id:'weekly_tobul',             label:'토벌전',               max:3,  unit:'회'},
-  {id:'weekly_daily_face',        label:'일일 면전',            max:7,  unit:'회'},
-  {id:'weekly_abyss_low',         label:'어비스 하층',          max:14, unit:'시간'},
-  {id:'weekly_abyss_mid',         label:'어비스 중층',          max:14, unit:'시간'},
-  {id:'weekly_od_buy',            label:'오드에너지 구매',      max:4,  unit:'회'},
-  {id:'weekly_od_make',           label:'오드에너지 제조',      max:4,  unit:'회'},
-  {id:'weekly_abyss_low_order',   label:'하층 어비스 지령서',   max:20, unit:'회'},
-  {id:'weekly_abyss_mid_order',   label:'중층 어비스 지령서',   max:5,  unit:'회'},
-  {id:'weekly_normal_order',      label:'일반 지령서',          max:12, unit:'회'},
-  {id:'weekly_od_server1',        label:'오드에너지[서버]①',   max:12, unit:'회'},
-  {id:'weekly_od_server2',        label:'오드에너지[서버]②',   max:12, unit:'회'},
+  {id:'weekly_sanctuary_rude_ch', label:'성역 도전[루드라]',      max:4,  unit:'회'},
+  {id:'weekly_sanctuary_rude_rw', label:'성역 보상[루드라]',      max:2,  unit:'회'},
+  {id:'weekly_sanctuary2_ch',     label:'성역 도전[2차성역]',     max:4,  unit:'회'},
+  {id:'weekly_sanctuary2_rw',     label:'성역 보상[2차성역]',     max:2,  unit:'회'},
+  {id:'weekly_gakseong',          label:'각성전',                 max:3,  unit:'회'},
+  {id:'weekly_tobul',             label:'토벌전',                 max:3,  unit:'회'},
+  {id:'weekly_daily_face',        label:'일일 면전',              max:7,  unit:'회'},
+  {id:'weekly_abyss_low',         label:'어비스 하층',            max:14, unit:'시간'},
+  {id:'weekly_abyss_mid',         label:'어비스 중층',            max:14, unit:'시간'},
+  {id:'weekly_od_buy',            label:'오드에너지 구매',        max:4,  unit:'회'},
+  {id:'weekly_od_make',           label:'오드에너지 제작',        max:4,  unit:'회'},
+  {id:'weekly_abyss_low_order',   label:'하층 어비스 지령서',     max:20, unit:'회'},
+  {id:'weekly_abyss_mid_order',   label:'중층 어비스 지령서',     max:5,  unit:'회'},
+  {id:'weekly_abyss_supply',      label:'어비스 주간 보급 의뢰',  max:1,  unit:'완료', isCheck:true},
+  {id:'weekly_normal_order',      label:'일반 지령서',            max:12, unit:'회'},
+  {id:'weekly_season_mission',    label:'시즌 미션 주간',         max:1,  unit:'완료', isCheck:true},
+  {id:'weekly_od_server1',        label:'오드에너지 구매 [서버]', max:12, unit:'회'},
+  {id:'weekly_od_server2',        label:'오드에너지 제작 [서버]', max:12, unit:'회'},
 ];
+const HW_ABYSS_CORRIDOR = [
+  {id:'corridor_low', label:'하층', max:3},
+  {id:'corridor_mid', label:'중층', max:3},
+];
+const HW_OD_MAX = 840;
 
+function _hwKstNow() {
+  return new Date(new Date().toLocaleString('en-US', {timeZone:'Asia/Seoul'}));
+}
 function _hwDailyKey() {
-  const d = new Date(); return 'hw_d_'+d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
+  const d = _hwKstNow();
+  if(d.getHours() < 5) d.setDate(d.getDate() - 1);
+  return 'hw_d_'+d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
 }
 function _hwWeeklyKey() {
-  const d = new Date(), day = d.getDay();
+  const d = _hwKstNow();
+  if(d.getHours() < 5) d.setDate(d.getDate() - 1);
+  const day = d.getDay();
   const diff = day >= 3 ? day - 3 : day + 4;
   const wed = new Date(d); wed.setDate(d.getDate() - diff);
   return 'hw_w_'+wed.getFullYear()+'-'+(wed.getMonth()+1)+'-'+wed.getDate();
 }
 function _hwLoad(key) { try { return JSON.parse(localStorage.getItem(key)||'{}'); } catch(e) { return {}; } }
 function _hwSave(key, data) { try { localStorage.setItem(key, JSON.stringify(data)); } catch(e) {} }
+
+function _hwBlocksHtml(val, max, color) {
+  var w = max <= 7 ? 22 : max <= 14 ? 15 : max <= 20 ? 11 : 8;
+  var html = '';
+  for(var i = 0; i < max; i++) {
+    html += '<span style="display:inline-block;width:'+w+'px;height:9px;border-radius:2px;background:'+(i < val ? color : 'var(--border)')+'"></span>';
+  }
+  return html;
+}
 
 function hwToggleCheck(id) {
   try {
@@ -5056,36 +5085,85 @@ function _hwRefreshCheck(id, checked) {
   el.style.color = checked ? '#fff' : '';
 }
 
-function hwSetTicket(id, val, max) {
+function hwSetOd(delta) {
   try {
-    const data = _hwLoad(_hwDailyKey()); data[id] = Math.max(0, Math.min(max, val)); _hwSave(_hwDailyKey(), data);
+    const data = _hwLoad(_hwDailyKey());
+    const cur = data['od_energy'] !== undefined ? data['od_energy'] : HW_OD_MAX;
+    data['od_energy'] = delta === 'full' ? HW_OD_MAX : Math.max(0, Math.min(HW_OD_MAX, cur + delta));
+    _hwSave(_hwDailyKey(), data);
+    _hwRefreshOd(data['od_energy']);
+  } catch(e) {}
+}
+function _hwRefreshOd(val) {
+  const valEl = document.getElementById('hw-od-val');
+  const bar = document.getElementById('hw-od-bar');
+  const badge = document.getElementById('hw-od-badge');
+  if(valEl) valEl.textContent = val;
+  if(bar) bar.style.width = (val / HW_OD_MAX * 100) + '%';
+  if(badge) badge.style.display = val >= HW_OD_MAX ? '' : 'none';
+}
+
+function hwSetTicket(id, delta, max) {
+  try {
+    const data = _hwLoad(_hwDailyKey());
+    const cur = data[id] !== undefined ? data[id] : max;
+    data[id] = Math.max(0, Math.min(max, cur + delta));
+    _hwSave(_hwDailyKey(), data);
     _hwRefreshTicket(id, data[id], max);
   } catch(e) {}
 }
 function _hwRefreshTicket(id, val, max) {
   const valEl = document.getElementById('hw-tv-'+id);
   const maxBadge = document.getElementById('hw-tb-'+id);
+  const blockEl = document.getElementById('hw-tblk-'+id);
   if(valEl) valEl.textContent = val;
-  if(maxBadge) { const isFull = val >= max; maxBadge.style.display = isFull ? '' : 'none'; }
+  if(maxBadge) maxBadge.style.display = val >= max ? '' : 'none';
+  if(blockEl) blockEl.innerHTML = _hwBlocksHtml(val, max, '#e07028');
 }
 
-function hwSetWeekly(id, val, max) {
+function hwSetCorridor(id, delta, max) {
   try {
-    const data = _hwLoad(_hwWeeklyKey()); data[id] = Math.max(0, Math.min(max, val)); _hwSave(_hwWeeklyKey(), data);
+    const data = _hwLoad(_hwDailyKey());
+    const cur = data[id] !== undefined ? data[id] : 0;
+    data[id] = Math.max(0, Math.min(max, cur + delta));
+    _hwSave(_hwDailyKey(), data);
+    _hwRefreshCorridor(id, data[id], max);
+  } catch(e) {}
+}
+function _hwRefreshCorridor(id, val, max) {
+  const valEl = document.getElementById('hw-cv-'+id);
+  const maxBadge = document.getElementById('hw-cb-'+id);
+  const blockEl = document.getElementById('hw-cblk-'+id);
+  if(valEl) valEl.textContent = val;
+  if(maxBadge) maxBadge.style.display = val >= max ? '' : 'none';
+  if(blockEl) blockEl.innerHTML = _hwBlocksHtml(val, max, '#a060e0');
+}
+
+function hwSetWeekly(id, delta, max) {
+  try {
+    const data = _hwLoad(_hwWeeklyKey());
+    const cur = data[id] !== undefined ? data[id] : 0;
+    data[id] = Math.max(0, Math.min(max, cur + delta));
+    _hwSave(_hwWeeklyKey(), data);
     _hwRefreshWeekly(id, data[id], max);
   } catch(e) {}
 }
 function _hwRefreshWeekly(id, val, max) {
   const valEl = document.getElementById('hw-wv-'+id);
   const maxBadge = document.getElementById('hw-wb-'+id);
+  const blockEl = document.getElementById('hw-wblk-'+id);
   if(valEl) valEl.textContent = val;
-  if(maxBadge) { const isFull = val >= max; maxBadge.style.display = isFull ? '' : 'none'; }
+  if(maxBadge) maxBadge.style.display = val >= max ? '' : 'none';
+  if(blockEl) blockEl.innerHTML = _hwBlocksHtml(val, max, '#3b82f6');
 }
 
 function _hwRenderAll() {
   try {
     const daily = _hwLoad(_hwDailyKey());
     const weekly = _hwLoad(_hwWeeklyKey());
+
+    // 오드 에너지
+    _hwRefreshOd(daily['od_energy'] !== undefined ? daily['od_energy'] : HW_OD_MAX);
 
     // 리모권
     const rimoArea = document.getElementById('hw-rimo-area');
@@ -5105,12 +5183,8 @@ function _hwRenderAll() {
     }
 
     // 체크항목 (일일)
-    ['daily_sajung','daily_attend','daily_abyss_supply','daily_abyss_low','daily_abyss_mid'].forEach(function(id) {
+    ['daily_sajung','daily_attend','daily_abyss_supply'].forEach(function(id) {
       _hwRefreshCheck(id, !!daily[id]);
-    });
-    // 체크항목 (주간)
-    ['weekly_abyss_supply','weekly_season_mission'].forEach(function(id) {
-      _hwRefreshCheck(id, !!weekly[id]);
     });
 
     // 입장권
@@ -5120,30 +5194,50 @@ function _hwRenderAll() {
       ticketArea.innerHTML = HW_TICKETS.map(function(t) {
         const val = daily[t.id] !== undefined ? daily[t.id] : t.max;
         const isFull = val >= t.max;
-        return '<div class="hw-row">'
+        return '<div class="hw-row" style="flex-direction:column;align-items:stretch;gap:4px;">'
+          +'<div style="display:flex;align-items:center;">'
           +'<span class="hw-row-label">'+t.label+'</span>'
-          +'<div class="hw-counter">'
-          +'<button class="hw-counter-btn" onclick="hwSetTicket(\''+t.id+'\','+(val-1)+','+t.max+')">−</button>'
+          +'<div class="hw-counter" style="margin-left:auto;">'
+          +'<button class="hw-counter-btn" onclick="hwSetTicket(\''+t.id+'\',-1,'+t.max+')">−</button>'
           +'<span class="hw-counter-val" id="hw-tv-'+t.id+'">'+val+'</span>'
           +'<span style="font-size:12px;color:var(--muted);">/'+t.max+'</span>'
-          +'<button class="hw-counter-btn" onclick="hwSetTicket(\''+t.id+'\','+(val+1)+','+t.max+')">+</button>'
+          +'<button class="hw-counter-btn" onclick="hwSetTicket(\''+t.id+'\',+1,'+t.max+')">+</button>'
           +'<span class="hw-max-badge" id="hw-tb-'+t.id+'" style="'+(isFull?'':'display:none')+'">MAX</span>'
-          +'</div></div>';
+          +'</div></div>'
+          +'<div id="hw-tblk-'+t.id+'">'+_hwBlocksHtml(val, t.max, '#e07028')+'</div>'
+          +'</div>';
       }).join('');
     } else if(ticketArea) {
       HW_TICKETS.forEach(function(t) {
         const val = daily[t.id] !== undefined ? daily[t.id] : t.max;
         _hwRefreshTicket(t.id, val, t.max);
-        // 버튼 onclick 업데이트
-        const valEl = document.getElementById('hw-tv-'+t.id);
-        if(valEl) {
-          const row = valEl.closest('.hw-row');
-          if(row) {
-            const btns = row.querySelectorAll('.hw-counter-btn');
-            if(btns[0]) btns[0].onclick = function(){ hwSetTicket(t.id, val-1, t.max); };
-            if(btns[1]) btns[1].onclick = function(){ hwSetTicket(t.id, val+1, t.max); };
-          }
-        }
+      });
+    }
+
+    // 어비스 회랑
+    const corridorArea = document.getElementById('hw-corridor-area');
+    if(corridorArea && !corridorArea.dataset.rendered) {
+      corridorArea.dataset.rendered = '1';
+      corridorArea.innerHTML = HW_ABYSS_CORRIDOR.map(function(t) {
+        const val = daily[t.id] !== undefined ? daily[t.id] : 0;
+        const isFull = val >= t.max;
+        return '<div class="hw-row" style="flex-direction:column;align-items:stretch;gap:4px;">'
+          +'<div style="display:flex;align-items:center;">'
+          +'<span class="hw-row-label">'+t.label+'</span>'
+          +'<div class="hw-counter" style="margin-left:auto;">'
+          +'<button class="hw-counter-btn" onclick="hwSetCorridor(\''+t.id+'\',-1,'+t.max+')">−</button>'
+          +'<span class="hw-counter-val" id="hw-cv-'+t.id+'">'+val+'</span>'
+          +'<span style="font-size:12px;color:var(--muted);">/'+t.max+'</span>'
+          +'<button class="hw-counter-btn" onclick="hwSetCorridor(\''+t.id+'\',+1,'+t.max+')">+</button>'
+          +'<span class="hw-max-badge" id="hw-cb-'+t.id+'" style="'+(isFull?'':'display:none')+'">MAX</span>'
+          +'</div></div>'
+          +'<div id="hw-cblk-'+t.id+'">'+_hwBlocksHtml(val, t.max, '#a060e0')+'</div>'
+          +'</div>';
+      }).join('');
+    } else if(corridorArea) {
+      HW_ABYSS_CORRIDOR.forEach(function(t) {
+        const val = daily[t.id] !== undefined ? daily[t.id] : 0;
+        _hwRefreshCorridor(t.id, val, t.max);
       });
     }
 
@@ -5161,16 +5255,19 @@ function _hwRenderAll() {
         }
         const val = weekly[t.id] !== undefined ? weekly[t.id] : 0;
         const isFull = val >= t.max;
-        return '<div class="hw-row">'
+        return '<div class="hw-row" style="flex-direction:column;align-items:stretch;gap:4px;">'
+          +'<div style="display:flex;align-items:center;">'
           +'<span class="hw-row-label">'+t.label+'</span>'
-          +'<span class="hw-row-sub">수요일</span>'
+          +'<span class="hw-row-sub" style="margin-left:6px;">수요일</span>'
           +'<div class="hw-counter" style="margin-left:auto;">'
-          +'<button class="hw-counter-btn" onclick="hwSetWeekly(\''+t.id+'\','+(val-1)+','+t.max+')">−</button>'
+          +'<button class="hw-counter-btn" onclick="hwSetWeekly(\''+t.id+'\',-1,'+t.max+')">−</button>'
           +'<span class="hw-counter-val" id="hw-wv-'+t.id+'">'+val+'</span>'
           +'<span style="font-size:12px;color:var(--muted);">/'+t.max+' '+t.unit+'</span>'
-          +'<button class="hw-counter-btn" onclick="hwSetWeekly(\''+t.id+'\','+(val+1)+','+t.max+')">+</button>'
+          +'<button class="hw-counter-btn" onclick="hwSetWeekly(\''+t.id+'\',+1,'+t.max+')">+</button>'
           +'<span class="hw-max-badge" id="hw-wb-'+t.id+'" style="'+(isFull?'':'display:none')+'">MAX</span>'
-          +'</div></div>';
+          +'</div></div>'
+          +'<div id="hw-wblk-'+t.id+'">'+_hwBlocksHtml(val, t.max, '#3b82f6')+'</div>'
+          +'</div>';
       }).join('');
     } else if(weeklyArea) {
       HW_WEEKLY_COUNTERS.forEach(function(t) {
