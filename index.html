@@ -1289,7 +1289,7 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.91';
+const BUILD_VERSION = '1.5.92';
 const BUILD_PATCHNOTE = {
   title: '패치노트 자동 등록 버그 수정',
   content: '• autoInsertPatchNote id/created_at 누락으로 DB 삽입 실패하던 버그 수정.\n• 패치노트 배포 시 자동 공지 등록 복구.'
@@ -3376,14 +3376,14 @@ function openDetail(m) {
         ${magicStones.length ? `
           ${ncSec(_magicStoneLabel)}
           <div style="padding:8px 20px;display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;">
-            ${magicStones.map(s=>{const sc=GC[s.grade]||'#999';const val=s.value?(String(s.value).startsWith('+')?s.value:`+${s.value}`):'';return`<div style="display:flex;align-items:center;gap:6px;padding:2px 0;">${s.icon?`<img src="${s.icon}" style="width:20px;height:20px;border-radius:3px;flex-shrink:0;background:var(--surface);animation:imgPulse 1.5s ease infinite;" onload="_imgLoad(this)" onerror="_imgErr(this)">`:`<div style="width:20px;height:20px;border-radius:3px;background:${sc}22;flex-shrink:0;"></div>`}<span style="font-size:12px;color:${sc};">${s.name||''}${val?` ${val}`:''}</span></div>`;}).join('')}
+            ${magicStones.map(s=>{const _MC={'Common':'#aaaaaa','일반':'#aaaaaa','Rare':'#55cc44','희귀':'#55cc44','Unique':'#ffaa00','유일':'#ffaa00','Legend':'#4a90e8','Legendary':'#4a90e8','전승':'#4a90e8','전설':'#4a90e8'};const sc=_MC[s.grade]||_MC[s.gradeName]||'#aaaaaa';const val=s.value?(String(s.value).startsWith('+')?s.value:`+${s.value}`):'';return`<div style="display:flex;align-items:center;gap:6px;padding:2px 0;">${s.icon?`<img src="${s.icon}" style="width:20px;height:20px;border-radius:3px;flex-shrink:0;background:var(--surface);animation:imgPulse 1.5s ease infinite;" onload="_imgLoad(this)" onerror="_imgErr(this)">`:`<div style="width:20px;height:20px;border-radius:3px;background:${sc}22;flex-shrink:0;"></div>`}<span style="font-size:12px;color:${sc};">${s.name||''}${val?` ${val}`:''}</span></div>`;}).join('')}
           </div>` : ''}
 
         <!-- 신석: 아이콘 + 이름(등급색) + 설명 -->
         ${godStones.length ? `
           ${ncSec('신석')}
           <div style="padding:8px 20px;">
-            ${godStones.map(s=>{const rawDesc=s.description||s.desc||'';const desc=rawDesc.replace(/<[^>]*>/g,'');const _GSC={'Rare':'#55cc44','희귀':'#55cc44','Unique':'#ffaa00','유일':'#ffaa00','Legend':'#4a90e8','Legendary':'#4a90e8','전승':'#4a90e8','전설':'#4a90e8'};const sc=_GSC[s.grade]||_GSC[s.gradeName]||'#e0c97a';const effects=(s.skillEffectList||s.effectList||[]).map(ef=>`<div style="font-size:11px;color:#aaa;line-height:1.6;">${ef.description||ef.desc||ef.name||ef}</div>`).join('');return`<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;">${s.icon?`<img src="${s.icon}" style="width:22px;height:22px;border-radius:3px;flex-shrink:0;background:var(--surface);animation:imgPulse 1.5s ease infinite;" onload="_imgLoad(this)" onerror="_imgErr(this)">`:`<div style="width:22px;height:22px;border-radius:3px;background:${sc}22;flex-shrink:0;"></div>`}<div><div style="font-size:12px;color:${sc};font-weight:600;">${s.name||''}</div>${desc?`<div style="font-size:11px;color:#aaa;line-height:1.6;margin-top:2px;">${desc}</div>`:''}${effects}</div></div>`;}).join('')}
+            ${godStones.map(s=>{const rawDesc=s.description||s.desc||'';const desc=rawDesc.replace(/<[^>]*>/g,'');const _GSC={'Common':'#aaaaaa','일반':'#aaaaaa','Rare':'#55cc44','희귀':'#55cc44','Unique':'#ffaa00','유일':'#ffaa00','Legend':'#4a90e8','Legendary':'#4a90e8','전승':'#4a90e8','전설':'#4a90e8'};const sc=_GSC[s.grade]||_GSC[s.gradeName]||'#e0c97a';const effects=(s.skillEffectList||s.effectList||[]).map(ef=>`<div style="font-size:11px;color:#aaa;line-height:1.6;">${ef.description||ef.desc||ef.name||ef}</div>`).join('');return`<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;">${s.icon?`<img src="${s.icon}" style="width:22px;height:22px;border-radius:3px;flex-shrink:0;background:var(--surface);animation:imgPulse 1.5s ease infinite;" onload="_imgLoad(this)" onerror="_imgErr(this)">`:`<div style="width:22px;height:22px;border-radius:3px;background:${sc}22;flex-shrink:0;"></div>`}<div><div style="font-size:12px;color:${sc};font-weight:600;">${s.name||''}</div>${desc?`<div style="font-size:11px;color:#aaa;line-height:1.6;margin-top:2px;">${desc}</div>`:''}${effects}</div></div>`;}).join('')}
           </div>` : ''}
 
         <!-- 세트 효과 + 획득처 -->
