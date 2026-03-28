@@ -865,9 +865,18 @@
 
         <!-- 일일 체크 항목 -->
         <div style="margin-bottom:14px;">
-          <div class="hw-row" onclick="hwToggleCheck('daily_sajung')" style="cursor:pointer;">
-            <div class="hw-check" id="hw-check-daily_sajung"></div>
-            <span class="hw-row-label">사명</span>
+          <div class="hw-row" style="flex-direction:column;align-items:stretch;gap:4px;">
+            <div style="display:flex;align-items:center;">
+              <span class="hw-row-label">사명</span>
+              <div class="hw-counter" style="margin-left:auto;">
+                <button class="hw-counter-btn" onclick="hwSetSajung(-1)">−</button>
+                <span class="hw-counter-val" id="hw-dv-daily_mission">0</span>
+                <span style="font-size:12px;color:var(--muted);">/5</span>
+                <button class="hw-counter-btn" onclick="hwSetSajung(+1)">+</button>
+                <span class="hw-max-badge" id="hw-db-daily_mission" style="display:none">MAX</span>
+              </div>
+            </div>
+            <div id="hw-dblk-daily_mission"></div>
           </div>
           <div class="hw-row" onclick="hwToggleCheck('daily_attend')" style="cursor:pointer;">
             <div class="hw-check" id="hw-check-daily_attend"></div>
@@ -1274,10 +1283,10 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.96';
+const BUILD_VERSION = '1.5.97';
 const BUILD_PATCHNOTE = {
-  title: '숙제 도우미 대폭 개선 (aions.kr 구조 반영)',
-  content: '• 오드 에너지 트래커 추가 (일일, 소모량 차감 버튼).\n• 어비스 회랑 카운터 추가 (하층/중층 일 3회).\n• 모든 항목에 블록 시각화 (진행도 한눈에).\n• 주간 콘텐츠 데이터 정정 (성역도전 4회, 성역보상 2회, 오드에너지 제작 등).\n• 어비스 주간 보급 의뢰, 시즌 미션 주간 주간 영역으로 통합.\n• 리셋 시각 자정 → 오전 5시 (KST) 기준으로 수정.'
+  title: '숙제 도우미 로직 정확도 개선 (aions.kr 완전 분석)',
+  content: '• 사명: 체크박스 → 카운터 5회 (aions.kr 동일 구조).\n• 출석부: 자정(00:00) 리셋으로 수정 (5시 아님).\n• 일일 면전 → 일일 던전으로 명칭 수정.\n• 리모권 클릭 시 입장권·주간카운터·오드에너지 자동 연동.\n• 성역 보상 사용 시 오드에너지 -40 자동 차감.'
 };
 
 // 전체 패치 내역 (버전별 정확한 설명)
@@ -1346,6 +1355,8 @@ const _PATCH_HISTORY = [
     content:'• 시공/슈고 알리미 탭 시계·알림일정 카드 제거, 알림 설정만 유지.\n• 새 버전 감지 시 토스트 알림 추가.\n• version.json 캐시 완전 우회 (랜덤 파라미터 + no-store).' },
   { version:'1.5.96', title:'숙제 도우미 대폭 개선 (aions.kr 구조 반영)',
     content:'• 오드 에너지 트래커 추가 (일일, 소모량 차감 버튼).\n• 어비스 회랑 카운터 추가 (하층/중층 일 3회).\n• 모든 항목에 블록 시각화 (진행도 한눈에).\n• 주간 콘텐츠 데이터 정정 (성역도전 4회, 성역보상 2회, 오드에너지 제작 등).\n• 어비스 주간 보급 의뢰, 시즌 미션 주간 주간 영역으로 통합.\n• 리셋 시각 자정 → 오전 5시 (KST) 기준으로 수정.' },
+  { version:'1.5.97', title:'숙제 도우미 로직 정확도 개선 (aions.kr 완전 분석)',
+    content:'• 사명: 체크박스 → 카운터 5회 (aions.kr 동일 구조).\n• 출석부: 자정(00:00) 리셋으로 수정 (5시 아님).\n• 일일 면전 → 일일 던전으로 명칭 수정.\n• 리모권 클릭 시 입장권·주간카운터·오드에너지 자동 연동.\n• 성역 보상 사용 시 오드에너지 -40 자동 차감.' },
 ];
 
 // 시맨틱 버전 비교 (날짜형 구버전 호환)
@@ -5020,7 +5031,7 @@ const HW_WEEKLY_COUNTERS = [
   {id:'weekly_sanctuary2_rw',     label:'성역 보상[2차성역]',     max:2,  unit:'회'},
   {id:'weekly_gakseong',          label:'각성전',                 max:3,  unit:'회'},
   {id:'weekly_tobul',             label:'토벌전',                 max:3,  unit:'회'},
-  {id:'weekly_daily_face',        label:'일일 면전',              max:7,  unit:'회'},
+  {id:'weekly_daily_face',        label:'일일 던전',              max:7,  unit:'회'},
   {id:'weekly_abyss_low',         label:'어비스 하층',            max:14, unit:'시간'},
   {id:'weekly_abyss_mid',         label:'어비스 중층',            max:14, unit:'시간'},
   {id:'weekly_od_buy',            label:'오드에너지 구매',        max:4,  unit:'회'},
@@ -5047,6 +5058,10 @@ function _hwDailyKey() {
   if(d.getHours() < 5) d.setDate(d.getDate() - 1);
   return 'hw_d_'+d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
 }
+function _hwMidnightKey() {
+  const d = _hwKstNow();
+  return 'hw_m_'+d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
+}
 function _hwWeeklyKey() {
   const d = _hwKstNow();
   if(d.getHours() < 5) d.setDate(d.getDate() - 1);
@@ -5070,7 +5085,8 @@ function _hwBlocksHtml(val, max, color) {
 function hwToggleCheck(id) {
   try {
     const isWeekly = id.startsWith('weekly_');
-    const storeKey = isWeekly ? _hwWeeklyKey() : _hwDailyKey();
+    const isMidnight = id === 'daily_attend';
+    const storeKey = isWeekly ? _hwWeeklyKey() : isMidnight ? _hwMidnightKey() : _hwDailyKey();
     const data = _hwLoad(storeKey);
     data[id] = !data[id];
     _hwSave(storeKey, data);
@@ -5083,6 +5099,24 @@ function _hwRefreshCheck(id, checked) {
   el.classList.toggle('checked', !!checked);
   el.innerHTML = checked ? '✓' : '';
   el.style.color = checked ? '#fff' : '';
+}
+
+function hwSetSajung(delta) {
+  try {
+    const data = _hwLoad(_hwDailyKey());
+    const cur = data['daily_mission'] !== undefined ? data['daily_mission'] : 0;
+    data['daily_mission'] = Math.max(0, Math.min(5, cur + delta));
+    _hwSave(_hwDailyKey(), data);
+    _hwRefreshDailyCounter('daily_mission', data['daily_mission'], 5);
+  } catch(e) {}
+}
+function _hwRefreshDailyCounter(id, val, max) {
+  const valEl = document.getElementById('hw-dv-'+id);
+  const badge = document.getElementById('hw-db-'+id);
+  const blockEl = document.getElementById('hw-dblk-'+id);
+  if(valEl) valEl.textContent = val;
+  if(badge) badge.style.display = val >= max ? '' : 'none';
+  if(blockEl) blockEl.innerHTML = _hwBlocksHtml(val, max, '#00c88a');
 }
 
 function hwSetOd(delta) {
@@ -5182,10 +5216,12 @@ function _hwRenderAll() {
       });
     }
 
-    // 체크항목 (일일)
-    ['daily_sajung','daily_attend','daily_abyss_supply'].forEach(function(id) {
-      _hwRefreshCheck(id, !!daily[id]);
-    });
+    // 사명 카운터 (5시 리셋)
+    _hwRefreshDailyCounter('daily_mission', daily['daily_mission'] || 0, 5);
+    // 출석부 (자정 리셋)
+    _hwRefreshCheck('daily_attend', !!_hwLoad(_hwMidnightKey())['daily_attend']);
+    // 어비스 긴급 보급 의뢰 (5시 리셋)
+    _hwRefreshCheck('daily_abyss_supply', !!daily['daily_abyss_supply']);
 
     // 입장권
     const ticketArea = document.getElementById('hw-ticket-area');
@@ -5282,13 +5318,49 @@ function _hwRenderAll() {
   } catch(e) {}
 }
 
+// 리모권 → 하단 UI 자동 연동 매핑
+const HW_RIMO_EFFECTS = {
+  '정복 보상':  {ticket:'ticket_conquest',  tDelta:-1},
+  '정복 2배':   {ticket:'ticket_conquest',  tDelta:-2},
+  '초월 보상':  {ticket:'ticket_chowon',    tDelta:-1},
+  '초월 2배':   {ticket:'ticket_chowon',    tDelta:-2},
+  '악몽':       {ticket:'ticket_akmon',     tDelta:-1},
+  '슈고페스타': {ticket:'ticket_shugo',     tDelta:-1},
+  '차원침공':   {ticket:'ticket_dimension', tDelta:-1},
+  '루드라도전': {weekly:'weekly_sanctuary_rude_ch', wDelta:1},
+  '루드라보상': {weekly:'weekly_sanctuary_rude_rw', wDelta:1, od:-40},
+  '루드라2배':  {weekly:'weekly_sanctuary_rude_rw', wDelta:1, od:-40},
+  '2차성역도전':{weekly:'weekly_sanctuary2_ch',     wDelta:1},
+  '2차성역보상':{weekly:'weekly_sanctuary2_rw',     wDelta:1, od:-40},
+  '2차성역2배': {weekly:'weekly_sanctuary2_rw',     wDelta:1, od:-40},
+  '각성전':     {weekly:'weekly_gakseong',  wDelta:1},
+  '토벌전':     {weekly:'weekly_tobul',     wDelta:1},
+  '일일던전':   {weekly:'weekly_daily_face', wDelta:1},
+};
+
 function hwToggleRimo(id) {
   try {
     const data = _hwLoad(_hwDailyKey());
-    data[id] = !data[id];
+    const wasUsed = !!data[id];
+    data[id] = !wasUsed;
     _hwSave(_hwDailyKey(), data);
     const btn = document.getElementById('hw-rimo-'+id);
     if(btn) btn.className = 'hw-rimo-btn'+(data[id]?' used':'');
+
+    // effect 연동
+    const labelKey = id.slice(5).replace(/_/g, ' ');
+    const fx = HW_RIMO_EFFECTS[labelKey];
+    if(!fx) return;
+    const dir = data[id] ? 1 : -1; // 켜면 +1, 끄면 -1
+    if(fx.ticket) {
+      const t = HW_TICKETS.find(function(x){ return x.id === fx.ticket; });
+      if(t) hwSetTicket(fx.ticket, fx.tDelta * dir, t.max);
+    }
+    if(fx.weekly) {
+      const w = HW_WEEKLY_COUNTERS.find(function(x){ return x.id === fx.weekly; });
+      if(w) hwSetWeekly(fx.weekly, fx.wDelta * dir, w.max);
+    }
+    if(fx.od) hwSetOd(fx.od * dir);
   } catch(e) {}
 }
 
