@@ -248,9 +248,6 @@
   .stat-card { padding:12px !important; }
   .stat-val { font-size:20px !important; }
 
-  /* 타이머 탭 하단 3열 → 2열 */
-  #tab-timer > div:last-child { grid-template-columns:1fr 1fr !important; }
-
   /* 대시보드 - 1열로 */
   #tab-dashboard > div[style*="grid-template-columns:2fr 3fr"] {
     display:block !important;
@@ -384,8 +381,6 @@
   #tab-war > div:first-child { flex-wrap:wrap; gap:8px; }
   #tab-war > div:first-child > div:last-child { width:100%; justify-content:flex-end; }
 
-  /* 타이머 탭 하단 3열 → 1열 */
-  #tab-timer > div:last-child { grid-template-columns:1fr !important; }
 }
 </style>
 </head>
@@ -782,65 +777,44 @@
       </div>
     </div>
 
-    <!-- 하단: 시계 + 알림 설정 묶음 (3열) -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;">
+    <!-- 알림 설정 카드 -->
+    <div class="card" style="padding:20px;max-width:480px;">
+      <div style="font-size:13px;font-weight:600;color:var(--gold);margin-bottom:16px;">⚙ 알림 설정</div>
 
-      <!-- 메인 시계 카드 -->
-      <div class="card" style="padding:24px;text-align:center;display:flex;flex-direction:column;justify-content:center;">
-        <div id="shugo-clock" style="font-size:48px;font-weight:700;font-family:monospace;color:var(--gold-l);letter-spacing:4px;margin-bottom:8px;">--:--:--</div>
-        <div id="shugo-next" style="font-size:13px;color:var(--muted);margin-bottom:20px;">다음 슈고까지 --:--</div>
-        <div style="background:var(--border);border-radius:6px;height:8px;margin-bottom:20px;overflow:hidden;">
-          <div id="shugo-bar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--gold-d),var(--gold-l));border-radius:6px;transition:width .5s;"></div>
-        </div>
-        <div id="shugo-status" style="font-size:13px;padding:8px 20px;border-radius:20px;display:inline-block;background:var(--surface);border:1px solid var(--border);color:var(--muted);">대기 중</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <span style="font-size:13px;">TTS 음성 알림</span>
+        <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;" onclick="toggleTTS()">
+          <span id="tts-track" style="position:absolute;inset:0;background:var(--gold);border-radius:24px;transition:.3s;">
+            <span id="tts-knob" style="position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s;transform:translateX(20px);display:block;"></span>
+          </span>
+        </label>
       </div>
 
-      <!-- 알림 설정 카드 -->
-      <div class="card" style="padding:20px;">
-        <div style="font-size:13px;font-weight:600;color:var(--gold);margin-bottom:16px;">⚙ 알림 설정</div>
-
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-          <span style="font-size:13px;">TTS 음성 알림</span>
-          <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;" onclick="toggleTTS()">
-            <span id="tts-track" style="position:absolute;inset:0;background:var(--gold);border-radius:24px;transition:.3s;">
-              <span id="tts-knob" style="position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s;transform:translateX(20px);display:block;"></span>
-            </span>
-          </label>
-        </div>
-
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-          <span style="font-size:13px;">브라우저 알림</span>
-          <button class="btn btn-sm" id="notif-btn" onclick="requestNotifPermission()">권한 요청</button>
-        </div>
-
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-          <span style="font-size:13px;">볼륨</span>
-          <span id="vol-label" style="font-size:13px;color:var(--gold-l);font-weight:600;">100%</span>
-        </div>
-        <input type="range" id="vol-slider" min="0" max="100" value="100"
-          oninput="updateVolume(this.value)"
-          style="width:100%;accent-color:var(--gold);cursor:pointer;margin-bottom:16px;">
-
-        <div style="display:flex;gap:8px;">
-          <button class="btn btn-sm" style="flex:1;" onclick="testTTS()">🔊 테스트</button>
-          <button class="btn btn-primary btn-sm" style="flex:1;" id="shugo-start-btn" onclick="toggleShugoTimer()">▶ 시작</button>
-        </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <span style="font-size:13px;">브라우저 알림</span>
+        <button class="btn btn-sm" id="notif-btn" onclick="requestNotifPermission()">권한 요청</button>
       </div>
 
-      <!-- 알림 일정 카드 -->
-      <div class="card" style="padding:20px;">
-        <div style="font-size:13px;font-weight:600;color:var(--gold);margin-bottom:16px;">📋 알림 일정</div>
-        <div style="display:flex;gap:8px;margin-bottom:16px;">
-          <div style="flex:1;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;text-align:center;">
-            <div style="font-size:24px;font-weight:700;color:var(--gold-l);">:15</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:4px;">매 시 15분</div>
-          </div>
-          <div style="flex:1;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;text-align:center;">
-            <div style="font-size:24px;font-weight:700;color:var(--gold-l);">:45</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:4px;">매 시 45분</div>
-          </div>
-        </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span style="font-size:13px;">볼륨</span>
+        <span id="vol-label" style="font-size:13px;color:var(--gold-l);font-weight:600;">100%</span>
       </div>
+      <input type="range" id="vol-slider" min="0" max="100" value="100"
+        oninput="updateVolume(this.value)"
+        style="width:100%;accent-color:var(--gold);cursor:pointer;margin-bottom:16px;">
+
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-sm" style="flex:1;" onclick="testTTS()">🔊 테스트</button>
+        <button class="btn btn-primary btn-sm" style="flex:1;" id="shugo-start-btn" onclick="toggleShugoTimer()">▶ 시작</button>
+      </div>
+    </div>
+
+    <!-- JS 참조 요소 (숨김) -->
+    <div style="display:none;">
+      <div id="shugo-clock"></div>
+      <div id="shugo-next"></div>
+      <div id="shugo-bar"></div>
+      <div id="shugo-status"></div>
     </div>
   </div>
 
@@ -2239,13 +2213,19 @@ function initDb() {
   window.loadingTimeout = _loadTimeout;
 
   // 버전 관리 (데이터 로드 후 시작 - 모바일 초기 연결 경쟁 방지)
+  var _lastKnownLatest = '';
   function checkVersion() {
-    fetch('/version.json', { cache: 'no-store' })
+    fetch('/version.json?r=' + Math.random(), { cache: 'no-store' })
       .then(r => r.json())
       .then(data => {
         const latest = data.version || BUILD_VERSION;
+        const hasUpdate = latest && !_semverGte(BUILD_VERSION, latest);
+        // 새 버전 처음 감지 시 토스트 알림
+        if(hasUpdate && _lastKnownLatest !== latest) {
+          _lastKnownLatest = latest;
+          toast('🔔 새 버전(' + latest + ')이 있어요! 업데이트 버튼을 눌러주세요.');
+        }
         updateVersionDisplay(latest);
-        // config 테이블 동기화 (현재 버전이 최신인 경우만 기록)
         if(_semverGte(BUILD_VERSION, latest)) {
           db.from('config').upsert({ key: 'system', latest_version: latest, updated_at: new Date().toISOString() }).catch(()=>{});
         }
@@ -2254,6 +2234,11 @@ function initDb() {
         // version.json 실패 시 config 테이블 폴백
         db.from('config').select('*').eq('key', 'system').maybeSingle().then(({ data: doc }) => {
           const stored = doc ? (doc.latest_version || '') : '';
+          const hasUpdate = stored && !_semverGte(BUILD_VERSION, stored);
+          if(hasUpdate && _lastKnownLatest !== stored) {
+            _lastKnownLatest = stored;
+            toast('🔔 새 버전(' + stored + ')이 있어요! 업데이트 버튼을 눌러주세요.');
+          }
           if(_semverGte(BUILD_VERSION, stored)) {
             db.from('config').upsert({ key: 'system', latest_version: BUILD_VERSION, updated_at: new Date().toISOString() });
           }
