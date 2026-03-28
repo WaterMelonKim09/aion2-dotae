@@ -1289,10 +1289,10 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.87';
+const BUILD_VERSION = '1.5.88';
 const BUILD_PATCHNOTE = {
-  title: '신석 등급 색상 수정 및 새 공지 팝업 복구',
-  content: '• 신석 등급별 색상 수정: 희귀=초록, 유일=파랑, 전승=주황.\n• 새 공지/패치노트 등록 시 팝업 알림 복구.\n• 보스 이름 기반 신석 색상 로직 제거.'
+  title: '변동감지 주기 조정 및 토스트 알림 추가',
+  content: '• 버전 체크 주기 60초 → 5초.\n• NC 공지/업데이트 폴링 30초 → 5분.\n• 사이트 새 공지/패치노트 감지 시 토스트 알림 추가.'
 };
 
 // 전체 패치 내역 (버전별 정확한 설명)
@@ -1343,6 +1343,8 @@ const _PATCH_HISTORY = [
     content:'• 보조/방패 → 가더, 신석 슬롯 → 룬으로 명칭 변경.\n• NC 공지/업데이트 자동 갱신 시 로딩 팝업 미표시.\n• 디버그 콘솔 로그 제거.' },
   { version:'1.5.87', title:'신석 등급 색상 수정 및 새 공지 팝업 복구',
     content:'• 신석 등급별 색상 수정: 희귀=초록, 유일=파랑, 전승=주황.\n• 새 공지/패치노트 등록 시 팝업 알림 복구.\n• 보스 이름 기반 신석 색상 로직 제거.' },
+  { version:'1.5.88', title:'변동감지 주기 조정 및 토스트 알림 추가',
+    content:'• 버전 체크 주기 60초 → 5초.\n• NC 공지/업데이트 폴링 30초 → 5분.\n• 사이트 새 공지/패치노트 감지 시 토스트 알림 추가.' },
 ];
 
 // 시맨틱 버전 비교 (날짜형 구버전 호환)
@@ -2234,7 +2236,7 @@ function initDb() {
       checkVersion();
       if(!window._versionPollingStarted) {
         window._versionPollingStarted = true;
-        setInterval(checkVersion, 60000);
+        setInterval(checkVersion, 5000);
       }
       // config 변경도 60초 폴링으로 처리 (Realtime 채널 제거)
       migrateRanks();
@@ -2291,7 +2293,11 @@ function initDb() {
       if(window._cachedNotices && window._cachedNotices.length) {
         var knownIds = window._cachedNotices.map(function(n){ return n.id; });
         freshNotices.filter(function(n){ return !knownIds.includes(n.id); })
-          .forEach(function(n){ showNoticeAlert(n); });
+          .forEach(function(n){
+            showNoticeAlert(n);
+            var label = n.type === '공지사항' ? '📢 새 공지사항' : '🛠 새 패치노트';
+            toast(label + ': ' + n.title);
+          });
       }
       members = freshMembers;
       renderAll();
@@ -2737,7 +2743,7 @@ async function loadNcNotices(force) {
       ? '<div id="nc-notice-btn-area"><button onclick="loadMoreNcNotices()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;">▼ 더보기</button></div>'
       : '';
     el.innerHTML = list.map(_renderNcItem).join('') + '<div id="nc-notice-extra"></div>' + moreBtnHtml;
-    if(!_ncPollTimer) _ncPollTimer = setInterval(function(){ loadNcNotices(false); }, 30 * 1000);
+    if(!_ncPollTimer) _ncPollTimer = setInterval(function(){ loadNcNotices(false); }, 5 * 60 * 1000);
   } catch(e) {
     hideActionLoading();
     if(btn) { btn.disabled = false; btn.style.opacity = ''; btn.textContent = '↺'; }
@@ -2820,7 +2826,7 @@ async function loadNcUpdates(force) {
       ? '<div id="nc-update-btn-area"><button onclick="loadMoreNcUpdates()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;">▼ 더보기</button></div>'
       : '';
     el.innerHTML = list.map(_renderNcItem).join('') + '<div id="nc-update-extra"></div>' + moreBtnHtml2;
-    if(!_ncUpdatePollTimer) _ncUpdatePollTimer = setInterval(function(){ loadNcUpdates(false); }, 30 * 1000);
+    if(!_ncUpdatePollTimer) _ncUpdatePollTimer = setInterval(function(){ loadNcUpdates(false); }, 5 * 60 * 1000);
   } catch(e) {
     hideActionLoading();
     if(btn) { btn.disabled = false; btn.style.opacity = ''; btn.textContent = '↺'; }
