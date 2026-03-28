@@ -1570,17 +1570,20 @@ function renderWarSurveys() {
     var isAbsent = myRes && myRes.type==='absent';
 
     // 마감까지 남은 시간 계산
+    var deadlineMs = 0;
     var timeLeftStr = '';
     if(survey.deadline) {
       var now = new Date(new Date().toLocaleString('en-US', {timeZone:'Asia/Seoul'}));
       var parts = survey.deadline.match(/(\d+)\.(\d+)\s+(\d+):(\d+)/);
       if(parts) {
         var dl = new Date(now.getFullYear(), parseInt(parts[1])-1, parseInt(parts[2]), parseInt(parts[3]), parseInt(parts[4]));
+        deadlineMs = dl.getTime();
         var diff = dl - now;
         if(diff > 0) {
           var h = Math.floor(diff/3600000);
           var m2 = Math.floor((diff%3600000)/60000);
-          timeLeftStr = h > 0 ? h+'시간 '+m2+'분 후 마감' : m2+'분 후 마감';
+          var s2 = Math.floor((diff%60000)/1000);
+          timeLeftStr = h > 0 ? h+'시간 '+m2+'분 '+s2+'초 후 마감' : m2 > 0 ? m2+'분 '+s2+'초 후 마감' : s2+'초 후 마감';
         } else {
           timeLeftStr = '마감됨';
         }
@@ -1594,7 +1597,7 @@ function renderWarSurveys() {
       +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">'
       +'<div style="flex:1;min-width:0;">'
       +'<div style="font-size:17px;font-weight:700;margin-bottom:4px;">⚔ '+survey.title+'</div>'
-      +(timeLeftStr?'<div style="font-size:12px;color:'+(timeLeftStr==='마감됨'?'#e06060':'var(--gold-l)')+';">⏱ '+timeLeftStr+'</div>':'')
+      +(timeLeftStr?'<div id="war-dl-'+surveyId+'" data-deadline="'+deadlineMs+'" style="font-size:12px;color:'+(timeLeftStr==='마감됨'?'#e06060':'var(--gold-l)')+';">⏱ '+timeLeftStr+'</div>':'')
       +'</div>'
       +(isAdmin()?'<button onclick="deleteWarSurvey('+JSON.stringify(surveyId)+')" style="font-size:11px;padding:4px 8px;background:none;border:1px solid var(--red);border-radius:6px;color:var(--red);cursor:pointer;flex-shrink:0;">삭제</button>':'')
       +'</div>'
@@ -1651,6 +1654,27 @@ function renderWarSurveys() {
       )
       +'</div>';
   }).join('');
+
+  // 마감 카운트다운 1초 tick
+  if(window._warDlTimer) clearInterval(window._warDlTimer);
+  window._warDlTimer = setInterval(function() {
+    document.querySelectorAll('[id^="war-dl-"]').forEach(function(el) {
+      var dl = parseInt(el.dataset.deadline);
+      if(!dl) return;
+      var now = new Date(new Date().toLocaleString('en-US', {timeZone:'Asia/Seoul'})).getTime();
+      var diff = dl - now;
+      if(diff <= 0) {
+        el.style.color = '#e06060';
+        el.textContent = '⏱ 마감됨';
+        return;
+      }
+      el.style.color = 'var(--gold-l)';
+      var h = Math.floor(diff/3600000);
+      var m2 = Math.floor((diff%3600000)/60000);
+      var s2 = Math.floor((diff%60000)/1000);
+      el.textContent = '⏱ ' + (h > 0 ? h+'시간 '+m2+'분 '+s2+'초 후 마감' : m2 > 0 ? m2+'분 '+s2+'초 후 마감' : s2+'초 후 마감');
+    });
+  }, 1000);
 }
 
 async function respondWarSurvey(surveyId, type) {
