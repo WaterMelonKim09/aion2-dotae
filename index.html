@@ -1698,14 +1698,26 @@ function hideActionLoading() {
 // ─── 신석 색상: 효과 설명 기반 ─────────────
 // 이름 직접 매핑 (스크린샷에서 확인된 실제 이름 — "신석:" 접두사 포함/제외 모두 처리)
 const RUNE_COLORS = {
-  '프레기온의 술책':'#8899bb', '신석: 프레기온의 술책':'#8899bb', // 실명
-  '브리트라의 음모':'#cc44aa', '신석: 브리트라의 음모':'#cc44aa', // 봉인
-  '네자칸의 진군':'#6688cc',   '신석: 네자칸의 진군':'#6688cc',   // 속박
-  '메스람타에다의 욕심':'#ffcc22','신석: 메스람타에다의 욕심':'#ffcc22', // 기절
-  '에레슈키갈의 명예':'#ffaa00','신석: 에레슈키갈의 명예':'#ffaa00',   // 마비
-  '카이시넬의 환상':'#44ccdd', '신석: 카이시넬의 환상':'#44ccdd',  // 이동속도 감소
-  '루미엘의 참견':'#9966cc',   '신석: 루미엘의 참견':'#9966cc',   // 전투속도 감소
+  '프레기온의 술책':'#8899bb', '신석: 프레기온의 술책':'#8899bb',
+  '브리트라의 음모':'#cc44aa', '신석: 브리트라의 음모':'#cc44aa',
+  '네자칸의 진군':'#6688cc',   '신석: 네자칸의 진군':'#6688cc',
+  '메스람타에다의 욕심':'#ffcc22','신석: 메스람타에다의 욕심':'#ffcc22',
+  '에레슈키갈의 명예':'#ffaa00','신석: 에레슈키갈의 명예':'#ffaa00',
+  '카이시넬의 환상':'#44ccdd', '신석: 카이시넬의 환상':'#44ccdd',
+  '루미엘의 참견':'#9966cc',   '신석: 루미엘의 참견':'#9966cc',
 };
+// 보스 이름 패턴 기반 색상 (이름 우선, desc보다 먼저 체크)
+const RUNE_NAME_PATTERNS = [
+  { key:'프레기온', color:'#8899bb' },
+  { key:'브리트라', color:'#cc44aa' },
+  { key:'네자칸',   color:'#6688cc' },
+  { key:'메스람타에다', color:'#ffcc22' },
+  { key:'에레슈키갈',  color:'#ffaa00' },
+  { key:'카이시넬', color:'#44ccdd' },
+  { key:'루미엘',   color:'#9966cc' },
+  { key:'라스베르그', color:'#8899bb' },
+  { key:'트라우프니르', color:'#ff5522' },
+];
 // 설명(description) 안의 효과 키워드로 색상 결정 — 가장 신뢰도 높음
 const _RUNE_EFFECT_COLORS = [
   { keys:['[실명]'],                                     color:'#8899bb' },
@@ -1725,11 +1737,16 @@ const _RUNE_EFFECT_COLORS = [
 ];
 function _runeColor(name, desc) {
   const n = (name || '').replace(/^신석:\s*/, '');
-  // NC API desc에 <desc_point>실명</> 형태 태그가 섞여있으므로 제거 후 비교
   const d = (desc || '').replace(/<[^>]*>/g, '');
+  // 1. 보스 이름 패턴 우선 (desc보다 먼저)
+  for(const { key, color } of RUNE_NAME_PATTERNS) {
+    if(n.includes(key)) return color;
+  }
+  // 2. desc 효과 키워드 기반
   for(const { keys, color } of _RUNE_EFFECT_COLORS) {
     if(keys.some(k => d.includes(k))) return color;
   }
+  // 3. 정확한 이름 매핑
   if(RUNE_COLORS[name]) return RUNE_COLORS[name];
   if(RUNE_COLORS[n]) return RUNE_COLORS[n];
   return '#e0c97a';
@@ -3341,7 +3358,7 @@ function openDetail(m) {
         ${godStones.length ? `
           ${ncSec('신석')}
           <div style="padding:8px 20px;">
-            ${godStones.map(s=>{const rawDesc=s.description||s.desc||'';const desc=rawDesc.replace(/<[^>]*>/g,'');const _GCK={'일반':'#aaaaaa','희귀':'#4a90e8','영웅':'#d44040','유일':'#e8c030','전설':'#ff6a20','스페셜':'#40d4c0'};const sc=GC[s.grade]||_GCK[s.gradeName]||'#e0c97a';const effects=(s.skillEffectList||s.effectList||[]).map(ef=>`<div style="font-size:11px;color:#aaa;line-height:1.6;">${ef.description||ef.desc||ef.name||ef}</div>`).join('');return`<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;">${s.icon?`<img src="${s.icon}" style="width:22px;height:22px;border-radius:3px;flex-shrink:0;background:var(--surface);animation:imgPulse 1.5s ease infinite;" onload="_imgLoad(this)" onerror="_imgErr(this)">`:`<div style="width:22px;height:22px;border-radius:3px;background:${sc}22;flex-shrink:0;"></div>`}<div><div style="font-size:12px;color:${sc};font-weight:600;">${s.name||''}</div>${desc?`<div style="font-size:11px;color:#aaa;line-height:1.6;margin-top:2px;">${desc}</div>`:''}${effects}</div></div>`;}).join('')}
+            ${godStones.map(s=>{const rawDesc=s.description||s.desc||'';const desc=rawDesc.replace(/<[^>]*>/g,'');const sc=_runeColor(s.name, rawDesc);const effects=(s.skillEffectList||s.effectList||[]).map(ef=>`<div style="font-size:11px;color:#aaa;line-height:1.6;">${ef.description||ef.desc||ef.name||ef}</div>`).join('');return`<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;">${s.icon?`<img src="${s.icon}" style="width:22px;height:22px;border-radius:3px;flex-shrink:0;background:var(--surface);animation:imgPulse 1.5s ease infinite;" onload="_imgLoad(this)" onerror="_imgErr(this)">`:`<div style="width:22px;height:22px;border-radius:3px;background:${sc}22;flex-shrink:0;"></div>`}<div><div style="font-size:12px;color:${sc};font-weight:600;">${s.name||''}</div>${desc?`<div style="font-size:11px;color:#aaa;line-height:1.6;margin-top:2px;">${desc}</div>`:''}${effects}</div></div>`;}).join('')}
           </div>` : ''}
 
         <!-- 세트 효과 + 획득처 -->
