@@ -1337,6 +1337,10 @@ const _PATCH_HISTORY = [
     content:'• 살성 황록색(#7acc40)·마도성 바이올렛(#9966dd) 엠블렘 색으로 통일.' },
   { version:'1.5.73', title:'신석 이름 기반 색상, 아이템 아이콘 로딩 표시',
     content:'• 신석 색상: 등급 대신 이름 기반으로 변경 (불/물/땅/바람/상태이상 각각 고유 색).\n• 장비·마석·신석 아이콘 로딩 중 펄스 애니메이션 표시, 실패 시 ? 표시.' },
+  { version:'1.5.85', title:'DB 플랫폼 Turso 전환 (Supabase 완전 제거)',
+    content:'• Supabase → Turso (SQLite) 마이그레이션 완료.\n• Cloudflare Pages Function(/api/db)을 통한 안전한 DB 프록시 구조.\n• Firebase/Supabase 관련 코드·명칭 전부 정리.' },
+  { version:'1.5.86', title:'UI 명칭 수정 및 로딩 팝업 개선',
+    content:'• 보조/방패 → 가더, 신석 슬롯 → 룬으로 명칭 변경.\n• NC 공지/업데이트 자동 갱신 시 로딩 팝업 미표시.\n• 디버그 콘솔 로그 제거.' },
 ];
 
 // 시맨틱 버전 비교 (날짜형 구버전 호환)
