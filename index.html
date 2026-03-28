@@ -248,6 +248,9 @@
   .stat-card { padding:12px !important; }
   .stat-val { font-size:20px !important; }
 
+  /* 타이머 탭 하단 3열 → 2열 */
+  #tab-timer > div:last-child { grid-template-columns:1fr 1fr !important; }
+
   /* 대시보드 - 1열로 */
   #tab-dashboard > div[style*="grid-template-columns:2fr 3fr"] {
     display:block !important;
@@ -380,6 +383,9 @@
   /* 쟁 참여조사 헤더 버튼 wrap */
   #tab-war > div:first-child { flex-wrap:wrap; gap:8px; }
   #tab-war > div:first-child > div:last-child { width:100%; justify-content:flex-end; }
+
+  /* 타이머 탭 하단 3열 → 1열 */
+  #tab-timer > div:last-child { grid-template-columns:1fr !important; }
 }
 </style>
 </head>
@@ -712,8 +718,8 @@
   <div id="tab-timer" class="tab-content">
     <div class="section-title">🐹 시공/슈고 알리미</div>
 
-    <!-- 시공의 균열 + 슈고 페스타 상태 카드 2열 -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+    <!-- 상단: 시공의 균열 + 슈고 페스타 상태 카드 2열 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
 
       <!-- 시공의 균열 -->
       <div class="card" style="padding:20px;">
@@ -776,20 +782,21 @@
       </div>
     </div>
 
-    <div style="max-width:480px;margin:0 auto;">
+    <!-- 하단: 시계 + 알림 설정 묶음 (3열) -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;">
 
       <!-- 메인 시계 카드 -->
-      <div class="card" style="padding:32px;text-align:center;margin-bottom:16px;">
-        <div id="shugo-clock" style="font-size:56px;font-weight:700;font-family:monospace;color:var(--gold-l);letter-spacing:4px;margin-bottom:8px;">--:--:--</div>
-        <div id="shugo-next" style="font-size:14px;color:var(--muted);margin-bottom:24px;">다음 슈고까지 --:--</div>
-        <div style="background:var(--border);border-radius:6px;height:8px;margin-bottom:24px;overflow:hidden;">
+      <div class="card" style="padding:24px;text-align:center;display:flex;flex-direction:column;justify-content:center;">
+        <div id="shugo-clock" style="font-size:48px;font-weight:700;font-family:monospace;color:var(--gold-l);letter-spacing:4px;margin-bottom:8px;">--:--:--</div>
+        <div id="shugo-next" style="font-size:13px;color:var(--muted);margin-bottom:20px;">다음 슈고까지 --:--</div>
+        <div style="background:var(--border);border-radius:6px;height:8px;margin-bottom:20px;overflow:hidden;">
           <div id="shugo-bar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--gold-d),var(--gold-l));border-radius:6px;transition:width .5s;"></div>
         </div>
         <div id="shugo-status" style="font-size:13px;padding:8px 20px;border-radius:20px;display:inline-block;background:var(--surface);border:1px solid var(--border);color:var(--muted);">대기 중</div>
       </div>
 
-      <!-- 설정 카드 -->
-      <div class="card" style="padding:20px;margin-bottom:16px;">
+      <!-- 알림 설정 카드 -->
+      <div class="card" style="padding:20px;">
         <div style="font-size:13px;font-weight:600;color:var(--gold);margin-bottom:16px;">⚙ 알림 설정</div>
 
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
@@ -820,10 +827,10 @@
         </div>
       </div>
 
-      <!-- 알림 일정 안내 -->
-      <div class="card" style="padding:16px;">
-        <div style="font-size:12px;font-weight:600;color:var(--gold);margin-bottom:10px;">📋 알림 일정</div>
-        <div style="display:flex;gap:8px;">
+      <!-- 알림 일정 카드 -->
+      <div class="card" style="padding:20px;">
+        <div style="font-size:13px;font-weight:600;color:var(--gold);margin-bottom:16px;">📋 알림 일정</div>
+        <div style="display:flex;gap:8px;margin-bottom:16px;">
           <div style="flex:1;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;text-align:center;">
             <div style="font-size:24px;font-weight:700;color:var(--gold-l);">:15</div>
             <div style="font-size:11px;color:var(--muted);margin-top:4px;">매 시 15분</div>
