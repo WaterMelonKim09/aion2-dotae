@@ -1283,7 +1283,7 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.97';
+const BUILD_VERSION = '1.5.98';
 const BUILD_PATCHNOTE = {
   title: '숙제 도우미 로직 정확도 개선 (aions.kr 완전 분석)',
   content: '• 사명: 체크박스 → 카운터 5회 (aions.kr 동일 구조).\n• 출석부: 자정(00:00) 리셋으로 수정 (5시 아님).\n• 일일 면전 → 일일 던전으로 명칭 수정.\n• 리모권 클릭 시 입장권·주간카운터·오드에너지 자동 연동.\n• 성역 보상 사용 시 오드에너지 -40 자동 차감.'
@@ -1357,6 +1357,8 @@ const _PATCH_HISTORY = [
     content:'• 오드 에너지 트래커 추가 (일일, 소모량 차감 버튼).\n• 어비스 회랑 카운터 추가 (하층/중층 일 3회).\n• 모든 항목에 블록 시각화 (진행도 한눈에).\n• 주간 콘텐츠 데이터 정정 (성역도전 4회, 성역보상 2회, 오드에너지 제작 등).\n• 어비스 주간 보급 의뢰, 시즌 미션 주간 주간 영역으로 통합.\n• 리셋 시각 자정 → 오전 5시 (KST) 기준으로 수정.' },
   { version:'1.5.97', title:'숙제 도우미 로직 정확도 개선 (aions.kr 완전 분석)',
     content:'• 사명: 체크박스 → 카운터 5회 (aions.kr 동일 구조).\n• 출석부: 자정(00:00) 리셋으로 수정 (5시 아님).\n• 일일 면전 → 일일 던전으로 명칭 수정.\n• 리모권 클릭 시 입장권·주간카운터·오드에너지 자동 연동.\n• 성역 보상 사용 시 오드에너지 -40 자동 차감.' },
+  { version:'1.5.98', title:'숙제 도우미 UI 상세 개선',
+    content:'• 리모권: 단순 마커로 수정 (티켓 자동 차감 제거), 성역보상만 OD -40 연동.\n• 입장권 충전 타이머 표시 (다음 충전까지 남은 시간).\n• 입장권 충전 스케줄 설명 추가.\n• 추가 입장권 카운터 추가 (각 입장권·주요 주간 콘텐츠).\n• 주요 주간 콘텐츠 추가 입장권 카운터 (각성전/토벌전/일일던전/어비스 하중층 등).' },
 ];
 
 // 시맨틱 버전 비교 (날짜형 구버전 호환)
@@ -5018,22 +5020,22 @@ const HW_RIMO_LIST = [
   '각성전','토벌전','일일던전'
 ];
 const HW_TICKETS = [
-  {id:'ticket_conquest', label:'원정 - 정복', max:21},
-  {id:'ticket_chowon',   label:'초월',        max:14},
-  {id:'ticket_akmon',    label:'악몽',         max:14},
-  {id:'ticket_shugo',    label:'슈고 페스타',  max:14},
-  {id:'ticket_dimension',label:'차원 침공',    max:7},
+  {id:'ticket_conquest', label:'원정 - 정복', max:21, itemMax:10,  charges:['05:00','13:00','21:00'], desc:'5시·13시·21시 충전'},
+  {id:'ticket_chowon',   label:'초월',        max:14, itemMax:10,  charges:['05:00','17:00'],         desc:'5시·17시 충전'},
+  {id:'ticket_akmon',    label:'악몽',         max:14, itemMax:30, charges:['05:00'],                 desc:'매일 5시 2회 충전'},
+  {id:'ticket_shugo',    label:'슈고 페스타',  max:14, itemMax:30, charges:['05:00'],                 desc:'매일 5시 충전'},
+  {id:'ticket_dimension',label:'차원 침공',    max:7,  itemMax:null, charges:['05:00'],               desc:'매일 5시 1회 충전'},
 ];
 const HW_WEEKLY_COUNTERS = [
   {id:'weekly_sanctuary_rude_ch', label:'성역 도전[루드라]',      max:4,  unit:'회'},
   {id:'weekly_sanctuary_rude_rw', label:'성역 보상[루드라]',      max:2,  unit:'회'},
   {id:'weekly_sanctuary2_ch',     label:'성역 도전[2차성역]',     max:4,  unit:'회'},
   {id:'weekly_sanctuary2_rw',     label:'성역 보상[2차성역]',     max:2,  unit:'회'},
-  {id:'weekly_gakseong',          label:'각성전',                 max:3,  unit:'회'},
-  {id:'weekly_tobul',             label:'토벌전',                 max:3,  unit:'회'},
-  {id:'weekly_daily_face',        label:'일일 던전',              max:7,  unit:'회'},
-  {id:'weekly_abyss_low',         label:'어비스 하층',            max:14, unit:'시간'},
-  {id:'weekly_abyss_mid',         label:'어비스 중층',            max:14, unit:'시간'},
+  {id:'weekly_gakseong',          label:'각성전',                 max:3,  unit:'회', itemMax:30},
+  {id:'weekly_tobul',             label:'토벌전',                 max:3,  unit:'회', itemMax:30},
+  {id:'weekly_daily_face',        label:'일일 던전',              max:7,  unit:'회', itemMax:30},
+  {id:'weekly_abyss_low',         label:'어비스 하층',            max:14, unit:'시간', itemMax:30},
+  {id:'weekly_abyss_mid',         label:'어비스 중층',            max:14, unit:'시간', itemMax:30},
   {id:'weekly_od_buy',            label:'오드에너지 구매',        max:4,  unit:'회'},
   {id:'weekly_od_make',           label:'오드에너지 제작',        max:4,  unit:'회'},
   {id:'weekly_abyss_low_order',   label:'하층 어비스 지령서',     max:20, unit:'회'},
@@ -5080,6 +5082,50 @@ function _hwBlocksHtml(val, max, color) {
     html += '<span style="display:inline-block;width:'+w+'px;height:9px;border-radius:2px;background:'+(i < val ? color : 'var(--border)')+'"></span>';
   }
   return html;
+}
+
+function _hwNextCharge(charges) {
+  try {
+    var now = _hwKstNow();
+    var nowMin = now.getHours() * 60 + now.getMinutes();
+    for(var i = 0; i < charges.length; i++) {
+      var parts = charges[i].split(':');
+      var tMin = parseInt(parts[0]) * 60 + parseInt(parts[1]);
+      if(tMin > nowMin) {
+        var diff = tMin - nowMin;
+        var hh = Math.floor(diff / 60), mm = diff % 60;
+        return (hh > 0 ? hh+'시간 ' : '') + mm+'분 후 충전';
+      }
+    }
+    var p0 = charges[0].split(':');
+    var diff2 = (24 * 60 - nowMin) + parseInt(p0[0]) * 60 + parseInt(p0[1]);
+    var hh2 = Math.floor(diff2 / 60), mm2 = diff2 % 60;
+    return (hh2 > 0 ? hh2+'시간 ' : '') + mm2+'분 후 충전';
+  } catch(e) { return ''; }
+}
+
+function hwSetTicketItem(id, delta, max) {
+  try {
+    var data = _hwLoad(_hwDailyKey());
+    var key = id+'_item';
+    var cur = data[key] !== undefined ? data[key] : 0;
+    data[key] = Math.max(0, Math.min(max, cur + delta));
+    _hwSave(_hwDailyKey(), data);
+    var el = document.getElementById('hw-ti-'+id);
+    if(el) el.textContent = data[key];
+  } catch(e) {}
+}
+
+function hwSetWeeklyItem(id, delta, max) {
+  try {
+    var data = _hwLoad(_hwWeeklyKey());
+    var key = id+'_item';
+    var cur = data[key] !== undefined ? data[key] : 0;
+    data[key] = Math.max(0, Math.min(max, cur + delta));
+    _hwSave(_hwWeeklyKey(), data);
+    var el = document.getElementById('hw-wi-'+id);
+    if(el) el.textContent = data[key];
+  } catch(e) {}
 }
 
 function hwToggleCheck(id) {
@@ -5216,6 +5262,15 @@ function _hwRenderAll() {
       });
     }
 
+    // 충전 타이머 1분마다 갱신
+    if(!window._hwChargeTimer) {
+      window._hwChargeTimer = setInterval(function() {
+        HW_TICKETS.forEach(function(t) {
+          var el = document.getElementById('hw-tcharge-'+t.id);
+          if(el) el.textContent = _hwNextCharge(t.charges);
+        });
+      }, 60000);
+    }
     // 사명 카운터 (5시 리셋)
     _hwRefreshDailyCounter('daily_mission', daily['daily_mission'] || 0, 5);
     // 출석부 (자정 리셋)
@@ -5230,6 +5285,7 @@ function _hwRenderAll() {
       ticketArea.innerHTML = HW_TICKETS.map(function(t) {
         const val = daily[t.id] !== undefined ? daily[t.id] : t.max;
         const isFull = val >= t.max;
+        const itemVal = daily[t.id+'_item'] || 0;
         return '<div class="hw-row" style="flex-direction:column;align-items:stretch;gap:4px;">'
           +'<div style="display:flex;align-items:center;">'
           +'<span class="hw-row-label">'+t.label+'</span>'
@@ -5241,12 +5297,22 @@ function _hwRenderAll() {
           +'<span class="hw-max-badge" id="hw-tb-'+t.id+'" style="'+(isFull?'':'display:none')+'">MAX</span>'
           +'</div></div>'
           +'<div id="hw-tblk-'+t.id+'">'+_hwBlocksHtml(val, t.max, '#e07028')+'</div>'
+          +'<div style="font-size:11px;color:var(--muted);">⏰ <span id="hw-tcharge-'+t.id+'">'+_hwNextCharge(t.charges)+'</span> · '+t.desc+'</div>'
+          +(t.itemMax ? '<div style="display:flex;align-items:center;gap:4px;">'
+            +'<span style="font-size:11px;color:var(--muted);">추가 입장권</span>'
+            +'<button class="hw-counter-btn" onclick="hwSetTicketItem(\''+t.id+'\',-1,'+t.itemMax+')" style="width:22px;height:22px;font-size:11px;">−</button>'
+            +'<span id="hw-ti-'+t.id+'" style="font-size:12px;font-weight:700;color:var(--gold-l);min-width:18px;text-align:center;">'+itemVal+'</span>'
+            +'<span style="font-size:11px;color:var(--muted);">/'+t.itemMax+'</span>'
+            +'<button class="hw-counter-btn" onclick="hwSetTicketItem(\''+t.id+'\',+1,'+t.itemMax+')" style="width:22px;height:22px;font-size:11px;">+</button>'
+            +'</div>' : '')
           +'</div>';
       }).join('');
     } else if(ticketArea) {
       HW_TICKETS.forEach(function(t) {
         const val = daily[t.id] !== undefined ? daily[t.id] : t.max;
         _hwRefreshTicket(t.id, val, t.max);
+        const chargeEl = document.getElementById('hw-tcharge-'+t.id);
+        if(chargeEl) chargeEl.textContent = _hwNextCharge(t.charges);
       });
     }
 
@@ -5291,6 +5357,7 @@ function _hwRenderAll() {
         }
         const val = weekly[t.id] !== undefined ? weekly[t.id] : 0;
         const isFull = val >= t.max;
+        const wItemVal = weekly[t.id+'_item'] || 0;
         return '<div class="hw-row" style="flex-direction:column;align-items:stretch;gap:4px;">'
           +'<div style="display:flex;align-items:center;">'
           +'<span class="hw-row-label">'+t.label+'</span>'
@@ -5303,6 +5370,13 @@ function _hwRenderAll() {
           +'<span class="hw-max-badge" id="hw-wb-'+t.id+'" style="'+(isFull?'':'display:none')+'">MAX</span>'
           +'</div></div>'
           +'<div id="hw-wblk-'+t.id+'">'+_hwBlocksHtml(val, t.max, '#3b82f6')+'</div>'
+          +(t.itemMax ? '<div style="display:flex;align-items:center;gap:4px;">'
+            +'<span style="font-size:11px;color:var(--muted);">추가 입장권</span>'
+            +'<button class="hw-counter-btn" onclick="hwSetWeeklyItem(\''+t.id+'\',-1,'+t.itemMax+')" style="width:22px;height:22px;font-size:11px;">−</button>'
+            +'<span id="hw-wi-'+t.id+'" style="font-size:12px;font-weight:700;color:var(--gold-l);min-width:18px;text-align:center;">'+wItemVal+'</span>'
+            +'<span style="font-size:11px;color:var(--muted);">/'+t.itemMax+'</span>'
+            +'<button class="hw-counter-btn" onclick="hwSetWeeklyItem(\''+t.id+'\',+1,'+t.itemMax+')" style="width:22px;height:22px;font-size:11px;">+</button>'
+            +'</div>' : '')
           +'</div>';
       }).join('');
     } else if(weeklyArea) {
@@ -5318,49 +5392,26 @@ function _hwRenderAll() {
   } catch(e) {}
 }
 
-// 리모권 → 하단 UI 자동 연동 매핑
-const HW_RIMO_EFFECTS = {
-  '정복 보상':  {ticket:'ticket_conquest',  tDelta:-1},
-  '정복 2배':   {ticket:'ticket_conquest',  tDelta:-2},
-  '초월 보상':  {ticket:'ticket_chowon',    tDelta:-1},
-  '초월 2배':   {ticket:'ticket_chowon',    tDelta:-2},
-  '악몽':       {ticket:'ticket_akmon',     tDelta:-1},
-  '슈고페스타': {ticket:'ticket_shugo',     tDelta:-1},
-  '차원침공':   {ticket:'ticket_dimension', tDelta:-1},
-  '루드라도전': {weekly:'weekly_sanctuary_rude_ch', wDelta:1},
-  '루드라보상': {weekly:'weekly_sanctuary_rude_rw', wDelta:1, od:-40},
-  '루드라2배':  {weekly:'weekly_sanctuary_rude_rw', wDelta:1, od:-40},
-  '2차성역도전':{weekly:'weekly_sanctuary2_ch',     wDelta:1},
-  '2차성역보상':{weekly:'weekly_sanctuary2_rw',     wDelta:1, od:-40},
-  '2차성역2배': {weekly:'weekly_sanctuary2_rw',     wDelta:1, od:-40},
-  '각성전':     {weekly:'weekly_gakseong',  wDelta:1},
-  '토벌전':     {weekly:'weekly_tobul',     wDelta:1},
-  '일일던전':   {weekly:'weekly_daily_face', wDelta:1},
+// 리모권 = 단순 마커. OD 소모 콘텐츠만 에너지 연동.
+const HW_RIMO_OD_EFFECTS = {
+  '루드라보상': -40,
+  '루드라2배':  -40,
+  '2차성역보상':-40,
+  '2차성역2배': -40,
 };
 
 function hwToggleRimo(id) {
   try {
-    const data = _hwLoad(_hwDailyKey());
-    const wasUsed = !!data[id];
+    var data = _hwLoad(_hwDailyKey());
+    var wasUsed = !!data[id];
     data[id] = !wasUsed;
     _hwSave(_hwDailyKey(), data);
-    const btn = document.getElementById('hw-rimo-'+id);
+    var btn = document.getElementById('hw-rimo-'+id);
     if(btn) btn.className = 'hw-rimo-btn'+(data[id]?' used':'');
-
-    // effect 연동
-    const labelKey = id.slice(5).replace(/_/g, ' ');
-    const fx = HW_RIMO_EFFECTS[labelKey];
-    if(!fx) return;
-    const dir = data[id] ? 1 : -1; // 켜면 +1, 끄면 -1
-    if(fx.ticket) {
-      const t = HW_TICKETS.find(function(x){ return x.id === fx.ticket; });
-      if(t) hwSetTicket(fx.ticket, fx.tDelta * dir, t.max);
-    }
-    if(fx.weekly) {
-      const w = HW_WEEKLY_COUNTERS.find(function(x){ return x.id === fx.weekly; });
-      if(w) hwSetWeekly(fx.weekly, fx.wDelta * dir, w.max);
-    }
-    if(fx.od) hwSetOd(fx.od * dir);
+    // OD 에너지 연동 (성역 보상류만)
+    var labelKey = id.slice(5).replace(/_/g, ' ');
+    var odAmount = HW_RIMO_OD_EFFECTS[labelKey];
+    if(odAmount) hwSetOd(odAmount * (data[id] ? 1 : -1));
   } catch(e) {}
 }
 
