@@ -1289,10 +1289,10 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.86';
+const BUILD_VERSION = '1.5.87';
 const BUILD_PATCHNOTE = {
-  title: 'UI 명칭 수정 및 로딩 팝업 개선',
-  content: '• 보조/방패 → 가더, 신석 슬롯 → 룬으로 명칭 변경.\n• NC 공지/업데이트 자동 갱신 시 로딩 팝업 미표시.\n• 디버그 콘솔 로그 제거.'
+  title: '신석 등급 색상 수정 및 새 공지 팝업 복구',
+  content: '• 신석 등급별 색상 수정: 희귀=초록, 유일=파랑, 전승=주황.\n• 새 공지/패치노트 등록 시 팝업 알림 복구.\n• 보스 이름 기반 신석 색상 로직 제거.'
 };
 
 // 전체 패치 내역 (버전별 정확한 설명)
@@ -1341,6 +1341,8 @@ const _PATCH_HISTORY = [
     content:'• Supabase → Turso (SQLite) 마이그레이션 완료.\n• Cloudflare Pages Function(/api/db)을 통한 안전한 DB 프록시 구조.\n• Firebase/Supabase 관련 코드·명칭 전부 정리.' },
   { version:'1.5.86', title:'UI 명칭 수정 및 로딩 팝업 개선',
     content:'• 보조/방패 → 가더, 신석 슬롯 → 룬으로 명칭 변경.\n• NC 공지/업데이트 자동 갱신 시 로딩 팝업 미표시.\n• 디버그 콘솔 로그 제거.' },
+  { version:'1.5.87', title:'신석 등급 색상 수정 및 새 공지 팝업 복구',
+    content:'• 신석 등급별 색상 수정: 희귀=초록, 유일=파랑, 전승=주황.\n• 새 공지/패치노트 등록 시 팝업 알림 복구.\n• 보스 이름 기반 신석 색상 로직 제거.' },
 ];
 
 // 시맨틱 버전 비교 (날짜형 구버전 호환)
@@ -2285,6 +2287,12 @@ function initDb() {
         var old = members.find(function(x){ return x.id === m.id; });
         if(old && old.equipment) m.equipment = old.equipment;
       });
+      // 새 공지 팝업 감지
+      if(window._cachedNotices && window._cachedNotices.length) {
+        var knownIds = window._cachedNotices.map(function(n){ return n.id; });
+        freshNotices.filter(function(n){ return !knownIds.includes(n.id); })
+          .forEach(function(n){ showNoticeAlert(n); });
+      }
       members = freshMembers;
       renderAll();
       renderNotices(freshNotices);
