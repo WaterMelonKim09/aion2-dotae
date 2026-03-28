@@ -2709,7 +2709,7 @@ async function loadNcNotices(force) {
       ? '<div id="nc-notice-btn-area"><button onclick="loadMoreNcNotices()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;">▼ 더보기</button></div>'
       : '';
     el.innerHTML = list.map(_renderNcItem).join('') + '<div id="nc-notice-extra"></div>' + moreBtnHtml;
-    if(!_ncPollTimer) _ncPollTimer = setInterval(function(){ loadNcNotices(true); }, 30 * 1000);
+    if(!_ncPollTimer) _ncPollTimer = setInterval(function(){ loadNcNotices(false); }, 30 * 1000);
   } catch(e) {
     hideActionLoading();
     if(btn) { btn.disabled = false; btn.style.opacity = ''; btn.textContent = '↺'; }
@@ -2793,7 +2793,7 @@ async function loadNcUpdates(force) {
       ? '<div id="nc-update-btn-area"><button onclick="loadMoreNcUpdates()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;">▼ 더보기</button></div>'
       : '';
     el.innerHTML = list.map(_renderNcItem).join('') + '<div id="nc-update-extra"></div>' + moreBtnHtml2;
-    if(!_ncUpdatePollTimer) _ncUpdatePollTimer = setInterval(function(){ loadNcUpdates(true); }, 30 * 1000);
+    if(!_ncUpdatePollTimer) _ncUpdatePollTimer = setInterval(function(){ loadNcUpdates(false); }, 30 * 1000);
   } catch(e) {
     hideActionLoading();
     if(btn) { btn.disabled = false; btn.style.opacity = ''; btn.textContent = '↺'; }
