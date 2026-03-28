@@ -1289,10 +1289,10 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.93';
+const BUILD_VERSION = '1.5.94';
 const BUILD_PATCHNOTE = {
-  title: '패치노트 자동 등록 버그 수정',
-  content: '• autoInsertPatchNote id/created_at 누락으로 DB 삽입 실패하던 버그 수정.\n• 패치노트 배포 시 자동 공지 등록 복구.'
+  title: '쟁 참여조사 기능 개선',
+  content: '• 쟁 참여조사 자동 생성 (앱 로드 시 다음 쟁 일정 조사 자동 개설).\n• 참가/불참 응답 즉시 반영 + 백그라운드 동기화.\n• 참여조사 30초 폴링 추가 (다른 멤버 응답 실시간 확인).\n• 생성/삭제/초기화 후 목록 자동 갱신.'
 };
 
 // 전체 패치 내역 (버전별 정확한 설명)
@@ -1349,6 +1349,14 @@ const _PATCH_HISTORY = [
     content:'• Turso 마이그레이션 시 is_main boolean이 문자열로 저장된 버그 수정.\n• 본캐/부캐 절취선 구분 복구.\n• toTurso boolean 처리 추가.' },
   { version:'1.5.90', title:'패치노트 자동 등록 버그 수정',
     content:'• autoInsertPatchNote id/created_at 누락으로 DB 삽입 실패하던 버그 수정.\n• 패치노트 배포 시 자동 공지 등록 복구.' },
+  { version:'1.5.91', title:'신석 등급 색상 최종 수정',
+    content:'• 신석 색상 오로지 등급 기반으로 통일 (보스명/효과 기반 로직 제거).\n• 전승(Legend)=파랑(#4a90e8), 유일(Unique)=주황(#ffaa00), 희귀(Rare)=초록(#55cc44).' },
+  { version:'1.5.92', title:'마석/영석 등급 색상 수정',
+    content:'• 마석·영석 색상 등급 기반 통일 (신석과 동일 기준 적용).\n• Common(일반) 등급 추가: 회색(#aaaaaa).' },
+  { version:'1.5.93', title:'레기온 공지/패치노트 실시간 변동감지 추가',
+    content:'• 레기온 공지사항·관리 시스템 패치노트 폴링 주기 5초로 설정.\n• 새 글 감지 시 팝업 + 토스트 알림 표시.' },
+  { version:'1.5.94', title:'쟁 참여조사 기능 개선',
+    content:'• 쟁 참여조사 자동 생성 (앱 로드 시 다음 쟁 일정 조사 자동 개설).\n• 참가/불참 응답 즉시 반영 + 백그라운드 동기화.\n• 참여조사 30초 폴링 추가 (다른 멤버 응답 실시간 확인).\n• 생성/삭제/초기화 후 목록 자동 갱신.' },
 ];
 
 // 시맨틱 버전 비교 (날짜형 구버전 호환)
@@ -1464,7 +1472,6 @@ function autoInitWarSurvey() {
     return s.title && (s.title.indexOf(info.dateStr) !== -1 || s.title === info.title);
   });
   if(existing || warSurveys.length > 0 && warSurveys.some(function(s){
-    // 같은 날짜 어떤 형식으로든 이미 존재
     return s.deadline && s.deadline.indexOf(info.dateStr) !== -1;
   })) return;
 
@@ -1477,9 +1484,21 @@ function autoInitWarSurvey() {
   }).then(function(){
     _warSurveyCreating = false;
     toast('📋 ' + info.title + ' 생성됨');
+    _loadWarSurveys();
   }).catch(function(){
     _warSurveyCreating = false;
   });
+}
+
+function _loadWarSurveys() {
+  db.from('war_surveys').select('*').order('created_at', { ascending: false })
+    .then(function(res) {
+      var data = res.data, error = res.error;
+      if(error) return;
+      warSurveys = data || [];
+      renderWarSurveys();
+      autoInitWarSurvey();
+    });
 }
 
 function showWarInProgress() {
@@ -1497,7 +1516,10 @@ function renderWarSurveys() {
   if(!el) return;
   var warInfo = typeof getNextWarDate === 'function' ? getNextWarDate() : null;
   if(warInfo && warInfo.inProgress) { showWarInProgress(); return; }
-  if(!warSurveys.length) return;
+  if(!warSurveys.length) {
+    el.innerHTML = '<div class="empty" style="padding:40px;"><div class="empty-icon">⚔</div><p>참여조사가 없어요</p></div>';
+    return;
+  }
 
   // 전체 누적 스탯 계산
   var stats = {};
@@ -1639,8 +1661,11 @@ async function respondWarSurvey(surveyId, type) {
   var d = new Date();
   var time = String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
   responses.push({ nickname: currentUser.nickname, type: type, time: time });
+  survey.responses = responses;
+  renderWarSurveys();
   await db.from('war_surveys').update({ responses: responses }).eq('id', surveyId);
   toast(type==='attend' ? '✔ 참가로 응답했어요!' : '✘ 불참으로 응답했어요!');
+  _loadWarSurveys();
 }
 
 async function createWarSurvey(title, deadline) {
@@ -1652,12 +1677,14 @@ async function createWarSurvey(title, deadline) {
     created_at: new Date().toISOString()
   });
   toast('참여조사가 생성됐어요 ✓');
+  _loadWarSurveys();
 }
 
 async function deleteWarSurvey(id) {
   if(!confirm('참여조사를 삭제할까요?')) return;
   await db.from('war_surveys').delete().eq('id', id);
   toast('삭제됐어요');
+  _loadWarSurveys();
 }
 
 function openWarSurveyCreate() {
@@ -1673,6 +1700,7 @@ function openWarSurveyCreate() {
 async function resetWarSurveys() {
   if(!confirm('기존 쟁 참여조사를 모두 삭제하고 새로 1개 생성할까요?')) return;
   await db.from('war_surveys').delete().not('id', 'is', null);
+  warSurveys = [];
   _warSurveyCreating = false;
   autoInitWarSurvey();
   toast('초기화 완료!');
@@ -2427,6 +2455,14 @@ function initDb() {
         db.from('recruits').select('*').order('created_at', { ascending: false })
           .then(function({ data, error }){ if(!error){ recruits=data||[]; renderRecruit(); document.getElementById('stat-recruit').textContent=recruits.length; } });
       }, _POLL_MS);
+      // 쟁 참여조사 30초 폴링
+      window._warPollTimer = setInterval(function() {
+        if(document.hidden) return;
+        db.from('war_surveys').select('*').order('created_at', { ascending: false })
+          .then(function(res) {
+            if(!res.error && res.data) { warSurveys = res.data; renderWarSurveys(); }
+          });
+      }, 30000);
       // 공지/패치노트 5초 폴링
       window._noticePollTimer = setInterval(function() {
         if(document.hidden) return;
@@ -2449,6 +2485,7 @@ function initDb() {
       if(window._pollTimer){ clearInterval(window._pollTimer); window._pollTimer=null; }
       if(window._recruitPollTimer){ clearInterval(window._recruitPollTimer); window._recruitPollTimer=null; }
       if(window._noticePollTimer){ clearInterval(window._noticePollTimer); window._noticePollTimer=null; }
+      if(window._warPollTimer){ clearInterval(window._warPollTimer); window._warPollTimer=null; }
     }
     document.addEventListener('visibilitychange', function() {
       if(document.hidden) {
@@ -2460,12 +2497,7 @@ function initDb() {
     });
     if(!document.hidden) _startPolling();
 
-    db.from('war_surveys').select('*').order('created_at', { ascending: false })
-      .then(({ data, error }) => {
-        if(error) return;
-        warSurveys = data || [];
-        renderWarSurveys();
-      });
+    _loadWarSurveys();
   }
   window.refreshData = function() {
     // 캐시 클리어 + 로딩 화면 표시 후 데이터 재로드
