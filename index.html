@@ -1289,10 +1289,10 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.89';
+const BUILD_VERSION = '1.5.90';
 const BUILD_PATCHNOTE = {
-  title: '본캐/부캐 구분 오류 수정 (Turso 마이그레이션 호환)',
-  content: '• Turso 마이그레이션 시 is_main boolean이 문자열로 저장된 버그 수정.\n• 본캐/부캐 절취선 구분 복구.\n• toTurso boolean 처리 추가.'
+  title: '패치노트 자동 등록 버그 수정',
+  content: '• autoInsertPatchNote id/created_at 누락으로 DB 삽입 실패하던 버그 수정.\n• 패치노트 배포 시 자동 공지 등록 복구.'
 };
 
 // 전체 패치 내역 (버전별 정확한 설명)
@@ -1347,6 +1347,8 @@ const _PATCH_HISTORY = [
     content:'• 버전 체크 주기 60초 → 5초.\n• NC 공지/업데이트 폴링 30초 → 5분.\n• 사이트 새 공지/패치노트 감지 시 토스트 알림 추가.' },
   { version:'1.5.89', title:'본캐/부캐 구분 오류 수정 (Turso 마이그레이션 호환)',
     content:'• Turso 마이그레이션 시 is_main boolean이 문자열로 저장된 버그 수정.\n• 본캐/부캐 절취선 구분 복구.\n• toTurso boolean 처리 추가.' },
+  { version:'1.5.90', title:'패치노트 자동 등록 버그 수정',
+    content:'• autoInsertPatchNote id/created_at 누락으로 DB 삽입 실패하던 버그 수정.\n• 패치노트 배포 시 자동 공지 등록 복구.' },
 ];
 
 // 시맨틱 버전 비교 (날짜형 구버전 호환)
@@ -1787,10 +1789,13 @@ async function autoInsertPatchNote() {
     const { data } = await db.from('notices').select('id').eq('version', BUILD_VERSION).maybeSingle();
     if(data) return; // 이미 등록된 버전
     await db.from('notices').insert({
+      id: crypto.randomUUID(),
       type: '패치노트',
       version: BUILD_VERSION,
       title: BUILD_PATCHNOTE.title,
       content: BUILD_PATCHNOTE.content,
+      author: 'System',
+      created_at: new Date().toISOString(),
     });
   } catch(e) {}
 }
