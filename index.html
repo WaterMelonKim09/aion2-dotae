@@ -1549,19 +1549,15 @@ function renderWarSurveys() {
       var cls = m ? (CLASS_MAP[m.class]||m.class||'') : '';
       var clsIcon = cls && CLS_ICON[cls] ? CLS_ICON[cls] : '';
       var clsColor = cls ? (CLS_COLOR[cls]||'var(--muted)') : 'var(--muted)';
-      var mStat = stats[r.nickname] || {attend:0, absent:0};
       return '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border);">'
         +'<div style="width:28px;height:28px;border-radius:50%;background:var(--surface);border:1px solid var(--border);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;">'
         +(m&&m.profile_img?'<img src="'+m.profile_img+'" style="width:100%;height:100%;object-fit:cover;">':clsIcon||'<span style="font-size:12px;color:var(--muted);">?</span>')
         +'</div>'
         +'<div style="flex:1;min-width:0;">'
-        +'<span style="font-size:13px;font-weight:600;cursor:pointer;" onclick="openDetailByNickname('+JSON.stringify(r.nickname)+')">'+r.nickname+'</span>'
+        +'<span style="font-size:13px;font-weight:600;">'+r.nickname+'</span>'
         +(cls?'<span style="font-size:11px;color:'+clsColor+';margin-left:5px;">'+cls+'</span>':'')
         +'</div>'
-        +'<div style="font-size:10px;color:var(--muted);flex-shrink:0;text-align:right;">'
-        +'<span style="color:var(--green);">✔'+mStat.attend+'</span> '
-        +'<span style="color:#e06060;">✘'+mStat.absent+'</span>'
-        +'</div>'
+        +'<button onclick="openDetailByNickname('+JSON.stringify(r.nickname)+')" style="font-size:11px;padding:3px 8px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;flex-shrink:0;">상세</button>'
         +'</div>';
     };
 
@@ -1590,21 +1586,12 @@ function renderWarSurveys() {
       }
     }
 
-    return '<div class="card" style="margin-bottom:16px;padding:0;overflow:hidden;">'
+    var isExpired = timeLeftStr === '마감됨';
+    var bodyId = 'war-body-' + surveyId;
 
-      // ── 헤더
-      +'<div style="padding:14px 16px;background:var(--surface);border-bottom:1px solid var(--border);">'
-      +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">'
-      +'<div style="flex:1;min-width:0;">'
-      +'<div style="font-size:17px;font-weight:700;margin-bottom:4px;">⚔ '+survey.title+'</div>'
-      +(timeLeftStr?'<div id="war-dl-'+surveyId+'" data-deadline="'+deadlineMs+'" style="font-size:12px;color:'+(timeLeftStr==='마감됨'?'#e06060':'var(--gold-l)')+';">⏱ '+timeLeftStr+'</div>':'')
-      +'</div>'
-      +(isAdmin()?'<button onclick="deleteWarSurvey('+JSON.stringify(surveyId)+')" style="font-size:11px;padding:4px 8px;background:none;border:1px solid var(--red);border-radius:6px;color:var(--red);cursor:pointer;flex-shrink:0;">삭제</button>':'')
-      +'</div>'
-      +'</div>'
-
+    var bodyHtml = ''
       // ── 참가/불참 버튼
-      +(currentUser
+      +(currentUser && !isExpired
         ? '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px 16px;background:var(--bg);border-bottom:1px solid var(--border);">'
           +'<button data-sid="'+surveyId+'" data-type="attend" onclick="respondWarSurvey(this.dataset.sid,this.dataset.type)" '
           +'style="padding:14px 8px;font-size:15px;font-weight:700;border-radius:10px;cursor:pointer;transition:all .15s;'
@@ -1619,7 +1606,7 @@ function renderWarSurveys() {
             : 'background:var(--surface);border:2px solid var(--border);color:var(--muted);')
           +'">✘ 불참</button>'
           +'</div>'
-        : '<div style="padding:10px 16px;text-align:center;font-size:12px;color:var(--muted);border-bottom:1px solid var(--border);">로그인 후 참여 가능해요</div>'
+        : (!isExpired ? '<div style="padding:10px 16px;text-align:center;font-size:12px;color:var(--muted);border-bottom:1px solid var(--border);">로그인 후 참여 가능해요</div>' : '')
       )
 
       // ── 명단 헤더 + 내용 (2열)
@@ -1636,10 +1623,10 @@ function renderWarSurveys() {
       +'</div>'
       +'</div>'
 
-      // ── 누적 스탯
+      // ── 누적 참여 횟수
       +(Object.keys(stats).length>0
         ? '<div style="padding:12px 16px;background:var(--surface);border-top:1px solid var(--border);">'
-          +'<div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-weight:600;">📊 누적 참여 스탯</div>'
+          +'<div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-weight:600;">📊 누적 참여 횟수</div>'
           +'<div style="display:flex;flex-wrap:wrap;gap:6px;">'
           +Object.entries(stats).sort(function(a,b){return (b[1].attend+b[1].absent)-(a[1].attend+a[1].absent);}).map(function(entry){
             var nm=entry[0],st=entry[1],tot=st.attend+st.absent;
@@ -1651,7 +1638,29 @@ function renderWarSurveys() {
               +'</div>';
           }).join('')+'</div></div>'
         : ''
-      )
+      );
+
+    return '<div class="card" style="margin-bottom:16px;padding:0;overflow:hidden;">'
+
+      // ── 헤더
+      +'<div style="padding:14px 16px;background:var(--surface);'+(isExpired?'':'border-bottom:1px solid var(--border);')+'">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">'
+      +'<div style="flex:1;min-width:0;cursor:'+(isExpired?'pointer':'default')+'" '+(isExpired?'onclick="(function(el){var b=document.getElementById(\''+bodyId+'\');if(!b)return;var open=b.style.display!==\'none\';b.style.display=open?\'none\':\'\';el.querySelector(\'.war-toggle\').textContent=open?\'펼치기 ▼\':\'접기 ▲\';})(this)"':'')+' >'
+      +'<div style="display:flex;align-items:center;gap:8px;">'
+      +'<div style="font-size:17px;font-weight:700;">⚔ '+survey.title+'</div>'
+      +(isExpired?'<span class="war-toggle" style="font-size:11px;color:var(--muted);padding:2px 7px;border:1px solid var(--border);border-radius:10px;">펼치기 ▼</span>':'')
+      +'</div>'
+      +(timeLeftStr?'<div id="war-dl-'+surveyId+'" data-deadline="'+deadlineMs+'" style="font-size:12px;margin-top:4px;color:'+(isExpired?'#e06060':'var(--gold-l)')+';">⏱ '+timeLeftStr+'</div>':'')
+      +'</div>'
+      +(isAdmin()?'<button onclick="deleteWarSurvey('+JSON.stringify(surveyId)+')" style="font-size:11px;padding:4px 8px;background:none;border:1px solid var(--red);border-radius:6px;color:var(--red);cursor:pointer;flex-shrink:0;">삭제</button>':'')
+      +'</div>'
+      +'</div>'
+
+      // ── 접힘 가능한 바디
+      +'<div id="'+bodyId+'" style="'+(isExpired?'display:none;':'')+'">'
+      +bodyHtml
+      +'</div>'
+
       +'</div>';
   }).join('');
 
