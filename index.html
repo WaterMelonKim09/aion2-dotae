@@ -3126,11 +3126,11 @@ function openDetail(m) {
   // 신석 색상: 전역 _runeColor(name) 함수로 이름 기반 처리
   const GN = {Common:'일반',Rare:'희귀',Hero:'영웅',Epic:'영웅',Unique:'유일',Legendary:'전설',Special:'스페셜'};
   const SN = {
-    MainHand:'주무기',SubHand:'보조/방패',Torso:'갑옷',Pants:'하의',
+    MainHand:'주무기',SubHand:'가더',Torso:'갑옷',Pants:'하의',
     Helmet:'투구',Shoulder:'어깨',Gloves:'장갑',Boots:'신발',
     Cape:'망토',Belt:'허리띠',Necklace:'목걸이',
     Earring1:'귀걸이',Earring2:'귀걸이',Ring1:'반지',Ring2:'반지',
-    Bracelet1:'팔찌',Bracelet2:'팔찌',Rune1:'신석',Rune2:'신석',
+    Bracelet1:'팔찌',Bracelet2:'팔찌',Rune1:'룬',Rune2:'룬',
     Amulet:'아뮬렛',
     Arcana1:'아르카나',Arcana2:'아르카나',Arcana3:'아르카나',
     Arcana4:'아르카나',Arcana5:'아르카나',Arcana6:'아르카나',
@@ -3335,9 +3335,9 @@ function openDetail(m) {
             ${magicStones.map(s=>{const sc=GC[s.grade]||'#999';const val=s.value?(String(s.value).startsWith('+')?s.value:`+${s.value}`):'';return`<div style="display:flex;align-items:center;gap:6px;padding:2px 0;">${s.icon?`<img src="${s.icon}" style="width:20px;height:20px;border-radius:3px;flex-shrink:0;background:var(--surface);animation:imgPulse 1.5s ease infinite;" onload="_imgLoad(this)" onerror="_imgErr(this)">`:`<div style="width:20px;height:20px;border-radius:3px;background:${sc}22;flex-shrink:0;"></div>`}<span style="font-size:12px;color:${sc};">${s.name||''}${val?` ${val}`:''}</span></div>`;}).join('')}
           </div>` : ''}
 
-        <!-- 신석: 아이콘 + 이름(등급색) + 설명 -->
+        <!-- 룬: 아이콘 + 이름(등급색) + 설명 -->
         ${godStones.length ? `
-          ${ncSec('신석')}
+          ${ncSec('룬')}
           <div style="padding:8px 20px;">
             ${godStones.map(s=>{const rawDesc=s.description||s.desc||'';const desc=rawDesc.replace(/<[^>]*>/g,'');const _GCK={'일반':'#aaaaaa','희귀':'#4a90e8','영웅':'#d44040','유일':'#e8c030','전설':'#ff6a20','스페셜':'#40d4c0'};const sc=GC[s.grade]||_GCK[s.gradeName]||'#e0c97a';const effects=(s.skillEffectList||s.effectList||[]).map(ef=>`<div style="font-size:11px;color:#aaa;line-height:1.6;">${ef.description||ef.desc||ef.name||ef}</div>`).join('');return`<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;">${s.icon?`<img src="${s.icon}" style="width:22px;height:22px;border-radius:3px;flex-shrink:0;background:var(--surface);animation:imgPulse 1.5s ease infinite;" onload="_imgLoad(this)" onerror="_imgErr(this)">`:`<div style="width:22px;height:22px;border-radius:3px;background:${sc}22;flex-shrink:0;"></div>`}<div><div style="font-size:12px;color:${sc};font-weight:600;">${s.name||''}</div>${desc?`<div style="font-size:11px;color:#aaa;line-height:1.6;margin-top:2px;">${desc}</div>`:''}${effects}</div></div>`;}).join('')}
           </div>` : ''}
