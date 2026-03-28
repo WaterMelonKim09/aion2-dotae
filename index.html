@@ -1289,7 +1289,7 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.92';
+const BUILD_VERSION = '1.5.93';
 const BUILD_PATCHNOTE = {
   title: '패치노트 자동 등록 버그 수정',
   content: '• autoInsertPatchNote id/created_at 누락으로 DB 삽입 실패하던 버그 수정.\n• 패치노트 배포 시 자동 공지 등록 복구.'
@@ -2427,10 +2427,28 @@ function initDb() {
         db.from('recruits').select('*').order('created_at', { ascending: false })
           .then(function({ data, error }){ if(!error){ recruits=data||[]; renderRecruit(); document.getElementById('stat-recruit').textContent=recruits.length; } });
       }, _POLL_MS);
+      // 공지/패치노트 5초 폴링
+      window._noticePollTimer = setInterval(function() {
+        if(document.hidden) return;
+        db.from('notices').select('*').order('created_at', { ascending: false })
+          .then(function({ data, error }) {
+            if(error || !data) return;
+            if(window._cachedNotices && window._cachedNotices.length) {
+              var knownIds = window._cachedNotices.map(function(n){ return n.id; });
+              data.filter(function(n){ return !knownIds.includes(n.id); })
+                .forEach(function(n){
+                  showNoticeAlert(n);
+                  toast((n.type === '공지사항' ? '📢 새 공지사항' : '🛠 새 패치노트') + ': ' + n.title);
+                });
+            }
+            renderNotices(data);
+          });
+      }, 5000);
     }
     function _stopPolling() {
       if(window._pollTimer){ clearInterval(window._pollTimer); window._pollTimer=null; }
       if(window._recruitPollTimer){ clearInterval(window._recruitPollTimer); window._recruitPollTimer=null; }
+      if(window._noticePollTimer){ clearInterval(window._noticePollTimer); window._noticePollTimer=null; }
     }
     document.addEventListener('visibilitychange', function() {
       if(document.hidden) {
