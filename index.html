@@ -1109,7 +1109,7 @@
 function loginNicknameInput(val) {
   var preview = document.getElementById('login-preview');
   if(!val.trim()) { preview.style.display='none'; return; }
-  var matches = members.filter(function(m){ return m.is_main!==false && m.nickname.indexOf(val) === 0; });
+  var matches = members.filter(function(m){ return _isMain(m) && m.nickname.indexOf(val) === 0; });
   if(!matches.length) { preview.style.display='none'; return; }
   preview.style.display='block';
   preview.innerHTML = matches.slice(0,5).map(function(m){
@@ -1289,10 +1289,10 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.85';
+const BUILD_VERSION = '1.5.94';
 const BUILD_PATCHNOTE = {
-  title: 'DB 플랫폼 Turso 전환 (Supabase 완전 제거)',
-  content: '• Supabase → Turso (SQLite) 마이그레이션 완료.\n• Cloudflare Pages Function(/api/db)을 통한 안전한 DB 프록시 구조.\n• Firebase/Supabase 관련 코드·명칭 전부 정리.'
+  title: '쟁 참여조사 기능 개선',
+  content: '• 쟁 참여조사 자동 생성 (앱 로드 시 다음 쟁 일정 조사 자동 개설).\n• 참가/불참 응답 즉시 반영 + 백그라운드 동기화.\n• 참여조사 30초 폴링 추가 (다른 멤버 응답 실시간 확인).\n• 생성/삭제/초기화 후 목록 자동 갱신.'
 };
 
 // 전체 패치 내역 (버전별 정확한 설명)
@@ -1337,6 +1337,26 @@ const _PATCH_HISTORY = [
     content:'• 살성 황록색(#7acc40)·마도성 바이올렛(#9966dd) 엠블렘 색으로 통일.' },
   { version:'1.5.73', title:'신석 이름 기반 색상, 아이템 아이콘 로딩 표시',
     content:'• 신석 색상: 등급 대신 이름 기반으로 변경 (불/물/땅/바람/상태이상 각각 고유 색).\n• 장비·마석·신석 아이콘 로딩 중 펄스 애니메이션 표시, 실패 시 ? 표시.' },
+  { version:'1.5.85', title:'DB 플랫폼 Turso 전환 (Supabase 완전 제거)',
+    content:'• Supabase → Turso (SQLite) 마이그레이션 완료.\n• Cloudflare Pages Function(/api/db)을 통한 안전한 DB 프록시 구조.\n• Firebase/Supabase 관련 코드·명칭 전부 정리.' },
+  { version:'1.5.86', title:'UI 명칭 수정 및 로딩 팝업 개선',
+    content:'• 보조/방패 → 가더, 신석 슬롯 → 룬으로 명칭 변경.\n• NC 공지/업데이트 자동 갱신 시 로딩 팝업 미표시.\n• 디버그 콘솔 로그 제거.' },
+  { version:'1.5.87', title:'신석 등급 색상 수정 및 새 공지 팝업 복구',
+    content:'• 신석 등급별 색상 수정: 희귀=초록, 유일=파랑, 전승=주황.\n• 새 공지/패치노트 등록 시 팝업 알림 복구.\n• 보스 이름 기반 신석 색상 로직 제거.' },
+  { version:'1.5.88', title:'변동감지 주기 조정 및 토스트 알림 추가',
+    content:'• 버전 체크 주기 60초 → 5초.\n• NC 공지/업데이트 폴링 30초 → 5분.\n• 사이트 새 공지/패치노트 감지 시 토스트 알림 추가.' },
+  { version:'1.5.89', title:'본캐/부캐 구분 오류 수정 (Turso 마이그레이션 호환)',
+    content:'• Turso 마이그레이션 시 is_main boolean이 문자열로 저장된 버그 수정.\n• 본캐/부캐 절취선 구분 복구.\n• toTurso boolean 처리 추가.' },
+  { version:'1.5.90', title:'패치노트 자동 등록 버그 수정',
+    content:'• autoInsertPatchNote id/created_at 누락으로 DB 삽입 실패하던 버그 수정.\n• 패치노트 배포 시 자동 공지 등록 복구.' },
+  { version:'1.5.91', title:'신석 등급 색상 최종 수정',
+    content:'• 신석 색상 오로지 등급 기반으로 통일 (보스명/효과 기반 로직 제거).\n• 전승(Legend)=파랑(#4a90e8), 유일(Unique)=주황(#ffaa00), 희귀(Rare)=초록(#55cc44).' },
+  { version:'1.5.92', title:'마석/영석 등급 색상 수정',
+    content:'• 마석·영석 색상 등급 기반 통일 (신석과 동일 기준 적용).\n• Common(일반) 등급 추가: 회색(#aaaaaa).' },
+  { version:'1.5.93', title:'레기온 공지/패치노트 실시간 변동감지 추가',
+    content:'• 레기온 공지사항·관리 시스템 패치노트 폴링 주기 5초로 설정.\n• 새 글 감지 시 팝업 + 토스트 알림 표시.' },
+  { version:'1.5.94', title:'쟁 참여조사 기능 개선',
+    content:'• 쟁 참여조사 자동 생성 (앱 로드 시 다음 쟁 일정 조사 자동 개설).\n• 참가/불참 응답 즉시 반영 + 백그라운드 동기화.\n• 참여조사 30초 폴링 추가 (다른 멤버 응답 실시간 확인).\n• 생성/삭제/초기화 후 목록 자동 갱신.' },
 ];
 
 // 시맨틱 버전 비교 (날짜형 구버전 호환)
@@ -1452,7 +1472,6 @@ function autoInitWarSurvey() {
     return s.title && (s.title.indexOf(info.dateStr) !== -1 || s.title === info.title);
   });
   if(existing || warSurveys.length > 0 && warSurveys.some(function(s){
-    // 같은 날짜 어떤 형식으로든 이미 존재
     return s.deadline && s.deadline.indexOf(info.dateStr) !== -1;
   })) return;
 
@@ -1465,9 +1484,21 @@ function autoInitWarSurvey() {
   }).then(function(){
     _warSurveyCreating = false;
     toast('📋 ' + info.title + ' 생성됨');
+    _loadWarSurveys();
   }).catch(function(){
     _warSurveyCreating = false;
   });
+}
+
+function _loadWarSurveys() {
+  db.from('war_surveys').select('*').order('created_at', { ascending: false })
+    .then(function(res) {
+      var data = res.data, error = res.error;
+      if(error) return;
+      warSurveys = data || [];
+      renderWarSurveys();
+      autoInitWarSurvey();
+    });
 }
 
 function showWarInProgress() {
@@ -1485,7 +1516,10 @@ function renderWarSurveys() {
   if(!el) return;
   var warInfo = typeof getNextWarDate === 'function' ? getNextWarDate() : null;
   if(warInfo && warInfo.inProgress) { showWarInProgress(); return; }
-  if(!warSurveys.length) return;
+  if(!warSurveys.length) {
+    el.innerHTML = '<div class="empty" style="padding:40px;"><div class="empty-icon">⚔</div><p>참여조사가 없어요</p></div>';
+    return;
+  }
 
   // 전체 누적 스탯 계산
   var stats = {};
@@ -1627,8 +1661,11 @@ async function respondWarSurvey(surveyId, type) {
   var d = new Date();
   var time = String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
   responses.push({ nickname: currentUser.nickname, type: type, time: time });
+  survey.responses = responses;
+  renderWarSurveys();
   await db.from('war_surveys').update({ responses: responses }).eq('id', surveyId);
   toast(type==='attend' ? '✔ 참가로 응답했어요!' : '✘ 불참으로 응답했어요!');
+  _loadWarSurveys();
 }
 
 async function createWarSurvey(title, deadline) {
@@ -1640,12 +1677,14 @@ async function createWarSurvey(title, deadline) {
     created_at: new Date().toISOString()
   });
   toast('참여조사가 생성됐어요 ✓');
+  _loadWarSurveys();
 }
 
 async function deleteWarSurvey(id) {
   if(!confirm('참여조사를 삭제할까요?')) return;
   await db.from('war_surveys').delete().eq('id', id);
   toast('삭제됐어요');
+  _loadWarSurveys();
 }
 
 function openWarSurveyCreate() {
@@ -1661,10 +1700,15 @@ function openWarSurveyCreate() {
 async function resetWarSurveys() {
   if(!confirm('기존 쟁 참여조사를 모두 삭제하고 새로 1개 생성할까요?')) return;
   await db.from('war_surveys').delete().not('id', 'is', null);
+  warSurveys = [];
   _warSurveyCreating = false;
   autoInitWarSurvey();
   toast('초기화 완료!');
 }
+
+// is_main이 boolean/integer/string 모두 처리 (Turso TEXT 마이그레이션 호환)
+function _isMain(m) { const v = m.is_main; return v !== false && v !== 0 && v !== 'false'; }
+function _isSub(m)  { const v = m.is_main; return v === false || v === 0 || v === 'false'; }
 
 function isAdmin() {
   if(!currentUser) return false;
@@ -1694,14 +1738,26 @@ function hideActionLoading() {
 // ─── 신석 색상: 효과 설명 기반 ─────────────
 // 이름 직접 매핑 (스크린샷에서 확인된 실제 이름 — "신석:" 접두사 포함/제외 모두 처리)
 const RUNE_COLORS = {
-  '프레기온의 술책':'#8899bb', '신석: 프레기온의 술책':'#8899bb', // 실명
-  '브리트라의 음모':'#cc44aa', '신석: 브리트라의 음모':'#cc44aa', // 봉인
-  '네자칸의 진군':'#6688cc',   '신석: 네자칸의 진군':'#6688cc',   // 속박
-  '메스람타에다의 욕심':'#ffcc22','신석: 메스람타에다의 욕심':'#ffcc22', // 기절
-  '에레슈키갈의 명예':'#ffaa00','신석: 에레슈키갈의 명예':'#ffaa00',   // 마비
-  '카이시넬의 환상':'#44ccdd', '신석: 카이시넬의 환상':'#44ccdd',  // 이동속도 감소
-  '루미엘의 참견':'#9966cc',   '신석: 루미엘의 참견':'#9966cc',   // 전투속도 감소
+  '프레기온의 술책':'#8899bb', '신석: 프레기온의 술책':'#8899bb',
+  '브리트라의 음모':'#cc44aa', '신석: 브리트라의 음모':'#cc44aa',
+  '네자칸의 진군':'#6688cc',   '신석: 네자칸의 진군':'#6688cc',
+  '메스람타에다의 욕심':'#ffcc22','신석: 메스람타에다의 욕심':'#ffcc22',
+  '에레슈키갈의 명예':'#ffaa00','신석: 에레슈키갈의 명예':'#ffaa00',
+  '카이시넬의 환상':'#44ccdd', '신석: 카이시넬의 환상':'#44ccdd',
+  '루미엘의 참견':'#9966cc',   '신석: 루미엘의 참견':'#9966cc',
 };
+// 보스 이름 패턴 기반 색상 (이름 우선, desc보다 먼저 체크)
+const RUNE_NAME_PATTERNS = [
+  { key:'프레기온', color:'#8899bb' },
+  { key:'브리트라', color:'#cc44aa' },
+  { key:'네자칸',   color:'#6688cc' },
+  { key:'메스람타에다', color:'#ffcc22' },
+  { key:'에레슈키갈',  color:'#ffaa00' },
+  { key:'카이시넬', color:'#44ccdd' },
+  { key:'루미엘',   color:'#9966cc' },
+  { key:'라스베르그', color:'#8899bb' },
+  { key:'트라우프니르', color:'#ff5522' },
+];
 // 설명(description) 안의 효과 키워드로 색상 결정 — 가장 신뢰도 높음
 const _RUNE_EFFECT_COLORS = [
   { keys:['[실명]'],                                     color:'#8899bb' },
@@ -1721,11 +1777,16 @@ const _RUNE_EFFECT_COLORS = [
 ];
 function _runeColor(name, desc) {
   const n = (name || '').replace(/^신석:\s*/, '');
-  // NC API desc에 <desc_point>실명</> 형태 태그가 섞여있으므로 제거 후 비교
   const d = (desc || '').replace(/<[^>]*>/g, '');
+  // 1. 보스 이름 패턴 우선 (desc보다 먼저)
+  for(const { key, color } of RUNE_NAME_PATTERNS) {
+    if(n.includes(key)) return color;
+  }
+  // 2. desc 효과 키워드 기반
   for(const { keys, color } of _RUNE_EFFECT_COLORS) {
     if(keys.some(k => d.includes(k))) return color;
   }
+  // 3. 정확한 이름 매핑
   if(RUNE_COLORS[name]) return RUNE_COLORS[name];
   if(RUNE_COLORS[n]) return RUNE_COLORS[n];
   return '#e0c97a';
@@ -1756,10 +1817,13 @@ async function autoInsertPatchNote() {
     const { data } = await db.from('notices').select('id').eq('version', BUILD_VERSION).maybeSingle();
     if(data) return; // 이미 등록된 버전
     await db.from('notices').insert({
+      id: crypto.randomUUID(),
       type: '패치노트',
       version: BUILD_VERSION,
       title: BUILD_PATCHNOTE.title,
       content: BUILD_PATCHNOTE.content,
+      author: 'System',
+      created_at: new Date().toISOString(),
     });
   } catch(e) {}
 }
@@ -2211,7 +2275,7 @@ function initDb() {
       checkVersion();
       if(!window._versionPollingStarted) {
         window._versionPollingStarted = true;
-        setInterval(checkVersion, 60000);
+        setInterval(checkVersion, 5000);
       }
       // config 변경도 60초 폴링으로 처리 (Realtime 채널 제거)
       migrateRanks();
@@ -2264,6 +2328,16 @@ function initDb() {
         var old = members.find(function(x){ return x.id === m.id; });
         if(old && old.equipment) m.equipment = old.equipment;
       });
+      // 새 공지 팝업 감지
+      if(window._cachedNotices && window._cachedNotices.length) {
+        var knownIds = window._cachedNotices.map(function(n){ return n.id; });
+        freshNotices.filter(function(n){ return !knownIds.includes(n.id); })
+          .forEach(function(n){
+            showNoticeAlert(n);
+            var label = n.type === '공지사항' ? '📢 새 공지사항' : '🛠 새 패치노트';
+            toast(label + ': ' + n.title);
+          });
+      }
       members = freshMembers;
       renderAll();
       renderNotices(freshNotices);
@@ -2381,10 +2455,37 @@ function initDb() {
         db.from('recruits').select('*').order('created_at', { ascending: false })
           .then(function({ data, error }){ if(!error){ recruits=data||[]; renderRecruit(); document.getElementById('stat-recruit').textContent=recruits.length; } });
       }, _POLL_MS);
+      // 쟁 참여조사 30초 폴링
+      window._warPollTimer = setInterval(function() {
+        if(document.hidden) return;
+        db.from('war_surveys').select('*').order('created_at', { ascending: false })
+          .then(function(res) {
+            if(!res.error && res.data) { warSurveys = res.data; renderWarSurveys(); }
+          });
+      }, 30000);
+      // 공지/패치노트 5초 폴링
+      window._noticePollTimer = setInterval(function() {
+        if(document.hidden) return;
+        db.from('notices').select('*').order('created_at', { ascending: false })
+          .then(function({ data, error }) {
+            if(error || !data) return;
+            if(window._cachedNotices && window._cachedNotices.length) {
+              var knownIds = window._cachedNotices.map(function(n){ return n.id; });
+              data.filter(function(n){ return !knownIds.includes(n.id); })
+                .forEach(function(n){
+                  showNoticeAlert(n);
+                  toast((n.type === '공지사항' ? '📢 새 공지사항' : '🛠 새 패치노트') + ': ' + n.title);
+                });
+            }
+            renderNotices(data);
+          });
+      }, 5000);
     }
     function _stopPolling() {
       if(window._pollTimer){ clearInterval(window._pollTimer); window._pollTimer=null; }
       if(window._recruitPollTimer){ clearInterval(window._recruitPollTimer); window._recruitPollTimer=null; }
+      if(window._noticePollTimer){ clearInterval(window._noticePollTimer); window._noticePollTimer=null; }
+      if(window._warPollTimer){ clearInterval(window._warPollTimer); window._warPollTimer=null; }
     }
     document.addEventListener('visibilitychange', function() {
       if(document.hidden) {
@@ -2396,12 +2497,7 @@ function initDb() {
     });
     if(!document.hidden) _startPolling();
 
-    db.from('war_surveys').select('*').order('created_at', { ascending: false })
-      .then(({ data, error }) => {
-        if(error) return;
-        warSurveys = data || [];
-        renderWarSurveys();
-      });
+    _loadWarSurveys();
   }
   window.refreshData = function() {
     // 캐시 클리어 + 로딩 화면 표시 후 데이터 재로드
@@ -2676,7 +2772,6 @@ async function loadNcNotices(force) {
   const btn = document.getElementById('nc-refresh-btn');
   if(btn) { btn.disabled = true; btn.style.opacity = '0.5'; btn.textContent = '⟳'; }
   el.innerHTML = '<div style="color:var(--muted);font-size:13px;">불러오는 중...</div>';
-  if(force) showActionLoading('아이온2 공지 불러오는 중...');
   try {
     const r = await fetch('/api/ncnotice');
     const text = await r.text();
@@ -2709,7 +2804,7 @@ async function loadNcNotices(force) {
       ? '<div id="nc-notice-btn-area"><button onclick="loadMoreNcNotices()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;">▼ 더보기</button></div>'
       : '';
     el.innerHTML = list.map(_renderNcItem).join('') + '<div id="nc-notice-extra"></div>' + moreBtnHtml;
-    if(!_ncPollTimer) _ncPollTimer = setInterval(function(){ loadNcNotices(true); }, 30 * 1000);
+    if(!_ncPollTimer) _ncPollTimer = setInterval(function(){ loadNcNotices(false); }, 5 * 60 * 1000);
   } catch(e) {
     hideActionLoading();
     if(btn) { btn.disabled = false; btn.style.opacity = ''; btn.textContent = '↺'; }
@@ -2760,7 +2855,6 @@ async function loadNcUpdates(force) {
   const btn = document.getElementById('nc-update-refresh-btn');
   if(btn) { btn.disabled = true; btn.style.opacity = '0.5'; btn.textContent = '⟳'; }
   el.innerHTML = '<div style="color:var(--muted);font-size:13px;">불러오는 중...</div>';
-  if(force) showActionLoading('아이온2 업데이트 불러오는 중...');
   try {
     const r = await fetch('/api/ncupdate');
     const text = await r.text();
@@ -2793,7 +2887,7 @@ async function loadNcUpdates(force) {
       ? '<div id="nc-update-btn-area"><button onclick="loadMoreNcUpdates()" style="width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;">▼ 더보기</button></div>'
       : '';
     el.innerHTML = list.map(_renderNcItem).join('') + '<div id="nc-update-extra"></div>' + moreBtnHtml2;
-    if(!_ncUpdatePollTimer) _ncUpdatePollTimer = setInterval(function(){ loadNcUpdates(true); }, 30 * 1000);
+    if(!_ncUpdatePollTimer) _ncUpdatePollTimer = setInterval(function(){ loadNcUpdates(false); }, 5 * 60 * 1000);
   } catch(e) {
     hideActionLoading();
     if(btn) { btn.disabled = false; btn.style.opacity = ''; btn.textContent = '↺'; }
@@ -2831,7 +2925,7 @@ function collapseNcUpdates() {
 }
 
 function renderAll() {
-  const mainMembers = members.filter(m => m.is_main !== false);
+  const mainMembers = members.filter(m => _isMain(m));
   const total = mainMembers.length;
   document.getElementById('stat-total').textContent = total;
   document.getElementById('online-badge').style.display='none';
@@ -2933,7 +3027,7 @@ function scanLeaveMembers() {
   const resultEl = document.getElementById('leave-scan-result');
   if(!resultEl) return;
 
-  const targets = members.filter(m => m.is_main !== false);
+  const targets = members.filter(m => _isMain(m));
   if(!targets.length) { toast('등록된 멤버가 없어요'); return; }
 
   _scanLeftList = targets.filter(m => (m.guild_name || '').trim() !== '도태')
@@ -3085,7 +3179,7 @@ function toggleSubs(mainId) {
   const toggle = document.getElementById('sub-toggle-' + mainId);
   const main = members.find(m => m.id === mainId);
   if(!main) return;
-  const subMembers = members.filter(m => m.is_main === false && m.player_id === main.nickname);
+  const subMembers = members.filter(m => _isSub(m) && m.player_id === main.nickname);
   const isOpen = toggle.textContent.includes('▼');
   subMembers.forEach(s => {
     const row = document.getElementById('sub-row-' + s.id);
@@ -3126,11 +3220,11 @@ function openDetail(m) {
   // 신석 색상: 전역 _runeColor(name) 함수로 이름 기반 처리
   const GN = {Common:'일반',Rare:'희귀',Hero:'영웅',Epic:'영웅',Unique:'유일',Legendary:'전설',Special:'스페셜'};
   const SN = {
-    MainHand:'주무기',SubHand:'보조/방패',Torso:'갑옷',Pants:'하의',
+    MainHand:'주무기',SubHand:'가더',Torso:'갑옷',Pants:'하의',
     Helmet:'투구',Shoulder:'어깨',Gloves:'장갑',Boots:'신발',
     Cape:'망토',Belt:'허리띠',Necklace:'목걸이',
     Earring1:'귀걸이',Earring2:'귀걸이',Ring1:'반지',Ring2:'반지',
-    Bracelet1:'팔찌',Bracelet2:'팔찌',Rune1:'신석',Rune2:'신석',
+    Bracelet1:'팔찌',Bracelet2:'팔찌',Rune1:'룬',Rune2:'룬',
     Amulet:'아뮬렛',
     Arcana1:'아르카나',Arcana2:'아르카나',Arcana3:'아르카나',
     Arcana4:'아르카나',Arcana5:'아르카나',Arcana6:'아르카나',
@@ -3332,14 +3426,14 @@ function openDetail(m) {
         ${magicStones.length ? `
           ${ncSec(_magicStoneLabel)}
           <div style="padding:8px 20px;display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;">
-            ${magicStones.map(s=>{const sc=GC[s.grade]||'#999';const val=s.value?(String(s.value).startsWith('+')?s.value:`+${s.value}`):'';return`<div style="display:flex;align-items:center;gap:6px;padding:2px 0;">${s.icon?`<img src="${s.icon}" style="width:20px;height:20px;border-radius:3px;flex-shrink:0;background:var(--surface);animation:imgPulse 1.5s ease infinite;" onload="_imgLoad(this)" onerror="_imgErr(this)">`:`<div style="width:20px;height:20px;border-radius:3px;background:${sc}22;flex-shrink:0;"></div>`}<span style="font-size:12px;color:${sc};">${s.name||''}${val?` ${val}`:''}</span></div>`;}).join('')}
+            ${magicStones.map(s=>{const _MC={'Common':'#aaaaaa','일반':'#aaaaaa','Rare':'#55cc44','희귀':'#55cc44','Unique':'#ffaa00','유일':'#ffaa00','Legend':'#4a90e8','Legendary':'#4a90e8','전승':'#4a90e8','전설':'#4a90e8'};const sc=_MC[s.grade]||_MC[s.gradeName]||'#aaaaaa';const val=s.value?(String(s.value).startsWith('+')?s.value:`+${s.value}`):'';return`<div style="display:flex;align-items:center;gap:6px;padding:2px 0;">${s.icon?`<img src="${s.icon}" style="width:20px;height:20px;border-radius:3px;flex-shrink:0;background:var(--surface);animation:imgPulse 1.5s ease infinite;" onload="_imgLoad(this)" onerror="_imgErr(this)">`:`<div style="width:20px;height:20px;border-radius:3px;background:${sc}22;flex-shrink:0;"></div>`}<span style="font-size:12px;color:${sc};">${s.name||''}${val?` ${val}`:''}</span></div>`;}).join('')}
           </div>` : ''}
 
         <!-- 신석: 아이콘 + 이름(등급색) + 설명 -->
         ${godStones.length ? `
           ${ncSec('신석')}
           <div style="padding:8px 20px;">
-            ${godStones.map(s=>{const rawDesc=s.description||s.desc||'';const desc=rawDesc.replace(/<[^>]*>/g,'');const _GCK={'일반':'#aaaaaa','희귀':'#4a90e8','영웅':'#d44040','유일':'#e8c030','전설':'#ff6a20','스페셜':'#40d4c0'};const sc=GC[s.grade]||_GCK[s.gradeName]||'#e0c97a';console.log('[godstone]',JSON.stringify(s));const effects=(s.skillEffectList||s.effectList||[]).map(ef=>`<div style="font-size:11px;color:#aaa;line-height:1.6;">${ef.description||ef.desc||ef.name||ef}</div>`).join('');return`<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;">${s.icon?`<img src="${s.icon}" style="width:22px;height:22px;border-radius:3px;flex-shrink:0;background:var(--surface);animation:imgPulse 1.5s ease infinite;" onload="_imgLoad(this)" onerror="_imgErr(this)">`:`<div style="width:22px;height:22px;border-radius:3px;background:${sc}22;flex-shrink:0;"></div>`}<div><div style="font-size:12px;color:${sc};font-weight:600;">${s.name||''}</div>${desc?`<div style="font-size:11px;color:#aaa;line-height:1.6;margin-top:2px;">${desc}</div>`:''}${effects}</div></div>`;}).join('')}
+            ${godStones.map(s=>{const rawDesc=s.description||s.desc||'';const desc=rawDesc.replace(/<[^>]*>/g,'');const _GSC={'Common':'#aaaaaa','일반':'#aaaaaa','Rare':'#55cc44','희귀':'#55cc44','Unique':'#ffaa00','유일':'#ffaa00','Legend':'#4a90e8','Legendary':'#4a90e8','전승':'#4a90e8','전설':'#4a90e8'};const sc=_GSC[s.grade]||_GSC[s.gradeName]||'#e0c97a';const effects=(s.skillEffectList||s.effectList||[]).map(ef=>`<div style="font-size:11px;color:#aaa;line-height:1.6;">${ef.description||ef.desc||ef.name||ef}</div>`).join('');return`<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;">${s.icon?`<img src="${s.icon}" style="width:22px;height:22px;border-radius:3px;flex-shrink:0;background:var(--surface);animation:imgPulse 1.5s ease infinite;" onload="_imgLoad(this)" onerror="_imgErr(this)">`:`<div style="width:22px;height:22px;border-radius:3px;background:${sc}22;flex-shrink:0;"></div>`}<div><div style="font-size:12px;color:${sc};font-weight:600;">${s.name||''}</div>${desc?`<div style="font-size:11px;color:#aaa;line-height:1.6;margin-top:2px;">${desc}</div>`:''}${effects}</div></div>`;}).join('')}
           </div>` : ''}
 
         <!-- 세트 효과 + 획득처 -->
@@ -3811,7 +3905,7 @@ function cpBar(cp) {
 }
 
 function renderTop5() {
-  const top = [...members].filter(m=>m.is_main!==false).sort((a,b)=>(b.combat_power||0)-(a.combat_power||0)).slice(0,10);
+  const top = [...members].filter(m=>_isMain(m)).sort((a,b)=>(b.combat_power||0)-(a.combat_power||0)).slice(0,10);
   document.getElementById('top10-body').innerHTML = top.length
     ? top.map((m,i)=>`<tr>
         <td style="color:var(--muted);font-weight:600">${i+1}</td>
@@ -3911,7 +4005,7 @@ function renderMembers() {
       <td style="white-space:nowrap;vertical-align:middle;">${syncBtn}${lastSync}</td>
       <td style="white-space:nowrap;vertical-align:middle;">
         <button class="btn btn-sm" onclick="openDetailById('${mId}')" style="font-size:11px;">상세</button>
-        <button class="btn btn-sm" onclick="openEdit('${m.id}','${m.rank||'군단병'}',${m.is_main===false?'false':'true'})">관리</button>
+        <button class="btn btn-sm" onclick="openEdit('${m.id}','${m.rank||'군단병'}',${_isSub(m)?'false':'true'})">관리</button>
       </td>
     </tr>`;
   };
@@ -3925,11 +4019,11 @@ function renderMembers() {
 
   if(mFilter !== 'all') {
     // 직업 필터 활성: 본캐 먼저 → 절취선 → 부캐
-    const mainFiltered = sortMembers(filtered.filter(m => m.is_main !== false));
+    const mainFiltered = sortMembers(filtered.filter(m => _isMain(m)));
     mainFiltered.forEach(main => { rows += rowHTML(main, false, ''); });
 
     const subFiltered = sortMembers(members.filter(m =>
-      m.is_main === false &&
+      _isSub(m) &&
       (CLASS_MAP[m.class]||m.class) === mFilter &&
       (m.nickname||'').toLowerCase().includes(search)
     ));
@@ -3941,12 +4035,12 @@ function renderMembers() {
     if(search) {
       // 검색 키워드 있을 때: 매칭 본캐 → 절취선 → 매칭 부캐
       const mainFiltered = sortMembers(members.filter(m =>
-        m.is_main !== false &&
+        _isMain(m) &&
         (mFilter==='all'||(CLASS_MAP[m.class]||m.class)===mFilter) &&
         (m.nickname||'').toLowerCase().includes(search)
       ));
       const subFiltered = sortMembers(members.filter(m =>
-        m.is_main === false &&
+        _isSub(m) &&
         (mFilter==='all'||(CLASS_MAP[m.class]||m.class)===mFilter) &&
         (m.nickname||'').toLowerCase().includes(search)
       ));
@@ -3957,8 +4051,8 @@ function renderMembers() {
       }
     } else {
       // 전체 + 검색 없음: 본캐 먼저, 본캐 아래 부캐 토글 그룹핑
-      const mains = filtered.filter(m => m.is_main !== false);
-      const subs  = members.filter(m => m.is_main === false);
+      const mains = filtered.filter(m => _isMain(m));
+      const subs  = members.filter(m => _isSub(m));
 
       mains.forEach(main => {
         const mainSubs = subs.filter(s => s.player_id === main.nickname);
@@ -4056,7 +4150,7 @@ function drawPie() {
   if(typeof Chart === 'undefined') { setTimeout(drawPie, 200); return; }
   const counts = {};
   members.forEach(m => {
-    if(m.is_main === false || !m.class) return;
+    if(_isSub(m) || !m.class) return;
     const cls = CLASS_MAP[m.class] || m.class;
     counts[cls] = (counts[cls]||0) + 1;
   });
@@ -4088,7 +4182,7 @@ function drawPie() {
 function renderDistList() {
   const counts = {};
   members.forEach(m => {
-    if(m.is_main !== false && m.class) {
+    if(_isMain(m) && m.class) {
       const cls = CLASS_MAP[m.class] || m.class;
       counts[cls] = (counts[cls]||0) + 1;
     }
