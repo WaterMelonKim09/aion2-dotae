@@ -1289,10 +1289,10 @@ const CLASS_MAP = {
   'Cleric':'치유성', 'Chanter':'호법성',
 };
 
-const BUILD_VERSION = '1.5.85';
+const BUILD_VERSION = '1.5.86';
 const BUILD_PATCHNOTE = {
-  title: 'DB 플랫폼 Turso 전환 (Supabase 완전 제거)',
-  content: '• Supabase → Turso (SQLite) 마이그레이션 완료.\n• Cloudflare Pages Function(/api/db)을 통한 안전한 DB 프록시 구조.\n• Firebase/Supabase 관련 코드·명칭 전부 정리.'
+  title: 'UI 명칭 수정 및 로딩 팝업 개선',
+  content: '• 보조/방패 → 가더, 신석 슬롯 → 룬으로 명칭 변경.\n• NC 공지/업데이트 자동 갱신 시 로딩 팝업 미표시.\n• 디버그 콘솔 로그 제거.'
 };
 
 // 전체 패치 내역 (버전별 정확한 설명)
@@ -2676,7 +2676,6 @@ async function loadNcNotices(force) {
   const btn = document.getElementById('nc-refresh-btn');
   if(btn) { btn.disabled = true; btn.style.opacity = '0.5'; btn.textContent = '⟳'; }
   el.innerHTML = '<div style="color:var(--muted);font-size:13px;">불러오는 중...</div>';
-  if(force) showActionLoading('아이온2 공지 불러오는 중...');
   try {
     const r = await fetch('/api/ncnotice');
     const text = await r.text();
@@ -2760,7 +2759,6 @@ async function loadNcUpdates(force) {
   const btn = document.getElementById('nc-update-refresh-btn');
   if(btn) { btn.disabled = true; btn.style.opacity = '0.5'; btn.textContent = '⟳'; }
   el.innerHTML = '<div style="color:var(--muted);font-size:13px;">불러오는 중...</div>';
-  if(force) showActionLoading('아이온2 업데이트 불러오는 중...');
   try {
     const r = await fetch('/api/ncupdate');
     const text = await r.text();
